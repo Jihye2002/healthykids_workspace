@@ -188,21 +188,26 @@
         }
 
         .quick-item:hover {
+            width: 100%;
             flex: none; 
             height: auto;
             display: block;
-            padding: 10px 0;
+            padding: 15px;
+            margin-bottom: 10px;
             align-items: center;
             justify-content: center;
             border: none;
+            box-sizing: border-box;
             border-radius: 8px;
             background-color: #d0e0fc;
-            color: #777;
+            color: #555;
             font-weight: 500;
             text-decoration: none;
+            text-align: center;
             font-size: 16px;
             white-space: nowrap;
             overflow: hidden;
+            transition: background-color 0.2s;
         }
 
         /* 푸터 내부 컨테이너 (왼쪽 정렬 유지) */
