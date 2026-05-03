@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>헬시키즈</title>
+    <style>
+        /* 기본 리셋 */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Arial', sans-serif; background-color: #fff; }
+
+        /* --- 헤더 --- */
+        .header { display: flex; align-items: center; padding: 10px 20px; flex-wrap: nowrap; gap: 10px; }
+        .logo { flex-shrink: 0; }
+        .logo img { display: block; width: 100%; max-width: 180px; height: auto; }
+        .container { display: flex; align-items: center; width: 100%; min-width: 0; gap: 20px;}
+        .search-bar { display: flex; align-items: center; margin-left: 20px; flex: 1 1 auto; max-width: 1280px; gap: 8px; }
+        .search-bar input { flex: 1 1 auto; padding: 10px; font-size: 15px; border: 1px solid #316ef4; min-width: 50px; border-radius: 5px; }
+        .search-bar button { background-color: #fff; border: none; cursor: pointer; flex-shrink: 0; width: 30px; }
+        .user-menu { margin-left: auto; display: flex; align-items: center; white-space: nowrap; flex-shrink: 0; font-size: 15px; font-weight: 600;}
+        .user-menu a { white-space: nowrap; text-decoration: none; color: #6d6d6d; }
+        .divider { margin: 0 8px; color: #6d6d6d; }
+
+        /* --- 내비게이션 --- */
+        /* --- 네비게이션바 전체 설정 --- */
+        .navbar { 
+            background-color: #2f63c7; 
+            position: relative; 
+        }
+
+        .menu-list { 
+            width: 100%;
+            display: flex; 
+            justify-content: center; /* 메뉴를 가로 중앙으로 정렬 */
+            align-items: center;
+            flex-wrap: nowrap;
+            white-space: nowrap;
+            list-style: none; 
+            padding: 0;         /* 위아래 적절한 여백 */
+            margin: 0;
+            overflow-x: visible;
+        }
+
+        .menu-list > li { 
+            flex: 1; 
+            padding: 0 20px;
+            text-align: center;
+            position: relative;
+            white-space: nowrap;
+        }
+
+        /* 상단 메인 메뉴 링크 스타일 */
+        .menu-list > li > a { 
+            display: block; 
+            padding: 10px 15px; 
+            color: white; 
+            text-decoration: none; 
+            font-weight: 600;
+            transition: background 0.3s;
+            white-space: nowrap;
+        }
+
+        /* 마우스를 올렸을 때 상단 메뉴 배경 변경 */
+        .menu-list > li:hover > a { 
+            background-color: #1e4fa8;
+        }
+
+        /* 1. 메가 메뉴 전체 패널 */
+        .mega-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 100%; 
+            background-color: #ffffff;
+            border-bottom: 3px solid #2f63c7;
+            box-shadow: 0 5px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+
+        /* 호버 시 메가 메뉴 나타남 */
+        .navbar:hover .mega-menu {
+            display: block; 
+        }
+
+        /* 2. 컬럼 컨테이너 (정렬 담당) */
+        .mega-content {
+            display: flex;
+            justify-content: stretch;
+            width: 100%;
+            padding: 20px 0;
+        }
+
+        /* 3. 각 컬럼 스타일 */
+        .column {
+            flex: 1;
+            text-align: center;
+            border-right: 1px solid #eee;
+        }
+
+        .column:last-child {
+            border-right: none;
+        }
+
+        .column ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .column ul li a {
+            color: #333;
+            padding: 10px 0;
+            display: block;
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+
+        .column ul li a:hover {
+            color: #2f63c7;
+            font-weight: bold;
+            background-color: #f8fbff;
+        }        
+        /* --- 콘텐츠 --- */
+        .contents { padding: 60px 20px; }
+        .card-container { width: 100%; display: flex; justify-content: center; gap: 20px; flex-wrap: nowrap; }
+        .card { flex: 1; min-width: 100px; text-decoration: none; color: #333; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .card img { width: 100%; height: auto; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); transition: 0.3s; }
+        .card p { width: 100%; white-space: nowrap; overflow: hidden; text-overflow: hidden; margin-top: 10px; font-size: 14px; font-weight: bold; text-align: left; color: #6a6a6a; }
+        .card p:hover { margin-top: 10px; font-size: 14px; font-weight: bold; text-align: left; color: #bababa; }
+        .card:hover img { transform: translateY(-10px) scale(1.03); box-shadow: 0 15px 30px rgba(0,0,0,0.3); }
+
+        /* 푸터 전체 스타일 */
+        .main-footer {
+            background-color: #f8f9fa;
+            padding: 40px 20px;
+            width: 100%;
+            box-sizing: border-box;
+            margin-top: 50px;
+
+        }
+
+        /* 공지사항 & 빠른 서비스 공통 영역 */
+        .footer-notice, .footer-quick {
+            padding: 30px;
+        }
+
+        .footer-quick {
+            flex: 1; /* 빠른 서비스 영역 */
+        }
+
+        /* 빠른 서비스 그리드 */
+        .quick-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            justify-content: flex-start;
+            margin-top: 20px;
+            overflow: auto;
+            padding-left: 20px;
+            padding-right: 20px;
+        }
+
+        /* 빠른 서비스 항목 (모바일/데스크탑 대응) */
+        .quick-item {
+            width: 100%;
+            flex: none; 
+            height: auto;
+            display: block;
+            padding: 15px;
+            margin-bottom: 10px;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            box-sizing: border-box;
+            border-radius: 8px;
+            background-color: #f0f0f0;
+            color: #555;
+            font-weight: 500;
+            text-decoration: none;
+            text-align: center;
+            font-size: 16px;
+            white-space: nowrap;
+            overflow: hidden;
+            transition: background-color 0.2s;
+        }
+
+        .quick-item:hover {
+            flex: none; 
+            height: auto;
+            display: block;
+            padding: 10px 0;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            border-radius: 8px;
+            background-color: #d0e0fc;
+            color: #777;
+            font-weight: 500;
+            text-decoration: none;
+            font-size: 16px;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+
+        /* 푸터 내부 컨테이너 (왼쪽 정렬 유지) */
+        .footer-container, .footer-notice {
+            max-width: 1760px;         /* 너무 길어지지 않게 너비 제한 */
+            text-align: left;
+            overflow-x: auto;
+            overflow-y: auto;
+        }
+
+        /* 기존 .footer-container 스타일을 아래 코드로 대체하세요 */
+        .footer-container {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between; /* 양 끝으로 벌려서 공간 활용 */
+            align-items: flex-start;  /* 위쪽 정렬 */
+            gap: 480px;                /* 공지사항과 빠른 서비스 사이 간격 */
+            padding: 20px;
+            max-width: 1560px;    /* 최대 1000px까지만 늘어남 */
+            padding: 20px;      /* 여백 조정 */
+            margin: 0 auto;       
+            margin-left: 50px;
+            font-size: 16px;
+        }
+
+        .footer-notice {
+            width: 640px;
+            margin-top: 20px;
+            margin-bottom: 10px; /* 아래 빠른 서비스와 간격 유지 */
+            flex: 2;
+            height: 360px;
+            min-width: 400px;
+            box-sizing: border-box;
+            overflow-x: auto;
+            padding: 20px;
+        }
+
+        /* 1. 공지사항 헤더: 제목(왼쪽)과 더보기 버튼(오른쪽) 정렬 */
+        .notice-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            border-bottom: 1.5px solid #737373;
+            padding-bottom: 10px;
+        }
+
+        /* 2. 공지사항 리스트: 간격 최적화 */
+        .notice-list {
+            list-style: none;
+            margin: 0;
+            width: 100%;
+        }
+
+        .notice-list li {
+            padding: 20px 0;
+            border-bottom: 1.2px solid #eee; /* 가독성을 위한 구분선 */
+            text-align: left;
+            height: 80px;
+            width: 100%;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+
+        /* 클릭 영역을 리스트 항목 전체로 확장 */
+        .notice-list li a {
+            display: block; 
+            text-decoration: none;
+            color: #555;
+            transition: color 0.2s;
+            gap: 60px;
+        }
+
+        .notice-list li a:hover {
+            color: #777;
+            font-weight: 500;
+        }
+
+        /* 4. 더보기 버튼(더하기 기호 등) */
+        .more-link {
+            font-size: 20px;
+            font-weight: bold;
+            color: #737373;
+            text-decoration: none;
+            line-height: 1; /* 텍스트 위치 정렬 */
+            padding: 5px;   /* 터치 영역 확보 */
+        }
+
+         /* 2. 제목 스타일 (위의 헤더와 겹치지 않게 분리) */
+        .footer-notice h3 {
+            margin: 0;      /* h3 기본 마진 제거 */
+            font-size: 18px;
+            color: #737373;
+        }
+
+        .more-link:hover { 
+            font-size: 20px; 
+            text-decoration: none; 
+            color: #bababa; 
+            font-weight: bold; 
+            padding-bottom: 10px;
+        }
+
+        /* 빠른 서비스 그리드 */
+        .footer-quick .quick-grid {
+            display: flex;
+            flex-wrap: wrap; /* 화면이 좁아지면 다음 줄로 넘김 */
+            gap: 10px;
+            justify-content: flex-start;
+        }
+
+        .footer-quick{
+            justify-content: flex-start; 
+            gap: 20px; /* 버튼 간의 간격 */
+            padding: 20px;
+            flex: 1;
+            height: auto;
+            min-width: 300px;
+            width: 640px;
+            box-sizing: border-box;
+        }
+
+        /* 4. 빠른 서비스 제목 (여기는 Flex가 필요 없음) */
+        .footer-quick h3 {
+            padding-left: 20px;
+            font-size: 18px;
+            color: #737373;
+        }
+
+
+        /* --- 챗봇 --- */
+        #chatbot-btn { position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; border-radius: 50%; background-color: #2f63c7; color: white; font-size: 24px; border: none; box-shadow: 0 4px 10px rgba(0,0,0,0.3); cursor: pointer; z-index: 1000; transition: all 0.3s; }
+
+        #chatbot-btn:hover { transform: scale(1.1) rotate(5deg); background-color: #1e4fa8; }
+
+        #chatbox { position: fixed; bottom: 100px; right: 30px; width: 300px; height: 400px; background: white; border-radius: 20px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); display: flex; flex-direction: column; z-index: 1000; overflow: hidden; }
+
+        .chatbox-hidden { display: none !important; }
+
+        .chat-header { background: #2f63c7; color: white; padding: 15px; display: flex; justify-content: space-between; }
+
+        .chat-body { padding: 20px; flex: 1; overflow-y: auto; color: #333; }
+
+        .chat-input { padding: 10px; border-top: 1px solid #eee; display: flex; }
+
+        .chat-input input { flex: 1; padding: 5px; border: 1px solid #ddd; }
+
+        @media (max-width: 1000px) {
+            /* 1. 내비게이션과 카드 컨테이너 설정 */
+            .navbar, .card-container {
+                display: flex;
+                flex-wrap: nowrap;
+                overflow-x: auto; /* 핵심: 옆으로 밀 수 있게 기능 살리기 */
+                overflow-y: hidden;
+
+                /* [중요] 스크롤바 숨기기 (모든 브라우저 대응) */
+                scrollbar-width: none;        /* Firefox */
+                -ms-overflow-style: none;     /* IE, Edge */
+            }
+
+            /* 크롬, 사파리, 엣지 등 Webkit 기반 브라우저 */
+            .navbar::-webkit-scrollbar, 
+            .card-container::-webkit-scrollbar {
+                display: none;
+            }
+
+            /* 기존 스타일 유지 */
+            .menu-list > li, .card {
+                flex-shrink: 0;
+            }
+            
+            .card-container {
+                gap: 20px;
+                padding-bottom: 20px;
+            }
+        }
+
+        /* 화면이 작아지면 푸터 내부 요소들이 세로로 정렬되도록 함 */
+        @media (max-width: 400px) {
+            .footer-container {
+                display: flex;
+                flex-direction: row;
+                justify-content: space-between;
+                padding: 20px;
+            }
+            
+            .footer-notice {
+                width: 100%; /* 너비를 꽉 채우기 */
+            }
+        }
+        
+    </style>
+</head>
+<body>
+
+<header class="header">
+    <div class="logo">
+        <a href="index.html">
+            <img src="https://raw.githubusercontent.com/Jihye2002/healthykids_workspace/refs/heads/main/logo.png" alt="헬시키즈로고">
+        </a>
+    </div>
+    <div class="container">
+        <form class="search-bar" action="search.html" method="get">
+            <input type="text" name="q" placeholder="검색어를 입력하세요">
+            <button type="submit"><img src="https://github.com/Jihye2002/healthykids_workspace/blob/main/search.png?raw=true" alt="검색버튼" width="40" height="40"></button>
+        </form>
+        <div class="user-menu">
+            <a href="login.html">로그인</a>
+            <span class="divider">|</span>
+            <a href="signup.html">회원가입</a>
+        </div>
+    </div>
+</header>
+
+<nav class="navbar">
+    <ul class="menu-list">
+        <li><a href="#">회원정보</a></li>
+        <li><a href="#">영상보기</a></li>
+        <li><a href="#">놀이&활동자료 다운로드</a></li>
+        <li><a href="#">안전수칙자료 다운로드</a></li>
+        <li><a href="#">Q&A</a></li>
+    </ul>
+
+    <div class="mega-menu">
+        <div class="mega-content">
+            <div class="column">
+                <ul>
+                    <li><a href="#">개인정보 수정</a></li>
+                    <li><a href="#">회원탈퇴</a></li>
+                </ul>
+            </div>
+
+            <div class="column">
+                <ul>
+                    <li><a href="#">진행중인 영상</a></li>
+                    <li><a href="#">위생안전</a></li>
+                    <li><a href="#">실외안전</a></li>
+                    <li><a href="#">생활건강</a></li>
+                    <li><a href="#">질병예방</a></li>
+                </ul>
+            </div>
+
+            <div class="column">
+                <ul>
+                    <li><a href="#">하루건강 체크리스트</a></li>
+                    <li><a href="#">퀴즈</a></li>
+                    <li><a href="#">놀이학습자료</a></li>
+                </ul>
+            </div>
+
+            <div class="column">
+                <ul>
+                    <li><a href="#">위생안전자료</a></li>
+                    <li><a href="#">실외안전자료</a></li>
+                    <li><a href="#">생활건강자료</a></li>
+                    <li><a href="#">질병예방자료</a></li>
+                </ul>
+            </div>
+
+            <div class="column">
+                <ul>
+                    <li><a href="#">자주 묻는 질문</a></li>
+                    <li><a href="#">1:1상담 문의</a></li>
+                    <li><a href="#">영상오류 해결방법</a></li>
+                </ul>
+            </div>
+
+        </div>
+    </div>
+</nav>
+
+<div class="contents">
+    <div class="card-container">
+        <a href="video.html?type=hygiene" class="card">
+            <img src="https://github.com/Jihye2002/healthykids_workspace/blob/main/%EC%86%90%EC%94%BB%EA%B8%B0.png?raw=true" alt="위생안전">
+            <p>손씻기 영상보기 ></p>
+        </a>
+        <a href="video.html?type=crosswalk" class="card">
+            <img src="https://github.com/Jihye2002/healthykids_workspace/blob/main/%ED%9A%A1%EB%8B%A8%EB%B3%B4%EB%8F%84%EA%B1%B4%EB%84%88%EA%B8%B0.png?raw=true" alt="횡단보도">
+            <p>올바르게 길 건너는 영상보기 > </p>
+        </a>
+        <a href="video.html?type=foodsafety" class="card">
+            <img src="https://github.com/Jihye2002/healthykids_workspace/blob/main/%EC%8B%9D%EC%8A%B5%EA%B4%80_%EC%9D%B4%EB%AF%B8%EC%A7%80.png?raw=true" alt="식습관">
+            <p>영양소 듬뿍 영상보기 > </p>
+        </a>
+        <a href="video.html?type=precaution" class="card">
+            <img src="https://github.com/Jihye2002/healthykids_workspace/blob/main/%EC%A7%88%EB%B3%91%EC%98%88%EB%B0%A9.png?raw=true" alt="질병예방">
+            <p>감기와 독감 걸리지 않는 영상보기 > </p>
+        </a>
+    </div>
+</div>
+
+<footer class="main-footer">
+    <div class="footer-container">
+        <div class="footer-notice">
+            <div class="notice-header">
+                <h3>공지사항</h3>
+                <a href="notice.html" class="more-link">+</a>
+            </div>
+            <ul class="notice-list">
+                <li><a href="#">[공지] 헬시키즈 이용 가이드</a></li>
+                <li><a href="#">[공지] 신규 놀이 자료 업데이트 안내</a></li>
+                <li><a href="#">[공지] 사이트 점검 안내(26.05.04)</a></li>
+            </ul>
+        </div>
+        <div class="footer-quick">
+            <h3>빠른 서비스</h3>
+            <div class="quick-grid" style="display: flex; justify-content: flex-start; gap: 20px; margin-top: 20px; margin-bottom: 30px;">
+                <a href="#" class="quick-item">🎨 놀이자료 다운로드</a>
+                <a href="#" class="quick-item">🚸 안전수칙자료 다운로드</a>
+                <a href="#" class="quick-item">💬 1:1 상담 문의</a>
+                <a href="#" class="quick-item">🛠️ 영상오류 해결방법</a>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<button id="chatbot-btn" onclick="toggleChat()">💬</button>
+<div id="chatbox" class="chatbox-hidden">
+    <div class="chat-header">
+        <span>헬시키즈 AI 도우미</span>
+        <button onclick="toggleChat()" style="background:none; border:none; color:white; cursor:pointer;">X</button>
+    </div>
+    <div class="chat-body" id="chat-body">
+        <p>안녕! 헬시키즈 친구야. 궁금한 점을 물어봐!</p>
+    </div>
+    <div class="chat-input">
+        <input type="text" id="user-input" placeholder="메시지 입력...">
+        <button onclick="sendMessage()">전송</button>
+    </div>
+</div>
+
+<script>
+    function toggleChat() {
+        document.getElementById('chatbox').classList.toggle('chatbox-hidden');
+    }
+
+    function sendMessage() {
+        const input = document.getElementById('user-input');
+        const body = document.getElementById('chat-body');
+        if (input.value.trim() === "") return;
+
+        body.innerHTML += `<p style="text-align:right; color:#2f63c7;">나: ${input.value}</p>`;
+        
+        setTimeout(() => {
+            body.innerHTML += `<p style="color:#555;">AI: "${input.value}"에 대해 공부하는 건 참 좋은 생각이야!</p>`;
+            body.scrollTop = body.scrollHeight;
+        }, 500);
+
+        input.value = "";
+    }
+
+</script>
+
+</body>
+</html>
