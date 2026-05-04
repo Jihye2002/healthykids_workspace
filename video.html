@@ -217,7 +217,6 @@
     <h2 id="video-title">불러오는 중...</h2>
     <div class="video-wrapper">
         <video id="main-video" controls>
-            <source id="video-source" src="" type="video/mp4">
         </video>
     </div>
 
@@ -268,25 +267,27 @@
     const type = params.get('type');
     const data = contentDB[type];
 
-    // 3. 화면에 데이터 뿌리기
+    // ... (위쪽 코드 동일)
     if (data) {
-            const videoTitle = document.getElementById('video-title');
-            const videoSource = document.getElementById('video-source');
-            const video = document.getElementById('main-video');
-
-            if (videoTitle) videoTitle.innerText = data.title;
-            if (videoSource) videoSource.src = data.src;
-            
-            // 영상을 새로 불러오기
-            video.load(); 
-            
-            // 자동 재생 오류 방지
-            try {
-                await video.play(); 
-            } catch (error) {
-                console.log("자동 재생이 차단되었습니다. 사용자가 재생 버튼을 눌러야 합니다.");
-                // 여기서 필요한 경우 사용자에게 "재생 버튼을 눌러주세요"라는 메시지를 보여줄 수도 있습니다.
-            }
+        const videoTitle = document.getElementById('video-title');
+        const video = document.getElementById('main-video'); // 태그 직접 선택
+    
+        if (videoTitle) videoTitle.innerText = data.title;
+        
+        // 비디오 소스를 직접 설정
+        video.src = data.src; 
+        
+        // 영상 로드 및 재생
+        video.load(); 
+        
+        try {
+            await video.play(); 
+        } catch (error) {
+            console.log("자동 재생이 차단되었습니다.");
+        }
+        
+        // ... (이하 퀴즈 코드 동일)
+    }
             
             // 자동 재생 실패 여부와 관계없이 아래 코드는 실행됩니다.
             function loadQuizData() {
