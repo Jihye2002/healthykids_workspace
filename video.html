@@ -217,7 +217,7 @@
     <h2 id="video-title">불러오는 중...</h2>
     <div class="video-wrapper">
         <video id="main-video" controls>
-        </video>
+        <video id="main-video" controls muted autoplay playsinline>
     </div>
 
     <div class="quiz-section">
@@ -268,23 +268,22 @@
     const data = contentDB[type];
 
     // ... (위쪽 코드 동일)
+
     if (data) {
         const videoTitle = document.getElementById('video-title');
-        const video = document.getElementById('main-video'); // 태그 직접 선택
-    
+        const video = document.getElementById('main-video'); 
+        
         if (videoTitle) videoTitle.innerText = data.title;
         
-        // 비디오 소스를 직접 설정
+        // 소스 설정
         video.src = data.src; 
-        
-        // 영상 로드 및 재생
         video.load(); 
         
-        try {
-            await video.play(); 
-        } catch (error) {
-            console.log("자동 재생이 차단되었습니다.");
-        }
+        // play()를 호출하되, 에러가 나면 그냥 무시하도록 처리합니다.
+        // HTML에 이미 autoplay를 넣었으므로, 이 코드는 재생을 시도만 할 뿐입니다.
+        video.play().catch(error => {
+            console.log("자동 재생이 차단되었지만, 사용자가 직접 재생할 수 있습니다.");
+        });
         
         // ... (이하 퀴즈 코드 동일)
     }
