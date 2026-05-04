@@ -305,8 +305,10 @@
             });
         }
     } else {
-        document.getElementById('video-title').innerText = "데이터를 찾을 수 없습니다.";
-    }
+            document.getElementById('video-title').innerText = "데이터를 찾을 수 없습니다.";
+        }
+    }); // <--- 여기가 중요합니다! (addEventListener를 닫는 괄호)
+</script>
 </script>
 </body>
 </html>
