@@ -216,8 +216,10 @@
 <div class="page-container">
     <h2 id="video-title">불러오는 중...</h2>
     <div class="video-wrapper">
-        <video id="main-video" controls>
         <video id="main-video" controls muted autoplay playsinline>
+            <source id="video-source" src="" type="video/mp4">
+            브라우저가 비디오 태그를 지원하지 않습니다.
+        </video>    
     </div>
 
     <div class="quiz-section">
@@ -229,7 +231,7 @@
 
 <script>
     // 1. 영상 및 퀴즈 데이터 정의 (여기를 수정했습니다!)
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
         const contentDB = {
             'hygiene': { 
                 title: '손씻기 학습', 
@@ -237,14 +239,14 @@
                 src: 'https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/AI%20%EC%BA%90%EB%A6%AD%ED%84%B0%20%EC%8B%9C%EC%97%B0%EC%98%81%EC%83%81_%EC%86%90%EC%94%BB%EA%B8%B0.mp4', 
                 q: '손을 씻을 때 가장 올바른 방법은?', 
                 opts: ['물로만', '비누칠 30초', '그냥 털기'], 
-                ans: 1 
+                ans: 1
             },
             'crosswalk': { 
                 title: '횡단보도 건너기', 
                 src: 'https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/AI%20%EC%BA%90%EB%A6%AD%ED%84%B0%20%EC%8B%9C%EC%97%B0%EC%98%81%EC%83%81_%ED%9A%A1%EB%8B%A8%EB%B3%B4%EB%8F%84.mp4', 
                 q: '초록불에 건널 때 어떻게 해야 할까요?', 
                 opts: ['뛰어간다', '손을 들고 확인한다', '핸드폰을 본다'], 
-                ans: 1 
+                ans: 1
             },
             'foodsafety': { 
                 title: '영양소 듬뿍', 
@@ -270,23 +272,20 @@
     // ... (위쪽 코드 동일)
 
     if (data) {
-        const videoTitle = document.getElementById('video-title');
-        const video = document.getElementById('main-video'); 
-        
-        if (videoTitle) videoTitle.innerText = data.title;
-        
-        // 소스 설정
-        video.src = data.src; 
-        video.load(); 
-        
-        // play()를 호출하되, 에러가 나면 그냥 무시하도록 처리합니다.
-        // HTML에 이미 autoplay를 넣었으므로, 이 코드는 재생을 시도만 할 뿐입니다.
-        video.play().catch(error => {
-            console.log("자동 재생이 차단되었지만, 사용자가 직접 재생할 수 있습니다.");
-        });
-        
-        // ... (이하 퀴즈 코드 동일)
-    }
+            // 1. 제목과 비디오 설정
+            document.getElementById('video-title').innerText = data.title;
+            const video = document.getElementById('main-video');
+            const source = document.getElementById('video-source');
+            
+            source.src = data.src;
+            video.load(); // 새로운 소스를 로드합니다.
+
+            // 2. 영상 자동 재생 시도 (비동기 처리)
+            try {
+                await video.play();
+            } catch (err) {
+                console.log("자동 재생이 차단되었습니다 (브라우저 정책).");
+            }
             
             // 자동 재생 실패 여부와 관계없이 아래 코드는 실행됩니다.
             function loadQuizData() {
@@ -310,10 +309,9 @@
             }
             
             // 퀴즈 관련 코드는 오류와 상관없이 실행됩니다.
-            document.getElementById('quiz-question').innerText = data.q;
-    
+           document.getElementById('quiz-question').innerText = data.q;
             const optDiv = document.getElementById('quiz-options');
-            optDiv.innerHTML = ""; // 기존 버튼 초기화
+            optDiv.innerHTML = ""; 
             data.opts.forEach((opt, idx) => {
                 const btn = document.createElement('button');
                 btn.className = 'btn';
@@ -324,7 +322,7 @@
                 optDiv.appendChild(btn);
             });
         } else {
-            console.log("데이터를 찾을 수 없습니다. URL 파라미터를 확인하세요.");
+            document.getElementById('video-title').innerText = "데이터를 찾을 수 없습니다.";
         }
     });
 </script>
