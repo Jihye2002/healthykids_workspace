@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>헬시키즈 - 학습하기</title>
+    <style>
+        /* 기본 레이아웃은 index.html의 스타일을 사용한다고 가정합니다. */
+        .page-container { max-width: 800px; margin: 0 auto; padding: 20px; }
+        
+        /* 영상 영역 */
+        .video-box { margin-top: 30px; }
+        #main-video { width: 100%; border-radius: 15px; background: #000; }
+
+        /* 퀴즈 영역 스타일 */
+        .quiz-section { margin-top: 40px; padding: 30px; background: #f8f9fa; border-radius: 15px; border: 1px solid #ddd; }
+        .quiz-question { font-size: 20px; font-weight: bold; margin-bottom: 20px; color: #333; }
+        .quiz-options { display: flex; flex-direction: column; gap: 10px; }
+        .quiz-btn { padding: 15px; border: 1px solid #2f63c7; background: white; border-radius: 10px; cursor: pointer; transition: 0.2s; }
+        .quiz-btn:hover { background: #eef5ff; }
+        #result-msg { margin-top: 20px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<header class="header">
+    <div class="logo"><a href="index.html"><img src="logo.png" alt="로고" width="150"></a></div>
+    <form class="search-bar" action="search.html" method="get">
+        <input type="text" name="q" placeholder="검색어를 입력하세요">
+        <button type="submit">검색</button>
+    </form>
+    <div class="user-menu"><a href="login.html">로그인</a> | <a href="signup.html">회원가입</a></div>
+</header>
+
+<div class="page-container">
+    <h2 id="video-title">로딩 중...</h2>
+    
+    <div class="video-box">
+        <video id="main-video" controls>
+            <source id="video-source" src="" type="video/mp4">
+            브라우저가 비디오 태그를 지원하지 않습니다.
+        </video>
+    </div>
+
+    <div class="quiz-section">
+        <div class="quiz-question" id="quiz-q">질문을 불러오는 중입니다.</div>
+        <div class="quiz-options" id="quiz-options">
+            </div>
+        <div id="result-msg"></div>
+    </div>
+</div>
+
+<script>
+    const params = new URLSearchParams(window.location.search);
+    const type = params.get('type');
+
+    // 퀴즈 데이터베이스
+    const contentData = {
+        'hygiene': {
+            title: '위생안전: 올바른 손 씻기',
+            src: 'videos/hygiene.mp4',
+            quiz: '손 씻을 때 가장 중요한 것은?',
+            options: ['물로만 헹구기', '비누를 묻혀 구석구석 닦기', '그냥 털기'],
+            answer: 1 // 0부터 시작 (1번이 정답)
+        },
+        'crosswalk': {
+            title: '실외안전: 횡단보도 건너기',
+            src: 'videos/crosswalk.mp4',
+            quiz: '초록불이 켜졌을 때 가장 먼저 해야 할 일은?',
+            options: ['바로 뛰어간다', '손을 들고 좌우를 살핀다', '그냥 건넌다'],
+            answer: 1
+        }
+    };
+
+    const data = contentData[type];
+    if (data) {
+        document.getElementById('video-title').innerText = data.title;
+        document.getElementById('video-source').src = data.src;
+        document.getElementById('main-video').load();
+        
+        document.getElementById('quiz-q').innerText = data.quiz;
+        const optDiv = document.getElementById('quiz-options');
+        
+        data.options.forEach((opt, index) => {
+            const btn = document.createElement('button');
+            btn.className = 'quiz-btn';
+            btn.innerText = opt;
+            btn.onclick = () => checkAnswer(index, data.answer);
+            optDiv.appendChild(btn);
+        });
+    }
+
+    function checkAnswer(selected, correct) {
+        const msg = document.getElementById('result-msg');
+        if(selected === correct) {
+            msg.innerText = "정답입니다! 잘했어요!";
+            msg.style.color = "blue";
+        } else {
+            msg.innerText = "다시 한번 생각해볼까요?";
+            msg.style.color = "red";
+        }
+    }
+</script>
+
+</body>
+</html>
