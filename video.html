@@ -279,8 +279,15 @@
             
             // 영상을 새로 불러오기
             video.load(); 
-            video.play(); // 자동 재생 테스트
-        
+            
+            // 자동 재생 오류 방지
+            try {
+                video.play(); 
+            } catch (error) {
+                console.log("자동 재생이 차단되었습니다. 사용자가 직접 재생 버튼을 눌러야 합니다.");
+            }
+            
+            // 퀴즈 관련 코드는 오류와 상관없이 실행됩니다.
             document.getElementById('quiz-question').innerText = data.q;
     
             const optDiv = document.getElementById('quiz-options');
