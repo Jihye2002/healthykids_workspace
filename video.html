@@ -272,46 +272,28 @@
     // ... (위쪽 코드 동일)
 
     if (data) {
-            // 1. 제목과 비디오 설정
-            document.getElementById('video-title').innerText = data.title;
-            const video = document.getElementById('main-video');
-            const source = document.getElementById('video-source');
-            
-            source.src = data.src;
-            video.load(); // 새로운 소스를 로드합니다.
+        // 1. 제목과 비디오 설정
+        document.getElementById('video-title').innerText = data.title;
+        const video = document.getElementById('main-video');
+        const source = document.getElementById('video-source');
+        
+        source.src = data.src;
+        video.load(); 
 
-            // 2. 영상 자동 재생 시도 (비동기 처리)
-            try {
-                await video.play();
-            } catch (err) {
-                console.log("자동 재생이 차단되었습니다 (브라우저 정책).");
-            }
-            
-            // 자동 재생 실패 여부와 관계없이 아래 코드는 실행됩니다.
-            function loadQuizData() {
-                // 퀴즈 관련 코드를 이 안으로 옮기세요.
-                const quizQuestion = document.getElementById('quiz-question');
-                const optDiv = document.getElementById('quiz-options');
-                
-                if (quizQuestion && optDiv) {
-                    quizQuestion.innerText = data.q;
-                    optDiv.innerHTML = ""; // 기존 버튼 초기화
-                    data.opts.forEach((opt, idx) => {
-                        const btn = document.createElement('button');
-                        btn.className = 'btn';
-                        btn.innerText = opt;
-                        btn.onclick = () => {
-                            document.getElementById('feedback').innerText = (idx === data.ans) ? "✅ 정답입니다!" : "❌ 다시 한번 생각해보세요!";
-                        };
-                        optDiv.appendChild(btn);
-                    });
-                }
-            }
-            
-            // 퀴즈 관련 코드는 오류와 상관없이 실행됩니다.
-           document.getElementById('quiz-question').innerText = data.q;
-            const optDiv = document.getElementById('quiz-options');
-            optDiv.innerHTML = ""; 
+        // 2. 영상 자동 재생 시도 (비동기 처리)
+        try {
+            await video.play();
+        } catch (err) {
+            console.log("자동 재생이 차단되었습니다 (브라우저 정책).");
+        }
+
+        // 3. 퀴즈 설정
+        const quizQuestion = document.getElementById('quiz-question');
+        const optDiv = document.getElementById('quiz-options');
+        
+        if (quizQuestion && optDiv) {
+            quizQuestion.innerText = data.q;
+            optDiv.innerHTML = ""; // 기존 버튼 초기화
             data.opts.forEach((opt, idx) => {
                 const btn = document.createElement('button');
                 btn.className = 'btn';
@@ -321,10 +303,10 @@
                 };
                 optDiv.appendChild(btn);
             });
-        )} else {
-            document.getElementById('video-title').innerText = "데이터를 찾을 수 없습니다.";
         }
-    });
+    } else {
+        document.getElementById('video-title').innerText = "데이터를 찾을 수 없습니다.";
+    }
 </script>
 </body>
 </html>
