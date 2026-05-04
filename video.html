@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>헬시키즈 - 학습하기</title>
+    <title>헬시키즈</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Arial', sans-serif; background-color: #fff; }
@@ -230,37 +230,38 @@
 
 <script>
     // 1. 영상 및 퀴즈 데이터 정의 (여기를 수정했습니다!)
-    const contentDB = {
-        'hygiene': { 
-            title: '손씻기 학습', 
-            // 아래 src에 실제 주소를 넣었습니다.
-            src: 'https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/2026_05_04%2014_20.mp4', 
-            q: '손을 씻을 때 가장 올바른 방법은?', 
-            opts: ['물로만', '비누칠 30초', '그냥 털기'], 
-            ans: 1 
-        },
-        'crosswalk': { 
-            title: '횡단보도 건너기', 
-            src: 'https://github.com/.../crosswalk.mp4', 
-            q: '초록불에 건널 때 어떻게 해야 할까요?', 
-            opts: ['뛰어간다', '손을 들고 확인한다', '핸드폰을 본다'], 
-            ans: 1 
-        },
-        'foodsafety': { 
-            title: '영양소 듬뿍', 
-            src: 'https://github.com/.../food.mp4', 
-            q: '골고루 먹으면 어디에 좋을까요?', 
-            opts: ['키가 커져요', '잠만 와요', '배가 아파요'], 
-            ans: 0 
-        },
-        'precaution': { 
-            title: '감기 예방', 
-            src: 'https://github.com/.../cold.mp4', 
-            q: '감기 예방을 위한 올바른 행동은?', 
-            opts: ['손 자주 씻기', '창문 닫기', '아이스크림 먹기'], 
-            ans: 0 
-        }
-    };
+    document.addEventListener('DOMContentLoaded', () => {
+        const contentDB = {
+            'hygiene': { 
+                title: '손씻기 학습', 
+                // 아래 src에 실제 주소를 넣었습니다.
+                src: 'https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/2026_05_04%2014_20.mp4', 
+                q: '손을 씻을 때 가장 올바른 방법은?', 
+                opts: ['물로만', '비누칠 30초', '그냥 털기'], 
+                ans: 1 
+            },
+            'crosswalk': { 
+                title: '횡단보도 건너기', 
+                src: 'https://github.com/.../crosswalk.mp4', 
+                q: '초록불에 건널 때 어떻게 해야 할까요?', 
+                opts: ['뛰어간다', '손을 들고 확인한다', '핸드폰을 본다'], 
+                ans: 1 
+            },
+            'foodsafety': { 
+                title: '영양소 듬뿍', 
+                src: 'https://github.com/.../food.mp4', 
+                q: '골고루 먹으면 어디에 좋을까요?', 
+                opts: ['키가 커져요', '잠만 와요', '배가 아파요'], 
+                ans: 0 
+            },
+            'precaution': { 
+                title: '감기 예방', 
+                src: 'https://github.com/.../cold.mp4', 
+                q: '감기 예방을 위한 올바른 행동은?', 
+                opts: ['손 자주 씻기', '창문 닫기', '아이스크림 먹기'], 
+                ans: 0 
+            }
+        };
 
     // 2. URL에서 정보 가져오기
     const params = new URLSearchParams(window.location.search);
@@ -269,28 +270,33 @@
 
     // 3. 화면에 데이터 뿌리기
     if (data) {
-        document.getElementById('video-title').innerText = data.title;
-        document.getElementById('video-source').src = data.src;
-        // 비디오 소스가 바뀌었으므로 로드를 다시 시켜줍니다.
-        const video = document.getElementById('main-video');
-        video.load(); 
-        
-        document.getElementById('quiz-question').innerText = data.q;
+            const videoTitle = document.getElementById('video-title');
+            const videoSource = document.getElementById('video-source');
+            const video = document.getElementById('main-video');
 
-        const optDiv = document.getElementById('quiz-options');
-        optDiv.innerHTML = ""; // 기존 버튼 초기화
-        data.opts.forEach((opt, idx) => {
-            const btn = document.createElement('button');
-            btn.className = 'btn';
-            btn.innerText = opt;
-            btn.onclick = () => {
-                document.getElementById('feedback').innerText = (idx === data.ans) ? "✅ 정답입니다!" : "❌ 다시 한번 생각해보세요!";
-            };
-            optDiv.appendChild(btn);
-        });
-    } else {
-        document.getElementById('video-title').innerText = "영상을 찾을 수 없습니다.";
-    }
+            if (videoTitle) videoTitle.innerText = data.title;
+            if (videoSource) videoSource.src = data.src;
+            
+            // 영상을 새로 불러오기
+            video.load(); 
+            video.play(); // 자동 재생 테스트
+        
+            document.getElementById('quiz-question').innerText = data.q;
+    
+            const optDiv = document.getElementById('quiz-options');
+            optDiv.innerHTML = ""; // 기존 버튼 초기화
+            data.opts.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'btn';
+                btn.innerText = opt;
+                btn.onclick = () => {
+                    document.getElementById('feedback').innerText = (idx === data.ans) ? "✅ 정답입니다!" : "❌ 다시 한번 생각해보세요!";
+                };
+                optDiv.appendChild(btn);
+            });
+        } else {
+            console.log("데이터를 찾을 수 없습니다. URL 파라미터를 확인하세요.");
+        }
 </script>
 </body>
 </html>
