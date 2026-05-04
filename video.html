@@ -7,11 +7,118 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Arial', sans-serif; background-color: #fff; }
 
-        /* 헤더 (메뉴 없이 로고와 검색창만) */
-        .header { display: flex; align-items: center; padding: 20px; border-bottom: 1px solid #eee; gap: 20px; }
-        .logo img { width: 150px; }
-        .search-bar { display: flex; align-items: center; flex: 1; max-width: 600px; }
-        .search-bar input { flex: 1; padding: 10px; border: 1px solid #316ef4; border-radius: 5px; }
+        .header { display: flex; align-items: center; padding: 10px 20px; flex-wrap: nowrap; gap: 10px; }
+        .logo { flex-shrink: 0; }
+        .logo img { display: block; width: 100%; max-width: 180px; height: auto; }
+        .container { display: flex; align-items: center; width: 100%; min-width: 0; gap: 20px;}
+        .search-bar { display: flex; align-items: center; margin-left: 20px; flex: 1 1 auto; max-width: 1280px; gap: 8px; }
+        .search-bar input { flex: 1 1 auto; padding: 10px; font-size: 15px; border: 1px solid #316ef4; min-width: 50px; border-radius: 5px; }
+        .search-bar button { background-color: #fff; border: none; cursor: pointer; flex-shrink: 0; width: 30px; }
+        .user-menu { margin-left: auto; display: flex; align-items: center; white-space: nowrap; flex-shrink: 0; font-size: 15px; font-weight: 600;}
+        .user-menu a { white-space: nowrap; text-decoration: none; color: #6d6d6d; }
+        .divider { margin: 0 8px; color: #6d6d6d; }
+
+        /* --- 내비게이션 --- */
+        /* --- 네비게이션바 전체 설정 --- */
+        .navbar { 
+            background-color: #2f63c7; 
+            position: relative; 
+        }
+
+        .menu-list { 
+            width: 100%;
+            display: flex; 
+            justify-content: center; /* 메뉴를 가로 중앙으로 정렬 */
+            align-items: center;
+            flex-wrap: nowrap;
+            white-space: nowrap;
+            list-style: none; 
+            padding: 0;         /* 위아래 적절한 여백 */
+            margin: 0;
+            overflow-x: visible;
+        }
+
+        .menu-list > li { 
+            flex: 1; 
+            padding: 0 20px;
+            text-align: center;
+            position: relative;
+            white-space: nowrap;
+        }
+
+        /* 상단 메인 메뉴 링크 스타일 */
+        .menu-list > li > a { 
+            display: block; 
+            padding: 10px 15px; 
+            color: white; 
+            text-decoration: none; 
+            font-weight: 600;
+            transition: background 0.3s;
+            white-space: nowrap;
+        }
+
+        /* 마우스를 올렸을 때 상단 메뉴 배경 변경 */
+        .menu-list > li:hover > a { 
+            background-color: #1e4fa8;
+        }
+
+        /* 1. 메가 메뉴 전체 패널 */
+        .mega-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 100%; 
+            background-color: #ffffff;
+            border-bottom: 3px solid #2f63c7;
+            box-shadow: 0 5px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+
+        /* 호버 시 메가 메뉴 나타남 */
+        .navbar:hover .mega-menu {
+            display: block; 
+        }
+
+        /* 2. 컬럼 컨테이너 (정렬 담당) */
+        .mega-content {
+            display: flex;
+            justify-content: stretch;
+            width: 100%;
+            padding: 20px 0;
+        }
+
+        /* 3. 각 컬럼 스타일 */
+        .column {
+            flex: 1;
+            text-align: center;
+            border-right: 1px solid #eee;
+        }
+
+        .column:last-child {
+            border-right: none;
+        }
+
+        .column ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .column ul li a {
+            color: #333;
+            padding: 10px 0;
+            display: block;
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+
+        .column ul li a:hover {
+            color: #2f63c7;
+            font-weight: bold;
+            background-color: #f8fbff;
+        }
 
         /* 콘텐츠 영역 */
         .page-container { max-width: 900px; margin: 40px auto; padding: 20px; }
@@ -31,12 +138,80 @@
 <body>
 
 <header class="header">
-    <div class="logo"><a href="index.html"><img src="logo.png" alt="로고"></a></div>
-    <form class="search-bar" action="search.html" method="get">
-        <input type="text" name="q" placeholder="검색어를 입력하세요">
-        <button type="submit">검색</button>
-    </form>
+    <div class="logo">
+        <a href="index.html">
+            <img src="https://raw.githubusercontent.com/Jihye2002/healthykids_workspace/refs/heads/main/logo.png" alt="헬시키즈로고">
+        </a>
+    </div>
+    <div class="container">
+        <form class="search-bar" action="search.html" method="get">
+            <input type="text" name="q" placeholder="검색어를 입력하세요">
+            <button type="submit"><img src="https://github.com/Jihye2002/healthykids_workspace/blob/main/search.png?raw=true" alt="검색버튼" width="40" height="40"></button>
+        </form>
+        <div class="user-menu">
+            <a href="login.html">로그인</a>
+            <span class="divider">|</span>
+            <a href="signup.html">회원가입</a>
+        </div>
+    </div>
 </header>
+
+<nav class="navbar">
+    <ul class="menu-list">
+        <li><a href="#">회원정보</a></li>
+        <li><a href="#">영상보기</a></li>
+        <li><a href="#">놀이&활동자료 다운로드</a></li>
+        <li><a href="#">안전수칙자료 다운로드</a></li>
+        <li><a href="#">Q&A</a></li>
+    </ul>
+
+    <div class="mega-menu">
+        <div class="mega-content">
+            <div class="column">
+                <ul>
+                    <li><a href="#">개인정보 수정</a></li>
+                    <li><a href="#">회원탈퇴</a></li>
+                </ul>
+            </div>
+
+            <div class="column">
+                <ul>
+                    <li><a href="#">진행중인 영상</a></li>
+                    <li><a href="#">위생안전</a></li>
+                    <li><a href="#">실외안전</a></li>
+                    <li><a href="#">생활건강</a></li>
+                    <li><a href="#">질병예방</a></li>
+                </ul>
+            </div>
+
+            <div class="column">
+                <ul>
+                    <li><a href="#">하루건강 체크리스트</a></li>
+                    <li><a href="#">퀴즈</a></li>
+                    <li><a href="#">놀이학습자료</a></li>
+                </ul>
+            </div>
+
+            <div class="column">
+                <ul>
+                    <li><a href="#">위생안전자료</a></li>
+                    <li><a href="#">실외안전자료</a></li>
+                    <li><a href="#">생활건강자료</a></li>
+                    <li><a href="#">질병예방자료</a></li>
+                </ul>
+            </div>
+
+            <div class="column">
+                <ul>
+                    <li><a href="#">자주 묻는 질문</a></li>
+                    <li><a href="#">1:1상담 문의</a></li>
+                    <li><a href="#">영상오류 해결방법</a></li>
+                </ul>
+            </div>
+
+        </div>
+    </div>
+</nav>
 
 <div class="page-container">
     <h2 id="video-title">불러오는 중...</h2>
