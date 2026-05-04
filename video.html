@@ -289,7 +289,25 @@
             }
             
             // 자동 재생 실패 여부와 관계없이 아래 코드는 실행됩니다.
-            loadQuizData(); // 질문을 불러오는 함수
+            function loadQuizData() {
+                // 퀴즈 관련 코드를 이 안으로 옮기세요.
+                const quizQuestion = document.getElementById('quiz-question');
+                const optDiv = document.getElementById('quiz-options');
+                
+                if (quizQuestion && optDiv) {
+                    quizQuestion.innerText = data.q;
+                    optDiv.innerHTML = ""; // 기존 버튼 초기화
+                    data.opts.forEach((opt, idx) => {
+                        const btn = document.createElement('button');
+                        btn.className = 'btn';
+                        btn.innerText = opt;
+                        btn.onclick = () => {
+                            document.getElementById('feedback').innerText = (idx === data.ans) ? "✅ 정답입니다!" : "❌ 다시 한번 생각해보세요!";
+                        };
+                        optDiv.appendChild(btn);
+                    });
+                }
+            }
             
             // 퀴즈 관련 코드는 오류와 상관없이 실행됩니다.
             document.getElementById('quiz-question').innerText = data.q;
