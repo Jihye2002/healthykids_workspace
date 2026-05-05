@@ -438,10 +438,10 @@
             <div class="column">
                 <ul>
                     <li><a href="#">진행중인 영상</a></li>
-                    <li><a href="https://jihye2002.github.io/healthykids_workspace/video.html?type=hygiene">위생안전</a></li>
-                    <li><a href="https://jihye2002.github.io/healthykids_workspace/video.html?type=crosswalk">실외안전</a></li>
-                    <li><a href="#">생활건강</a></li>
-                    <li><a href="#">질병예방</a></li>
+                    <li><a href="video.html?type=hygiene">위생안전</a></li>
+                    <li><a href="video.html?type=crosswalk">실외안전</a></li>
+                    <li><a href="video.html?type=foodsafety">생활건강</a></li>
+                    <li><a href="video.html?type=precaution">질병예방</a></li>
                 </ul>
             </div>
 
@@ -536,21 +536,6 @@
 </div>
 
 <script>
-    // URL에서 ?type=... 값을 읽어오는 코드
-    const params = new URLSearchParams(window.location.search);
-    const type = params.get('type'); // 'hygiene' 또는 'crosswalk' 등의 값을 가져옴
-
-    // type에 따라 화면 내용 바꾸기
-    const contentArea = document.getElementById('video-content'); // 영상을 보여줄 HTML 영역
-
-    if (type === 'hygiene') {
-        contentArea.innerHTML = "<h1>위생안전 영상입니다</h1><video src='...위생영상경로'></video>";
-    } else if (type === 'crosswalk') {
-        contentArea.innerHTML = "<h1>실외안전 영상입니다</h1><video src='...실외영상경로'></video>";
-    } else {
-        contentArea.innerHTML = "<h1>준비중인 페이지입니다.</h1>";
-    }
-    
     function toggleChat() {
         document.getElementById('chatbox').classList.toggle('chatbox-hidden');
     }
