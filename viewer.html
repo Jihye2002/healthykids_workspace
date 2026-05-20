@@ -80,14 +80,17 @@
     </div>
 
     <script>
-        // PDF 주소 불러오기
         const urlParams = new URLSearchParams(window.location.search);
         const fileName = urlParams.get('file');
         const pdfFrame = document.getElementById('pdf-frame');
-        
+    
         if (fileName) {
+            // 1. 현재 브라우저의 주소 형식을 고려하여 raw 주소를 생성합니다.
+            // 깃허브는 blob/main/... 형태를 raw/main/... 형태로만 바꾸면 즉시 작동합니다.
             const rawUrl = "https://github.com/Jihye2002/healthykids_workspace/raw/main/" + encodeURIComponent(fileName);
-            // Google Docs 뷰어를 활용한 강제 로드 방식 (가장 간편한 우회)
+        
+            // 2. 대학 입시 모집요강 사이트처럼 꽉 차게 보여주는 가장 깔끔한 방법:
+            // 구글 뷰어를 거치면 PDF 툴바(다운로드, 확대 등)가 함께 제공되어 훨씬 전문적입니다.
             pdfFrame.src = "https://docs.google.com/viewer?url=" + encodeURIComponent(rawUrl) + "&embedded=true";
         }
     </script>
