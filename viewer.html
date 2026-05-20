@@ -86,9 +86,10 @@
         const pdfFrame = document.getElementById('pdf-frame');
         
         if (fileName) {
-            // 루트 경로에서 파일을 바로 불러옴
-            pdfFrame.src = "https://github.com/Jihye2002/healthykids_workspace/raw/main/" + fileName;
+            const rawUrl = "https://github.com/Jihye2002/healthykids_workspace/raw/main/" + encodeURIComponent(fileName);
+            // Google Docs 뷰어를 활용한 강제 로드 방식 (가장 간편한 우회)
+            pdfFrame.src = "https://docs.google.com/viewer?url=" + encodeURIComponent(rawUrl) + "&embedded=true";
         }
     </script>
-</body>
+    </body>
 </html>
