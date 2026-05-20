@@ -8,10 +8,11 @@
     <style>
         /* 모든 페이지 공통 스타일 */
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Arial', sans-serif; background-color: #fff; }
+        html, body { height: 100%; overflow: hidden; } /* 전체 높이 고정 */
+        body { font-family: 'Arial', sans-serif; background-color: #fff; display: flex; flex-direction: column; }
 
-        /* 헤더 스타일 */
-        .header { display: flex; align-items: center; padding: 10px 20px; flex-wrap: nowrap; gap: 10px; }
+        /* 헤더 및 내비게이션바 (고정) */
+        .header { display: flex; align-items: center; padding: 10px 20px; flex-wrap: nowrap; gap: 10px; flex-shrink: 0; }
         .logo { flex-shrink: 0; }
         .logo img { display: block; width: 100%; max-width: 180px; height: auto; }
         .container { display: flex; align-items: center; width: 100%; min-width: 0; gap: 20px; }
@@ -22,8 +23,7 @@
         .user-menu a { white-space: nowrap; text-decoration: none; color: #6d6d6d; }
         .divider { margin: 0 8px; color: #6d6d6d; }
 
-        /* 내비게이션바 */
-        .navbar { background-color: #2f63c7; position: relative; }
+        .navbar { background-color: #2f63c7; position: relative; flex-shrink: 0; }
         .menu-list { width: 100%; display: flex; justify-content: center; align-items: center; list-style: none; padding: 0; margin: 0; }
         .menu-list > li { flex: 1; padding: 0 20px; text-align: center; position: relative; }
         .menu-list > li > a { display: block; padding: 10px 15px; color: white; text-decoration: none; font-weight: 600; transition: background 0.3s; }
@@ -38,7 +38,8 @@
         .column ul li a { color: #333; padding: 10px 0; display: block; text-decoration: none; font-size: 14px; }
         .column ul li a:hover { color: #2f63c7; font-weight: bold; background-color: #f8fbff; }
 
-        .viewer-container { flex-grow: 1; width: 100%; }
+        /* PDF 뷰어 영역 (나머지 공간 전부 차지) */
+        .viewer-container { flex-grow: 1; width: 100%; overflow: hidden; }
         #pdfFrame { width: 100%; height: 100%; border: none; }
     </style>
 </head>
@@ -81,12 +82,13 @@
     <script>
         const urlParams = new URLSearchParams(window.location.search);
         const fileName = urlParams.get('file');
+        const pdfFrame = document.getElementById('pdfFrame');
         
         if (fileName) {
             const rawUrl = "https://github.com/Jihye2002/healthykids_workspace/raw/main/" + encodeURIComponent(fileName);
-            // embedded=true를 사용하면 다운로드 등 툴바가 최소화된 깔끔한 뷰어만 노출됩니다.
-            document.getElementById('pdfFrame').src = "https://docs.google.com/viewer?url=" + encodeURIComponent(rawUrl) + "&embedded=true";
+            // 전체 툴바를 포함한 뷰어(embedded=false)로 설정
+            pdfFrame.src = "https://docs.google.com/viewer?url=" + encodeURIComponent(rawUrl) + "&embedded=false";
         }
     </script>
-    </body>
+</body>
 </html>
