@@ -38,20 +38,8 @@
         .column ul li a { color: #333; padding: 10px 0; display: block; text-decoration: none; font-size: 14px; }
         .column ul li a:hover { color: #2f63c7; font-weight: bold; background-color: #f8fbff; }
 
-        /* 여백 제거 및 꽉 채우기 */
-        .viewer-container { 
-            width: 100%; 
-            height: 100vh; /* 브라우저 높이 전체 */
-            padding: 0; 
-            margin: 0;
-            display: flex; 
-        }
-    
-        #pdf-frame { 
-            width: 100%; 
-            height: 100%; /* 부모 컨테이너 크기에 맞춰 확장 */
-            border: none; 
-        }
+        .viewer-container { flex-grow: 1; width: 100%; }
+        #pdfFrame { width: 100%; height: 100%; border: none; }
     </style>
 </head>
 <body>
@@ -87,20 +75,17 @@
     </nav>
 
     <div class="viewer-container">
-        <iframe id="pdf-frame" src=""></iframe>
+        <iframe id="pdfFrame"></iframe>
     </div>
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
         const fileName = urlParams.get('file');
-        const pdfFrame = document.getElementById('pdf-frame');
         
         if (fileName) {
-            // raw 주소를 직접 사용합니다.
             const rawUrl = "https://github.com/Jihye2002/healthykids_workspace/raw/main/" + encodeURIComponent(fileName);
-            
-            // 브라우저 자체가 PDF 렌더링을 잘 하므로, src에 바로 넣습니다.
-            pdfFrame.src = rawUrl;
+            // embedded=true를 사용하면 다운로드 등 툴바가 최소화된 깔끔한 뷰어만 노출됩니다.
+            document.getElementById('pdfFrame').src = "https://docs.google.com/viewer?url=" + encodeURIComponent(rawUrl) + "&embedded=true";
         }
     </script>
     </body>
