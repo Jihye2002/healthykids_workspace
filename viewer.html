@@ -96,12 +96,11 @@
         const pdfFrame = document.getElementById('pdf-frame');
         
         if (fileName) {
-            // 1. raw 주소 생성
+            // raw 주소를 직접 사용합니다.
             const rawUrl = "https://github.com/Jihye2002/healthykids_workspace/raw/main/" + encodeURIComponent(fileName);
             
-            // 2. 구글 뷰어의 '전체 기능 모드' 호출
-            // embedded=true를 빼면 우리가 원하는 '대학 입시 사이트 뷰어'처럼 나옵니다.
-            pdfFrame.src = "https://docs.google.com/viewer?url=" + encodeURIComponent(rawUrl);
+            // 브라우저 자체가 PDF 렌더링을 잘 하므로, src에 바로 넣습니다.
+            pdfFrame.src = rawUrl;
         }
     </script>
     </body>
