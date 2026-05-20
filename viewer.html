@@ -38,9 +38,20 @@
         .column ul li a { color: #333; padding: 10px 0; display: block; text-decoration: none; font-size: 14px; }
         .column ul li a:hover { color: #2f63c7; font-weight: bold; background-color: #f8fbff; }
 
-        /* PDF 뷰어 영역 */
-        .viewer-container { width: 100%; padding: 40px 20px; display: flex; justify-content: center; background-color: #f9f9f9; }
-        #pdf-frame { width: 100%; max-width: 1200px; height: 80vh; border: 2px solid #2f63c7; border-radius: 10px; }
+        /* 여백 제거 및 꽉 채우기 */
+        .viewer-container { 
+            width: 100%; 
+            height: 100vh; /* 브라우저 높이 전체 */
+            padding: 0; 
+            margin: 0;
+            display: flex; 
+        }
+    
+        #pdf-frame { 
+            width: 100%; 
+            height: 100%; /* 부모 컨테이너 크기에 맞춰 확장 */
+            border: none; 
+        }
     </style>
 </head>
 <body>
@@ -83,15 +94,14 @@
         const urlParams = new URLSearchParams(window.location.search);
         const fileName = urlParams.get('file');
         const pdfFrame = document.getElementById('pdf-frame');
-    
-        if (fileName) {
-            // 1. 현재 브라우저의 주소 형식을 고려하여 raw 주소를 생성합니다.
-            // 깃허브는 blob/main/... 형태를 raw/main/... 형태로만 바꾸면 즉시 작동합니다.
-            const rawUrl = "https://github.com/Jihye2002/healthykids_workspace/raw/main/" + encodeURIComponent(fileName);
         
-            // 2. 대학 입시 모집요강 사이트처럼 꽉 차게 보여주는 가장 깔끔한 방법:
-            // 구글 뷰어를 거치면 PDF 툴바(다운로드, 확대 등)가 함께 제공되어 훨씬 전문적입니다.
-            pdfFrame.src = "https://docs.google.com/viewer?url=" + encodeURIComponent(rawUrl) + "&embedded=true";
+        if (fileName) {
+            // 1. raw 주소 생성
+            const rawUrl = "https://github.com/Jihye2002/healthykids_workspace/raw/main/" + encodeURIComponent(fileName);
+            
+            // 2. 구글 뷰어의 '전체 기능 모드' 호출
+            // embedded=true를 빼면 우리가 원하는 '대학 입시 사이트 뷰어'처럼 나옵니다.
+            pdfFrame.src = "https://docs.google.com/viewer?url=" + encodeURIComponent(rawUrl);
         }
     </script>
     </body>
