@@ -6,39 +6,20 @@
     <link rel="icon" type="image/x-icon" href="https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/favicon.ico">
     <title>헬시키즈 - 자료 보기</title>
     <style>
-        /* [1. 전체 레이아웃 초기화] */
+        /* 1. 기본 스타일 */
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Arial', sans-serif; background-color: #fff; text-align: center;}
+        body { font-family: 'Arial', sans-serif; background-color: #fff; }
 
-        /* [2. 헤더 및 네비게이션바 스타일 (기존 코드 복사본)] */
+        /* 2. 헤더 및 네비게이션 스타일 (기존 index.html 디자인 유지) */
         .header { display: flex; align-items: center; padding: 10px 20px; }
         .logo img { width: 150px; }
-        .navbar { background-color: #2f63c7; position: relative; padding: 10px 0; }
+        .navbar { background-color: #2f63c7; padding: 10px 0; text-align: center; position: relative; }
         .menu-list { display: flex; justify-content: center; list-style: none; }
-        .menu-list > li > a { color: white; padding: 10px 20px; text-decoration: none; font-weight: 600; }
+        .menu-list li a { color: white; padding: 10px 20px; text-decoration: none; font-weight: 600; }
 
-        /* [3. PDF 뷰어 전용 스타일 (중앙 배치 및 여백)] */
-        .viewer-container {
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 40px 0;
-            background-color: #f9f9f9; /* 배경에 살짝 색을 넣어 콘텐츠를 강조 */
-        }
-        
-        #pdf-frame {
-            width: 85%;
-            height: 80vh; /* 화면 높이의 80% */
-            border: 2px solid #2f63c7;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-
-        .btn-box { margin-top: 25px; }
-        .btn { padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 0 10px; }
-        .btn-back { background: #666; color: white; }
-        .btn-download { background: #2f63c7; color: white; }
+        /* 3. PDF 뷰어 영역 (화면 가득 채우기) */
+        .viewer-container { width: 100%; padding: 20px; display: flex; justify-content: center; background-color: #f9f9f9; }
+        #pdf-frame { width: 100%; max-width: 1200px; height: 85vh; border: 2px solid #2f63c7; border-radius: 10px; background-color: #fff; }
     </style>
 </head>
 <body>
@@ -52,33 +33,32 @@
     <nav class="navbar">
         <ul class="menu-list">
             <li><a href="index.html">홈으로</a></li>
-            <li><a href="#">위생안전</a></li>
-            <li><a href="#">실외안전</a></li>
+            <li><a href="viewer.html?type=hygiene">위생안전</a></li>
+            <li><a href="viewer.html?type=safety">실외안전</a></li>
+            <li><a href="viewer.html?type=health">생활건강</a></li>
+            <li><a href="viewer.html?type=disease">질병예방</a></li>
         </ul>
     </nav>
 
     <div class="viewer-container">
-        <h2 id="file-title" style="margin-bottom: 20px; color: #2f63c7;">교육 자료를 불러오는 중입니다...</h2>
         <iframe id="pdf-frame" src=""></iframe>
-        
-        <div class="btn-box">
-            <a href="index.html" class="btn btn-back">목록으로 돌아가기</a>
-            <a id="download-btn" href="#" class="btn btn-download" download>PDF 파일 다운로드</a>
-        </div>
     </div>
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
-        const fileName = urlParams.get('file'); 
+        const type = urlParams.get('type');
         
-        if (fileName) {
-            document.getElementById('pdf-frame').src = fileName;
-            document.getElementById('download-btn').href = fileName;
-            document.getElementById('file-title').innerText = "학습 자료 미리보기";
-        } else {
-            document.getElementById('file-title').innerText = "파일을 찾을 수 없습니다.";
+        // PDF 파일 경로 설정
+        const files = {
+            'hygiene': 'https://github.com/Jihye2002/healthykids_workspace/raw/main/pdfs/위생안전수칙.pdf',
+            'safety': 'https://github.com/Jihye2002/healthykids_workspace/raw/main/pdfs/실외안전수칙.pdf',
+            'health': 'https://github.com/Jihye2002/healthykids_workspace/raw/main/pdfs/생활건강수칙.pdf',
+            'disease': 'https://github.com/Jihye2002/healthykids_workspace/raw/main/pdfs/질병예방수칙.pdf'
+        };
+
+        if (type && files[type]) {
+            document.getElementById('pdf-frame').src = files[type];
         }
     </script>
-
 </body>
 </html>
