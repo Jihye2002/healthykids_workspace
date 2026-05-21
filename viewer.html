@@ -85,12 +85,7 @@
     </nav>
 
     <div class="viewer-container">
-        <embed id="pdf-viewer" 
-               src="" 
-               type="application/pdf" 
-               width="100%" 
-               height="100%" 
-               style="min-height: 800px;">
+        <iframe id="pdf-viewer" src=""></iframe>
     </div>
 
     <script>
@@ -100,10 +95,10 @@
             
             if (fileName) {
                 const viewer = document.getElementById('pdf-viewer');
-                // src가 이미 설정되어 있다면 다시 설정하지 않도록 방어 코드 추가
-                if (!viewer.src) {
-                    viewer.src = fileName + "#view=FitH&toolbar=1";
-                }
+                // 핵심: 깃허브 원본 주소를 바로 iframe에 넣습니다.
+                // 깃허브는 브라우저에서 직접 열면 다운로드되지만, 
+                // 깃허브 내의 뷰어 주소 구조를 타면 내용을 보여줍니다.
+                viewer.src = "https://github.com/Jihye2002/healthykids_workspace/blob/main/" + encodeURIComponent(fileName) + "?raw=true";
             }
         };
     </script>
