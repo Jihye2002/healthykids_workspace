@@ -1,43 +1,47 @@
-const express = require("express");
-const multer = require("multer");
+const http = require("http");
 const fs = require("fs");
-const pdf = require("pdf-parse");
-const cors = require("cors");
 
-const app = express();
-app.use(cors());
-app.use(express.json());
+const PORT = 3000;
 
-const upload = multer({ dest: "uploads/" });
+const documents = JSON.parse(fs.readFileSync("./documents.json", "utf-8"));
 
-let DOCUMENTS = [];
-
+/* =========================
+   TEXT PROCESS
+========================= */
 function tokenize(text) {
   return text.toLowerCase().split(/\s+/).filter(Boolean);
 }
 
-function buildVectors(docs) {
-  const df = {};
-  docs.forEach(d => new Set(d.tokens).forEach(t => df[t] = (df[t] || 0) + 1));
+function tf(tokens) {
+  const map = {};
+  tokens.forEach(t => map[t] = (map[t] || 0) + 1);
+  return map;
+}
 
+function idf(docs) {
+  const df = {};
+  docs.forEach(d => {
+    new Set(d.tokens).forEach(t => {
+      df[t] = (df[t] || 0) + 1;
+    });
+  });
+
+  const idfMap = {};
   const N = docs.length;
-  const idf = {};
 
   Object.keys(df).forEach(t => {
-    idf[t] = Math.log(N / (df[t] + 1));
+    idfMap[t] = Math.log(N / (df[t] + 1));
   });
 
-  return docs.map(doc => {
-    const tf = {};
-    doc.tokens.forEach(t => tf[t] = (tf[t] || 0) + 1);
+  return idfMap;
+}
 
-    const vec = {};
-    Object.keys(tf).forEach(k => {
-      vec[k] = tf[k] * (idf[k] || 0);
-    });
-
-    return { ...doc, vec };
+function vectorize(tfMap, idfMap) {
+  const vec = {};
+  Object.keys(tfMap).forEach(k => {
+    vec[k] = tfMap[k] * (idfMap[k] || 0);
   });
+  return vec;
 }
 
 function cosine(a, b) {
@@ -45,58 +49,100 @@ function cosine(a, b) {
 
   Object.keys(a).forEach(k => {
     dot += (a[k] || 0) * (b[k] || 0);
-    ma += (a[k] || 0) ** 2;
+    ma += a[k] ** 2;
   });
 
   Object.keys(b).forEach(k => {
-    mb += (b[k] || 0) ** 2;
+    mb += b[k] ** 2;
   });
 
   return dot / (Math.sqrt(ma) * Math.sqrt(mb) + 1e-9);
 }
 
 /* =========================
-   PDF 업로드 → 자동 RAG 등록
+   PREPROCESS
 ========================= */
-app.post("/upload", upload.single("file"), async (req, res) => {
-  const buffer = fs.readFileSync(req.file.path);
-  const data = await pdf(buffer);
-
-  const doc = {
-    id: Date.now().toString(),
-    title: req.file.originalname,
-    text: data.text,
-    url: "/uploads/" + req.file.filename,
-    tokens: tokenize(data.text)
-  };
-
-  DOCUMENTS.push(doc);
-  DOCUMENTS = buildVectors(DOCUMENTS);
-
-  res.json({ ok: true, count: DOCUMENTS.length });
+const processed = documents.map(d => {
+  const tokens = tokenize(d.title + " " + d.text);
+  return { ...d, tokens };
 });
+
+const idfMap = idf(processed);
+
+const vectors = processed.map(d => ({
+  ...d,
+  vec: vectorize(tf(d.tokens), idfMap)
+}));
 
 /* =========================
-   RAG SEARCH API
+   SEARCH (RAG CORE)
 ========================= */
-app.post("/search", (req, res) => {
-  const query = req.body.query;
-
+function search(query) {
   const qTokens = tokenize(query);
-  const qVec = {};
-  qTokens.forEach(t => qVec[t] = (qVec[t] || 0) + 1);
+  const qVec = vectorize(tf(qTokens), idfMap);
 
-  const results = DOCUMENTS
-    .map(d => ({
-      ...d,
-      score: cosine(qVec, d.vec)
-    }))
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 5);
+  let results = vectors.map(d => ({
+    ...d,
+    score: cosine(qVec, d.vec)
+  }));
 
-  res.json(results);
+  results.sort((a, b) => b.score - a.score);
+
+  // guide 우선 강화
+  results = results.sort((a, b) => {
+    if (a.type === "guide") return -1;
+    if (b.type === "guide") return 1;
+    return 0;
+  });
+
+  return results.slice(0, 5);
+}
+
+/* =========================
+   SERVER
+========================= */
+const server = http.createServer((req, res) => {
+
+  if (req.url === "/api/search" && req.method === "POST") {
+    let body = "";
+
+    req.on("data", chunk => body += chunk);
+
+    req.on("end", () => {
+      const { query } = JSON.parse(body);
+
+      const results = search(query);
+
+      const menus = results.map(r => ({
+        id: r.id,
+        title: r.title,
+        description: r.type,
+        url: r.url
+      }));
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({
+        reply: "검색 결과입니다",
+        menus,
+        related: results.map(r => r.title)
+      }));
+    });
+
+    return;
+  }
+
+  // static file
+  let filePath = req.url === "/" ? "index.html" : "." + req.url;
+
+  fs.readFile(filePath, (err, data) => {
+    if (err) {
+      res.writeHead(404);
+      return res.end("404");
+    }
+    res.end(data);
+  });
 });
 
-app.listen(3000, () => {
-  console.log("RAG server running → http://localhost:3000");
+server.listen(PORT, () => {
+  console.log("http://localhost:" + PORT);
 });
