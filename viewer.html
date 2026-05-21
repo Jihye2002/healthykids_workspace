@@ -84,23 +84,21 @@
     </div>
 
     <script>
-        <script>
-    window.onload = function() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const fileName = urlParams.get('file');
-        
-        if (fileName) {
-            const viewer = document.getElementById('pdf-viewer');
+        window.onload = function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const fileName = urlParams.get('file');
             
-            // 깃허브의 원본 주소를 사용하여 PDF.js 뷰어로 연결합니다.
-            // 인코딩된 파일 이름을 그대로 사용하면 한글 파일도 오류 없이 잘 불러옵니다.
-            const baseUrl = "https://raw.githubusercontent.com/Jihye2002/healthykids_workspace/main/";
-            const pdfUrl = baseUrl + encodeURIComponent(fileName);
-            
-            viewer.src = "https://mozilla.github.io/pdf.js/web/viewer.html?file=" + encodeURIComponent(pdfUrl);
-        }
-    };
-</script>
+            if (fileName) {
+                const viewer = document.getElementById('pdf-viewer');
+                
+                // 깃허브의 원본 주소를 사용하여 PDF.js 뷰어로 연결합니다.
+                // 인코딩된 파일 이름을 그대로 사용하면 한글 파일도 오류 없이 잘 불러옵니다.
+                const baseUrl = "https://raw.githubusercontent.com/Jihye2002/healthykids_workspace/main/";
+                const pdfUrl = baseUrl + encodeURIComponent(fileName);
+                
+                viewer.src = "https://mozilla.github.io/pdf.js/web/viewer.html?file=" + encodeURIComponent(pdfUrl);
+            }
+        };
     </script>
-</body>
+    </body>
 </html>
