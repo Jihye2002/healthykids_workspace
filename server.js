@@ -1,78 +1,65 @@
-import express from "express";
-import cors from "cors";
-import { SITE_MAP } from "./siteMap.js";
+const express = require("express");
+const multer = require("multer");
+const fs = require("fs");
+const pdf = require("pdf-parse");
+const cors = require("cors");
 
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use(express.static("."));
+
+const PORT = 3000;
 
 /* =========================
-   1. 텍스트 정제
+   1. 파일 저장 설정
+========================= */
+const upload = multer({ dest: "uploads/" });
+
+/* =========================
+   2. 문서 DB (메모리형)
+   → 실제 서비스는 DB 사용
+========================= */
+let DOCUMENTS = [];
+
+/* =========================
+   3. 텍스트 전처리
 ========================= */
 function tokenize(text) {
-  return text
-    .toLowerCase()
-    .replace(/[^가-힣a-z0-9\s]/g, "")
-    .split(/\s+/)
-    .filter(Boolean);
+  return text.toLowerCase().split(/\s+/).filter(Boolean);
 }
 
 /* =========================
-   2. TF 계산
+   4. TF-IDF (간단 버전)
 ========================= */
-function tf(tokens) {
-  const tfMap = {};
-  tokens.forEach(t => {
-    tfMap[t] = (tfMap[t] || 0) + 1;
-  });
-
-  const len = tokens.length;
-  Object.keys(tfMap).forEach(k => {
-    tfMap[k] = tfMap[k] / len;
-  });
-
-  return tfMap;
-}
-
-/* =========================
-   3. IDF 계산 (SITE_MAP 전체 기준)
-========================= */
-function buildIDF(docs) {
-  const idf = {};
-  const N = docs.length;
+function buildVectors(docs) {
+  const df = {};
 
   docs.forEach(doc => {
-    const words = new Set(tokenize(doc.content));
-
-    words.forEach(w => {
-      idf[w] = (idf[w] || 0) + 1;
+    new Set(doc.tokens).forEach(t => {
+      df[t] = (df[t] || 0) + 1;
     });
   });
 
-  Object.keys(idf).forEach(k => {
-    idf[k] = Math.log(N / (idf[k] + 1));
+  const N = docs.length;
+
+  const idf = {};
+  Object.keys(df).forEach(t => {
+    idf[t] = Math.log(N / (df[t] + 1));
   });
 
-  return idf;
-}
+  return docs.map(doc => {
+    const tf = {};
+    doc.tokens.forEach(t => {
+      tf[t] = (tf[t] || 0) + 1;
+    });
 
-const IDF = buildIDF(SITE_MAP);
+    const vec = {};
+    Object.keys(tf).forEach(k => {
+      vec[k] = tf[k] * (idf[k] || 0);
+    });
 
-/* =========================
-   4. TF-IDF 벡터 생성
-========================= */
-function vectorize(text) {
-  const tokens = tokenize(text);
-  const tfMap = tf(tokens);
-
-  const vec = {};
-
-  Object.keys(tfMap).forEach(k => {
-    vec[k] = tfMap[k] * (IDF[k] || 0);
+    return { ...doc, vec };
   });
-
-  return vec;
 }
 
 /* =========================
@@ -83,63 +70,77 @@ function cosine(a, b) {
   let magA = 0;
   let magB = 0;
 
-  const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+  Object.keys(a).forEach(k => {
+    dot += (a[k] || 0) * (b[k] || 0);
+    magA += (a[k] || 0) ** 2;
+  });
 
-  keys.forEach(k => {
-    const av = a[k] || 0;
-    const bv = b[k] || 0;
-
-    dot += av * bv;
-    magA += av * av;
-    magB += bv * bv;
+  Object.keys(b).forEach(k => {
+    magB += (b[k] || 0) ** 2;
   });
 
   return dot / (Math.sqrt(magA) * Math.sqrt(magB) + 1e-9);
 }
 
 /* =========================
-   6. RAG 검색 엔진
+   6. PDF 업로드 API
 ========================= */
-function ragSearch(query) {
-  const qVec = vectorize(query);
+app.post("/upload", upload.single("file"), async (req, res) => {
+  try {
+    const dataBuffer = fs.readFileSync(req.file.path);
+    const pdfData = await pdf(dataBuffer);
 
-  const scored = SITE_MAP.map(item => {
-    const dVec = vectorize(item.content);
-    const score = cosine(qVec, dVec);
+    const text = pdfData.text;
 
-    return { ...item, score };
-  });
+    const doc = {
+      id: Date.now().toString(),
+      title: req.file.originalname,
+      text,
+      tokens: tokenize(text),
+      url: "/uploads/" + req.file.filename
+    };
 
-  return scored
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 5);
-}
+    DOCUMENTS.push(doc);
+    DOCUMENTS = buildVectors(DOCUMENTS);
 
-/* =========================
-   7. API
-========================= */
-app.post("/api/chat", (req, res) => {
-  const { text } = req.body;
+    res.json({
+      message: "업로드 성공",
+      docCount: DOCUMENTS.length
+    });
 
-  let results = ragSearch(text);
-
-  const guide = SITE_MAP.find(i => i.id === "guide");
-
-  if (!results.find(r => r.id === "guide")) {
-    results.unshift(guide);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
-
-  res.json({
-    reply: "관련 정보를 찾아봤어요 😊",
-    menus: results.map(r => ({
-      id: r.id,
-      title: r.title,
-      description: r.description,
-      url: r.url
-    }))
-  });
 });
 
-app.listen(3000, () => {
-  console.log("TF-IDF RAG running on http://localhost:3000");
+/* =========================
+   7. 검색 API (RAG)
+========================= */
+app.post("/search", (req, res) => {
+  const query = req.body.query;
+
+  const qTokens = tokenize(query);
+
+  const qVec = {};
+  qTokens.forEach(t => {
+    qVec[t] = (qVec[t] || 0) + 1;
+  });
+
+  const results = DOCUMENTS.map(doc => {
+    return {
+      ...doc,
+      score: cosine(qVec, doc.vec)
+    };
+  })
+  .sort((a, b) => b.score - a.score)
+  .slice(0, 5);
+
+  res.json(results);
+});
+
+/* =========================
+   8. 서버 실행
+========================= */
+app.listen(PORT, () => {
+  console.log("RAG Server running on http://localhost:" + PORT);
 });
