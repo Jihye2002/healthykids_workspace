@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/x-icon" href="https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/favicon.ico">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfobject/2.2.12/pdfobject.min.js"></script>
     <title>헬시키즈</title>
     <style>
         /* 모든 페이지 공통 스타일 */
@@ -45,7 +46,7 @@
             position: relative;
             padding-top: 30px;
         }
-        #pdf-viewer { width: 100%; height: 100%; border: none; }
+        #id_divPdf { width: 100%; height: 100%; border: none; }
     </style>
 </head>
 <body>
@@ -81,24 +82,25 @@
     </nav>
 
     <div class="viewer-container">
-        <iframe id="pdf-viewer" src=""></iframe>
+        <div id="id_divPdf"></div>
     </div>
 
     <script>
         window.onload = function() {
+            // PDF 파일 경로 매핑
+            const fileMap = {
+                "위생안전수칙.pdf": "https://raw.githubusercontent.com/Jihye2002/healthykids_workspace/main/위생안전수칙.pdf",
+                "실외안전수칙.pdf": "https://raw.githubusercontent.com/Jihye2002/healthykids_workspace/main/실외안전수칙.pdf",
+                "생활건강수칙.pdf": "https://raw.githubusercontent.com/Jihye2002/healthykids_workspace/main/생활건강수칙.pdf",
+                "질병예방수칙.pdf": "https://raw.githubusercontent.com/Jihye2002/healthykids_workspace/main/질병예방수칙.pdf"
+            };
+    
             const urlParams = new URLSearchParams(window.location.search);
             const fileName = urlParams.get('file');
-           
-            const driveIds = {
-                "위생안전수칙.pdf": "1hdPsLMfbOxACiblLHuHRXQ15ISslmgjf",
-                "실외안전수칙.pdf": "1Xu8M9PxPN4MC8rjk2t9LXgDhO-57eFWy",
-                "생활건강수칙.pdf": "1syWZH4KWx9pJl8tp_N14LHIqGg-za5db",
-                "질병예방수칙.pdf": "1R4wxTGihOcONfY37t8Ge7Eur_HXdhvIk"
-            };
-
-            if (fileName && driveIds[fileName]) {
-                // 이 주소가 선생님이 원하시는 '경희대 입시요강 스타일'을 띄워주는 핵심입니다.
-                document.getElementById('pdf-viewer').src = `https://drive.google.com/file/d/${driveIds[fileName]}/preview`;
+    
+            if (fileName && fileMap[fileName]) {
+                // PDFObject가 경희대 스타일의 브라우저 기본 뷰어를 호출합니다.
+                PDFObject.embed(fileMap[fileName], "#id_divPdf");
             }
         };
     </script>
