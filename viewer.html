@@ -92,11 +92,9 @@
     
             if (fileName && fileMap[fileName]) {
                 const viewer = document.getElementById('pdf-viewer');
-                // 주소 뒤에 #toolbar=1&navpanes=0&view=FitH 를 붙입니다.
-                const pdfUrl = fileMap[fileName] + "#toolbar=1&navpanes=0&view=FitH";
-                viewer.innerHTML = `<iframe src="${pdfUrl}" width="100%" height="100%" style="border:none;"></iframe>`;
-            } else {
-                document.getElementById('pdf-viewer').innerText = "파일을 찾을 수 없습니다.";
+                // iframe을 사용하면 브라우저 자체 뷰어가 뜨며, 이는 가장 심플하고 깔끔합니다.
+                // 다운로드/인쇄 버튼은 오른쪽 상단에 고정으로 나타납니다.
+                viewer.innerHTML = `<iframe src="${fileMap[fileName]}" style="width:100%; height:100%; border:none;"></iframe>`;
             }
         };
     </script>
