@@ -3,7 +3,7 @@ let lastRequestTime = 0;
 
 document.addEventListener("DOMContentLoaded", function () {
 
-  const API_KEY = "YOUR_API_KEY_HERE";
+  const API_KEY = "AIzaSyAX5QhLOB03yyoMw07I1tRmBucjpy8c4AM";
 
   /* =========================
      스타일
