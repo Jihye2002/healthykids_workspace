@@ -607,7 +607,7 @@ document.addEventListener("DOMContentLoaded", function () {
                ↓↓↓ 여기를 실제 서버 주소로 수정
             ===================================================== */
 
-            const response = await fetch("YOUR_SERVER_API_URL", {
+            const response = await fetch("http://127.0.0.1:5000/chat"), {
 
                 method: "POST",
 
