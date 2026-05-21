@@ -1,21 +1,25 @@
 /* =========================================================
    HEALTHY KIDS AI CHATBOT
-   GPT 기반 연관검색 + 메뉴추천 챗봇
-   ========================================================= */
+   Gemini 기반 AI 챗봇
+   연관검색 + 메뉴추천 + 페이지 이동
+========================================================= */
 
 document.addEventListener("DOMContentLoaded", function () {
 
     /* =========================================================
-       1. 챗봇 스타일 추가
+       1. Gemini API KEY
+    ========================================================= */
+
+    const API_KEY = "여기에_네_GEMINI_API_KEY_붙여넣기";
+
+
+    /* =========================================================
+       2. 챗봇 스타일
     ========================================================= */
 
     const style = document.createElement("style");
 
     style.innerHTML = `
-
-    /* ===============================
-       챗봇 전체
-    =============================== */
 
     #chatbox{
 
@@ -25,9 +29,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
         right:20px;
 
-        width:330px;
+        width:340px;
 
-        height:480px;
+        height:500px;
 
         background:#ffffff;
 
@@ -55,17 +59,13 @@ document.addEventListener("DOMContentLoaded", function () {
         pointer-events:none;
     }
 
-    /* ===============================
-       챗봇 헤더
-    =============================== */
-
     #chat-header{
 
         background:#2f63c7;
 
         color:white;
 
-        padding:14px;
+        padding:15px;
 
         font-size:16px;
 
@@ -77,10 +77,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
         gap:8px;
     }
-
-    /* ===============================
-       채팅 영역
-    =============================== */
 
     #chat-body{
 
@@ -96,10 +92,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
         flex-direction:column;
     }
-
-    /* ===============================
-       메시지 공통
-    =============================== */
 
     .message{
 
@@ -118,8 +110,6 @@ document.addEventListener("DOMContentLoaded", function () {
         word-break:keep-all;
     }
 
-    /* 사용자 메시지 */
-
     .user-msg{
 
         align-self:flex-end;
@@ -129,8 +119,6 @@ document.addEventListener("DOMContentLoaded", function () {
         color:white;
     }
 
-    /* AI 메시지 */
-
     .ai-msg{
 
         align-self:flex-start;
@@ -139,10 +127,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
         border:1px solid #e5e5e5;
     }
-
-    /* ===============================
-       입력창
-    =============================== */
 
     .input-area{
 
@@ -187,10 +171,6 @@ document.addEventListener("DOMContentLoaded", function () {
         cursor:pointer;
     }
 
-    /* ===============================
-       챗봇 열기 버튼
-    =============================== */
-
     #chat-toggle-button{
 
         position:fixed;
@@ -219,10 +199,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
         box-shadow:0 5px 20px rgba(0,0,0,0.2);
     }
-
-    /* ===============================
-       연관검색어
-    =============================== */
 
     .related-wrapper{
 
@@ -256,10 +232,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
         background:#dbe7ff;
     }
-
-    /* ===============================
-       메뉴 추천 카드
-    =============================== */
 
     .menu-card{
 
@@ -313,10 +285,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
         opacity:0.9;
     }
-
-    /* ===============================
-       로딩 애니메이션
-    =============================== */
 
     .loading{
 
@@ -374,7 +342,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
     /* =========================================================
-       2. 챗봇 HTML 생성
+       3. 챗봇 HTML 생성
     ========================================================= */
 
     const chatHTML = `
@@ -428,7 +396,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
     /* =========================================================
-       3. 챗봇 열기/닫기
+       4. 챗봇 열기/닫기
     ========================================================= */
 
     const chatbox = document.getElementById("chatbox");
@@ -442,7 +410,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
     /* =========================================================
-       4. 메시지 출력 함수
+       5. 메시지 출력 함수
     ========================================================= */
 
     function appendMessage(sender, text, options = {}) {
@@ -453,19 +421,15 @@ document.addEventListener("DOMContentLoaded", function () {
 
         msgDiv.className = `message ${sender}-msg`;
 
-        /* =========================
-           답변 텍스트
-        ========================== */
-
         const textDiv = document.createElement("div");
 
         textDiv.innerHTML = text;
 
         msgDiv.appendChild(textDiv);
 
-        /* =========================
+        /* ===============================
            연관검색어 버튼
-        ========================== */
+        =============================== */
 
         if (options.related && options.related.length > 0) {
 
@@ -494,9 +458,9 @@ document.addEventListener("DOMContentLoaded", function () {
             msgDiv.appendChild(relatedWrapper);
         }
 
-        /* =========================
+        /* ===============================
            메뉴 추천 카드
-        ========================== */
+        =============================== */
 
         if (options.menus && options.menus.length > 0) {
 
@@ -539,7 +503,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
     /* =========================================================
-       5. 로딩 표시
+       6. 로딩 애니메이션
     ========================================================= */
 
     function showLoading() {
@@ -575,7 +539,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
     /* =========================================================
-       6. 메시지 전송
+       7. AI 메시지 전송
     ========================================================= */
 
     async function sendMessage() {
@@ -586,78 +550,123 @@ document.addEventListener("DOMContentLoaded", function () {
 
         if (!text) return;
 
-        /* =========================
-           사용자 메시지 출력
-        ========================== */
-
         appendMessage("user", text);
 
         input.value = "";
-
-        /* =========================
-           로딩 표시
-        ========================== */
 
         showLoading();
 
         try {
 
-            /* =====================================================
-               AI 서버 요청
-               ↓↓↓ 여기를 실제 서버 주소로 수정
-            ===================================================== */
+            const response = await fetch(
 
-            const response = await fetch("http://127.0.0.1:5000/chat", {
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`,
 
-                method: "POST",
-            
-                headers: {
-                    "Content-Type": "application/json"
-                },
-            
-                body: JSON.stringify({
-                    prompt: text
-                })
-            });
+                {
+
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+
+                    body: JSON.stringify({
+
+                        contents: [
+
+                            {
+                                parts: [
+
+                                    {
+                                        text: `
+
+너는 어린이 건강교육 AI 챗봇이다.
+
+사용자의 질문에 대해:
+
+1. 친절한 답변
+2. 연관검색어 3개
+3. 관련 메뉴 추천
+
+을 JSON 형식으로 답해라.
+
+추천 가능한 메뉴:
+
+- 위생안전 → /hygiene.html
+- 실외안전 → /outdoor.html
+- 생활건강 → /health.html
+- 질병예방 → /disease.html
+- 놀이자료 다운로드 → /play.html
+- 안전수칙자료 다운로드 → /safety.html
+- Q&A → /qna.html
+
+반드시 아래 JSON 형식으로만 답해라.
+
+{
+  "reply":"...",
+  "related":["...","...","..."],
+  "menus":[
+    {
+      "title":"...",
+      "description":"...",
+      "url":"..."
+    }
+  ]
+}
+
+사용자 질문:
+${text}
+
+`
+                                    }
+                                ]
+                            }
+                        ]
+                    })
+                }
+            );
 
             const data = await response.json();
 
-            removeLoading();
+            console.log(data);
 
-            /* =========================
-               AI 답변 출력
-            ========================== */
+            const aiText =
+                data.candidates[0].content.parts[0].text;
+
+            const parsed = JSON.parse(aiText);
+
+            removeLoading();
 
             appendMessage(
 
                 "ai",
 
-                data.reply || "답변을 생성하지 못했어요 😢",
+                parsed.reply || "답변 생성 실패 😢",
 
                 {
-                    related: data.related || [],
-                    menus: data.menus || []
+                    related: parsed.related || [],
+                    menus: parsed.menus || []
                 }
             );
 
         } catch (error) {
 
+            console.error(error);
+
             removeLoading();
 
             appendMessage(
 
                 "ai",
 
-                "죄송합니다 😢<br><br>현재 AI 서버와 연결할 수 없어요."
+                "죄송합니다 😢<br><br>AI 응답 생성 중 오류가 발생했어요."
             );
-
-            console.error(error);
         }
     }
 
 
     /* =========================================================
-       7. 이벤트 연결
+       8. 이벤트 연결
     ========================================================= */
 
     document
