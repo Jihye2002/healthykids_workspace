@@ -39,8 +39,6 @@
         .column ul li a:hover { color: #2f63c7; font-weight: bold; background-color: #f8fbff; }
 
         .viewer-container { flex-grow: 1; width: 100%; }
-        /* 확장 프로그램이 찾지 못하도록 이름을 아주 복잡하게 만듭니다 */
-        #unique-pdf-viewer-2026-no-interference { width: 100%; height: 100%; border: none; }
     </style>
 </head>
 <body>
@@ -76,7 +74,7 @@
     </nav>
 
     <div class="viewer-container">
-        <iframe id="my-unique-healthy-kids-pdf-viewer-2026"></iframe>
+        <iframe id="pdf-viewer" style="width:100%; height:100%; border:none;"></iframe>
     </div>
 
     <script>
@@ -87,13 +85,10 @@
             if (fileName) {
                 const rawUrl = "https://github.com/Jihye2002/healthykids_workspace/raw/main/" + encodeURIComponent(fileName);
                 
-                // 브라우저 내장 뷰어 연결
-                const viewerUrl = rawUrl + "#toolbar=1";
-                
-                // 복잡한 ID로 요소를 가져와 연결합니다
-                const viewer = document.getElementById('unique-pdf-viewer-2026-no-interference');
+                // HTML의 ID인 'pdf-viewer'와 동일하게 맞췄습니다.
+                const viewer = document.getElementById('pdf-viewer');
                 if (viewer) {
-                    viewer.src = viewerUrl;
+                    viewer.src = rawUrl + "#toolbar=1&navpanes=0&scrollbar=1";
                 }
             }
         };
