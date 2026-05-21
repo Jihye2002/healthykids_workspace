@@ -1,29 +1,28 @@
 const http = require("http");
 const fs = require("fs");
-const path = require("path");
 const pdfParse = require("pdf-parse");
 
 const PORT = 3000;
 
 /* =========================
-   1. 저장소 (RAG DB 역할)
+   RAG DB
 ========================= */
 let DOCUMENTS = [];
 
 /* =========================
-   2. 기본 문서 (초기 데이터)
+   토큰화
 ========================= */
-function addDoc(id, title, text, url) {
-  DOCUMENTS.push({ id, title, text, url });
+function tokenize(text) {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9가-힣\s]/g, " ")
+    .split(/\s+/)
+    .filter(Boolean);
 }
 
 /* =========================
-   3. TF-IDF
+   TF-IDF
 ========================= */
-function tokenize(text) {
-  return text.toLowerCase().split(/\s+/).filter(Boolean);
-}
-
 function tf(tokens) {
   const m = {};
   tokens.forEach(t => m[t] = (m[t] || 0) + 1);
@@ -33,7 +32,7 @@ function tf(tokens) {
 function idf(docs) {
   const df = {};
   docs.forEach(d => {
-    [...new Set(d.tokens)].forEach(t => {
+    new Set(d.tokens).forEach(t => {
       df[t] = (df[t] || 0) + 1;
     });
   });
@@ -50,33 +49,33 @@ function idf(docs) {
 
 function vector(tfMap, idfMap) {
   const v = {};
-  Object.keys(tfMap).forEach(k => {
+  for (let k in tfMap) {
     v[k] = tfMap[k] * (idfMap[k] || 0);
-  });
+  }
   return v;
 }
 
 function cosine(a, b) {
   let dot = 0, ma = 0, mb = 0;
 
-  Object.keys(a).forEach(k => {
+  for (let k in a) {
     dot += (a[k] || 0) * (b[k] || 0);
     ma += (a[k] || 0) ** 2;
-  });
+  }
 
-  Object.keys(b).forEach(k => {
+  for (let k in b) {
     mb += (b[k] || 0) ** 2;
-  });
+  }
 
   return dot / (Math.sqrt(ma) * Math.sqrt(mb) + 1e-9);
 }
 
 /* =========================
-   4. 인덱싱
+   RAG INDEX
 ========================= */
-let vectors = [];
+let VECTORS = [];
 
-function rebuildIndex() {
+function rebuild() {
   const processed = DOCUMENTS.map(d => {
     const tokens = tokenize(d.text + " " + d.title);
     return { ...d, tokens };
@@ -84,42 +83,43 @@ function rebuildIndex() {
 
   const idfMap = idf(processed);
 
-  vectors = processed.map(d => ({
+  VECTORS = processed.map(d => ({
     ...d,
     vec: vector(tf(d.tokens), idfMap)
   }));
 }
 
 /* =========================
-   5. 검색
+   SEARCH
 ========================= */
 function search(query) {
-  if (!vectors.length) return [];
-
   const qTokens = tokenize(query);
-  const idfMap = {};
+  const tempDocs = VECTORS;
 
-  vectors.forEach(v => {
-    Object.keys(v.vec).forEach(k => {
-      idfMap[k] = idfMap[k] || 1;
-    });
+  if (!tempDocs.length) return [];
+
+  const idfMap = {};
+  tempDocs.forEach(d => {
+    Object.keys(d.vec).forEach(k => idfMap[k] = 1);
   });
 
   const qVec = vector(tf(qTokens), idfMap);
 
-  return vectors
-    .map(v => ({
-      ...v,
-      score: cosine(qVec, v.vec)
+  return tempDocs
+    .map(d => ({
+      id: d.id,
+      title: d.title,
+      url: d.url,
+      score: cosine(qVec, d.vec)
     }))
     .sort((a, b) => b.score - a.score)
     .slice(0, 5);
 }
 
 /* =========================
-   6. PDF 업로드 처리
+   PDF 업로드
 ========================= */
-async function indexPDF(filePath, filename) {
+async function addPDF(filePath, filename) {
   const buffer = fs.readFileSync(filePath);
   const data = await pdfParse(buffer);
 
@@ -127,100 +127,102 @@ async function indexPDF(filePath, filename) {
     id: filename,
     title: filename,
     text: data.text,
-    url: `/uploads/${filename}`
+    url: "/uploads/" + filename
   });
 
-  rebuildIndex();
+  rebuild();
 }
 
 /* =========================
-   7. uploads 폴더 생성
+   기본 데이터
+========================= */
+DOCUMENTS.push(
+  { id: "hygiene", title: "위생", text: "손씻기 마스크 감기 예방", url: "/video.html" },
+  { id: "food", title: "식습관", text: "영양 편식 건강 음식", url: "/video.html" },
+  { id: "disease", title: "질병예방", text: "감기 독감 바이러스 면역", url: "/video.html" },
+  { id: "safe", title: "실외안전", text: "횡단보도 교통 안전", url: "/video.html" }
+);
+
+rebuild();
+
+/* =========================
+   uploads
 ========================= */
 if (!fs.existsSync("./uploads")) {
   fs.mkdirSync("./uploads");
 }
 
-/* =========================
-   8. 파일 감시 (자동 RAG)
-========================= */
-fs.watch("./uploads", (event, file) => {
+fs.watch("./uploads", (e, file) => {
   if (file && file.endsWith(".pdf")) {
-    console.log("PDF 감지:", file);
-    indexPDF(`./uploads/${file}`, file);
+    addPDF("./uploads/" + file, file);
   }
 });
 
 /* =========================
-   9. 초기 문서
-========================= */
-addDoc("hygiene", "위생안전", "손씻기 마스크 기침 위생 감기 예방", "/video.html");
-addDoc("foodsafety", "식습관", "영양 편식 건강 음식 비만 예방", "/video.html");
-addDoc("precaution", "질병예방", "감기 독감 바이러스 예방 면역", "/video.html");
-addDoc("outdoor", "실외안전", "횡단보도 교통 도로 안전", "/video.html");
-addDoc("guide", "가이드", "사이트 사용 방법 안내", "/notice.html");
-
-rebuildIndex();
-
-/* =========================
-   10. 서버
+   SERVER
 ========================= */
 const server = http.createServer((req, res) => {
 
-  console.log(req.method, req.url); // 👈 디버깅 필수
-     /* 업로드 API */
-     if (req.url === "/api/search" && req.method === "POST") {
-     let body = "";
-   
-     req.on("data", chunk => body += chunk);
-     req.on("end", () => {
-       try {
-         const { query } = JSON.parse(body);
-   
-         const results = search(query);
-   
-         res.writeHead(200, {
-           "Content-Type": "application/json"
-         });
-   
-         res.end(JSON.stringify(results));
-       } catch (e) {
-         res.writeHead(500);
-         res.end(JSON.stringify({ error: "server error" }));
-       }
-     });
-   
-     return; // ⭐⭐⭐ 이거 없으면 HTML로 떨어짐
-   }
+  console.log(req.method, req.url);
 
-  /* 검색 API */
+  /* ================= API ================= */
   if (req.url === "/api/search" && req.method === "POST") {
+
     let body = "";
 
     req.on("data", c => body += c);
-    req.on("end", () => {
-      const { query } = JSON.parse(body);
 
+    req.on("end", () => {
+      const { query } = JSON.parse(body || "{}");
       const results = search(query);
 
-      res.writeHead(200, { "Content-Type": "application/json" });
+      res.writeHead(200, {
+        "Content-Type": "application/json"
+      });
+
       res.end(JSON.stringify(results));
     });
 
     return;
   }
 
-  /* static */
+  /* ================= UPLOAD PAGE ================= */
+  if (req.url === "/upload" && req.method === "GET") {
+    const html = fs.readFileSync("./upload.html");
+    res.writeHead(200, { "Content-Type": "text/html" });
+    return res.end(html);
+  }
+
+  /* ================= FILE UPLOAD ================= */
+  if (req.url === "/upload" && req.method === "POST") {
+
+    const filename = "file_" + Date.now() + ".pdf";
+    const filePath = "./uploads/" + filename;
+
+    const write = fs.createWriteStream(filePath);
+
+    req.pipe(write);
+
+    req.on("end", () => {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: true }));
+    });
+
+    return;
+  }
+
+  /* ================= STATIC ================= */
   let filePath = req.url === "/" ? "index.html" : "." + req.url;
 
   fs.readFile(filePath, (err, data) => {
     if (err) {
       res.writeHead(404);
-      res.end("Not found");
+      return res.end("404");
     }
     res.end(data);
   });
 });
 
 server.listen(PORT, () => {
-  console.log("RAG Server running → http://localhost:" + PORT);
+  console.log("RAG SERVER RUN → http://localhost:" + PORT);
 });
