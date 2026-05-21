@@ -632,8 +632,13 @@ ${text}
 
             const aiText =
                 data.candidates[0].content.parts[0].text;
-
-            const parsed = JSON.parse(aiText);
+            
+            let cleanText = aiText
+                .replace(/```json/g, "")
+                .replace(/```/g, "")
+                .trim();
+            
+            const parsed = JSON.parse(cleanText);
 
             removeLoading();
 
