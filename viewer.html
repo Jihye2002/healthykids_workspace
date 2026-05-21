@@ -74,23 +74,27 @@
     </nav>
 
     <div class="viewer-container">
-        <iframe id="unique-pdf-viewer-2026-no-interference" style="width:100%; height:100%; border:none;"></iframe>
+        <object id="pdf-viewer" data="" type="application/pdf" width="100%" height="100%">
+        <p>이 브라우저는 PDF를 지원하지 않습니다. 
+           <a id="fallback-link" href="#">여기서 파일을 다운로드하세요.</a>
+        </p>
+    </object>
     </div>
 
     <script>
         window.onload = function() {
         const urlParams = new URLSearchParams(window.location.search);
         const fileName = urlParams.get('file');
-        
+
         if (fileName) {
-            // 깃허브 RAW 주소 사용
             const rawUrl = "https://github.com/Jihye2002/healthykids_workspace/raw/main/" + encodeURIComponent(fileName);
-            
-            // #toolbar=1을 붙여 인쇄 및 다운로드 툴바를 표시합니다
-            const viewer = document.getElementById('unique-pdf-viewer-2026-no-interference');
-            if (viewer) {
-                viewer.src = rawUrl + "#toolbar=1";
-            }
+
+            // object 태그의 data 속성에 PDF 주소를 넣어줌
+            const viewer = document.getElementById('pdf-viewer');
+            viewer.data = rawUrl;
+
+            // 혹시 안 나올 때를 대비한 다운로드 링크 주소 업데이트
+            document.getElementById('fallback-link').href = rawUrl;
         }
     };
     </script>
