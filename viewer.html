@@ -88,8 +88,7 @@
         window.onload = function() {
             const urlParams = new URLSearchParams(window.location.search);
             const fileName = urlParams.get('file');
-            
-            // 여기에 위에서 복사한 파일ID를 넣으세요!
+           
             const driveIds = {
                 "위생안전수칙.pdf": "1hdPsLMfbOxACiblLHuHRXQ15ISslmgjf",
                 "실외안전수칙.pdf": "1Xu8M9PxPN4MC8rjk2t9LXgDhO-57eFWy",
@@ -98,7 +97,7 @@
             };
 
             if (fileName && driveIds[fileName]) {
-                // /preview를 붙여야 다운로드 창이 안 뜨고 바로 웹에서 보입니다.
+                // 이 주소가 선생님이 원하시는 '경희대 입시요강 스타일'을 띄워주는 핵심입니다.
                 document.getElementById('pdf-viewer').src = `https://drive.google.com/file/d/${driveIds[fileName]}/preview`;
             }
         };
