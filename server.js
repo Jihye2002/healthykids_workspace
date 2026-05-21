@@ -166,35 +166,31 @@ rebuildIndex();
 ========================= */
 const server = http.createServer((req, res) => {
 
-  /* 업로드 API */
-  if (req.url === "/upload" && req.method === "POST") {
-    const boundary = req.headers["content-type"].split("boundary=")[1];
-
-    let data = Buffer.alloc(0);
-
-    req.on("data", chunk => {
-      data = Buffer.concat([data, chunk]);
-    });
-
-    req.on("end", () => {
-      const parts = data.toString().split(boundary);
-      const filePart = parts.find(p => p.includes("filename"));
-
-      const match = filePart.match(/filename="(.+?)"/);
-      const filename = match[1];
-
-      const fileData = filePart.split("\r\n\r\n")[1].split("\r\n--")[0];
-
-      const buffer = Buffer.from(fileData, "binary");
-
-      const filePath = `./uploads/${filename}`;
-      fs.writeFileSync(filePath, buffer);
-
-      res.end(JSON.stringify({ ok: true }));
-    });
-
-    return;
-  }
+  console.log(req.method, req.url); // 👈 디버깅 필수
+     /* 업로드 API */
+     if (req.url === "/api/search" && req.method === "POST") {
+     let body = "";
+   
+     req.on("data", chunk => body += chunk);
+     req.on("end", () => {
+       try {
+         const { query } = JSON.parse(body);
+   
+         const results = search(query);
+   
+         res.writeHead(200, {
+           "Content-Type": "application/json"
+         });
+   
+         res.end(JSON.stringify(results));
+       } catch (e) {
+         res.writeHead(500);
+         res.end(JSON.stringify({ error: "server error" }));
+       }
+     });
+   
+     return; // ⭐⭐⭐ 이거 없으면 HTML로 떨어짐
+   }
 
   /* 검색 API */
   if (req.url === "/api/search" && req.method === "POST") {
@@ -219,7 +215,7 @@ const server = http.createServer((req, res) => {
   fs.readFile(filePath, (err, data) => {
     if (err) {
       res.writeHead(404);
-      return res.end("404");
+      res.end("Not found");
     }
     res.end(data);
   });
