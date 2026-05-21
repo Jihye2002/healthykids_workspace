@@ -93,6 +93,11 @@
             if (fileName) {
                 // 깃허브의 RAW 파일 주소
                 const rawUrl = "https://github.com/Jihye2002/healthykids_workspace/raw/main/" + encodeURIComponent(fileName);
+                
+                // [수정된 부분] 툴바가 포함된 브라우저 내장 뷰어 주소로 바로 연결
+                // 브라우저 자체가 PDF 뷰어 역할을 하도록 rawUrl을 직접 넣어줍니다.
+                const viewerUrl = rawUrl + "#toolbar=1"; 
+                
                 document.getElementById('my-unique-healthy-kids-pdf-viewer-2026').src = viewerUrl;
             }
         };
