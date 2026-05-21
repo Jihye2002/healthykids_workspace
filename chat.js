@@ -1,9 +1,11 @@
 /* =========================================================
    HEALTHY KIDS AI CHATBOT
    Gemini 기반 AI 챗봇
+   최종 안정화 버전
 ========================================================= */
 
 let isLoading = false;
+let lastRequestTime = 0;
 
 document.addEventListener("DOMContentLoaded", function () {
 
@@ -234,18 +236,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
     /* =========================================================
-       3. 챗봇 HTML 생성
+       3. 기본 메시지 함수
     ========================================================= */
 
-    const chatHTML = `
+    function getDefaultMessage() {
 
-    <div id="chatbox" class="chatbox-hidden">
-
-        <div id="chat-header">
-            🩺 헬시키즈 AI 도우미
-        </div>
-
-        <div id="chat-body">
+        return `
 
             <div class="message ai-msg">
 
@@ -260,6 +256,24 @@ document.addEventListener("DOMContentLoaded", function () {
 
             </div>
 
+        `;
+    }
+
+
+    /* =========================================================
+       4. 챗봇 HTML 생성
+    ========================================================= */
+
+    const chatHTML = `
+
+    <div id="chatbox" class="chatbox-hidden">
+
+        <div id="chat-header">
+            🩺 헬시키즈 AI 도우미
+        </div>
+
+        <div id="chat-body">
+            ${getDefaultMessage()}
         </div>
 
         <div class="input-area">
@@ -288,21 +302,61 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
     /* =========================================================
-       4. 챗봇 열기/닫기
+       5. 챗봇 열기/닫기
     ========================================================= */
 
     const chatbox = document.getElementById("chatbox");
-
     const toggleButton = document.getElementById("chat-toggle-button");
 
     toggleButton.addEventListener("click", function () {
 
-        chatbox.classList.toggle("chatbox-hidden");
+        const isHidden =
+            chatbox.classList.contains("chatbox-hidden");
+
+        /* ===============================
+           챗봇 열기
+        =============================== */
+
+        if (isHidden) {
+
+            chatbox.classList.remove("chatbox-hidden");
+        }
+
+        /* ===============================
+           챗봇 닫기 + 초기화
+        =============================== */
+
+        else {
+
+            chatbox.classList.add("chatbox-hidden");
+
+            resetChatbot();
+        }
     });
 
 
     /* =========================================================
-       5. 메시지 출력 함수
+       6. 챗봇 초기화
+    ========================================================= */
+
+    function resetChatbot() {
+
+        const body = document.getElementById("chat-body");
+
+        body.innerHTML = getDefaultMessage();
+
+        document.getElementById("user-input").value = "";
+
+        removeLoading();
+
+        isLoading = false;
+
+        document.getElementById("send-btn").disabled = false;
+    }
+
+
+    /* =========================================================
+       7. 메시지 출력 함수
     ========================================================= */
 
     function appendMessage(sender, text, options = {}) {
@@ -397,7 +451,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
     /* =========================================================
-       6. 로딩 애니메이션
+       8. 로딩 애니메이션
     ========================================================= */
 
     function showLoading() {
@@ -433,12 +487,30 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
     /* =========================================================
-       7. AI 메시지 전송
+       9. AI 메시지 전송
     ========================================================= */
 
     async function sendMessage() {
 
         if (isLoading) return;
+
+        /* ===============================
+           5초 요청 제한
+        =============================== */
+
+        const now = Date.now();
+
+        if (now - lastRequestTime < 5000) {
+
+            appendMessage(
+                "ai",
+                "잠시만요 😊<br><br>5초 후 다시 질문해주세요."
+            );
+
+            return;
+        }
+
+        lastRequestTime = now;
 
         isLoading = true;
 
@@ -448,7 +520,29 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const text = input.value.trim();
 
+        /* ===============================
+           빈 입력 방지
+        =============================== */
+
         if (!text) {
+
+            isLoading = false;
+
+            document.getElementById("send-btn").disabled = false;
+
+            return;
+        }
+
+        /* ===============================
+           글자 수 제한
+        =============================== */
+
+        if (text.length > 100) {
+
+            appendMessage(
+                "ai",
+                "질문은 100자 이하로 입력해주세요 😊"
+            );
 
             isLoading = false;
 
@@ -467,7 +561,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             const response = await fetch(
 
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`,
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`,
 
                 {
                     method: "POST",
@@ -565,8 +659,6 @@ ${text}
             const aiText =
                 data.candidates[0].content.parts[0].text;
 
-            console.log(aiText);
-
             /* ===============================
                JSON 정리
             =============================== */
@@ -617,7 +709,7 @@ ${text}
 
 
     /* =========================================================
-       8. 이벤트 연결
+       10. 이벤트 연결
     ========================================================= */
 
     document
