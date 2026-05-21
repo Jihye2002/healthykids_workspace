@@ -120,15 +120,7 @@ document.addEventListener("DOMContentLoaded", () => {
   /* =========================
      5. 검색 API 연결
   ========================= */
-  async function search(query) {
-    const res = await fetch("/api/search", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query })
-    });
-
-    return await res.json();
-  }
+   const results = await ragSearch(q);
 
   /* =========================
      6. 전송
