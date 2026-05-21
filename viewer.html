@@ -85,27 +85,22 @@
             
             // 1. 실제 PDF 파일 주소 (구글 드라이브 공유 링크를 파일 직접 접근 주소로 변환)
             const fileMap = {
-                "위생안전수칙.pdf": "https://drive.google.com/uc?export=view&id=1hdPsLMfbOxACiblLHuHRXQ15ISslmgjf",
-                "실외안전수칙.pdf": "https://drive.google.com/uc?export=view&id=1Xu8M9PxPN4MC8rjk2t9LXgDhO-57eFWy",
-                "생활건강수칙.pdf": "https://drive.google.com/uc?export=view&id=1syWZH4KWx9pJl8tp_N14LHIqGg-za5db",
-                "질병예방수칙.pdf": "https://drive.google.com/uc?export=view&id=1R4wxTGihOcONfY37t8Ge7Eur_HXdhvIk"
+                "위생안전수칙.pdf": "https://drive.google.com/file/d/1hdPsLMfbOxACiblLHuHRXQ15ISslmgjf/view?usp=drive_link",
+                "실외안전수칙.pdf": "https://drive.google.com/file/d/1Xu8M9PxPN4MC8rjk2t9LXgDhO-57eFWy/view?usp=drive_link",
+                "생활건강수칙.pdf": "https://drive.google.com/file/d/1syWZH4KWx9pJl8tp_N14LHIqGg-za5db/view?usp=drive_link",
+                "질병예방수칙.pdf": "https://drive.google.com/file/d/1R4wxTGihOcONfY37t8Ge7Eur_HXdhvIk/view?usp=drive_link"
             };
 
             if (fileName && fileMap[fileName]) {
-                // 2. 모질라 PDF.js 뷰어 주소 (경희대 뷰어와 동일한 UI를 제공합니다)
-                const viewerUrl = "https://mozilla.github.io/pdf.js/web/viewer.html?file=" + encodeURIComponent(fileMap[fileName]);
+                // viewerUrl 뒤에 #pagemode=none 을 추가하면 좌측 패널이 기본적으로 닫힌 상태로 열립니다.
+                const viewerUrl = "https://mozilla.github.io/pdf.js/web/viewer.html?file=" + encodeURIComponent(fileMap[fileName]) + "#pagemode=none";
                 
-                // 3. PDFObject를 사용하여 뷰어를 임베드
                 const options = {
                     fallbackLink: "<p>PDF를 열 수 없습니다. <a href='[url]'>여기서 다운로드하세요</a></p>"
                 };
                 
-                // PDFObject로 뷰어 실행
                 PDFObject.embed(viewerUrl, "#pdf-viewer", options);
-            } else {
-                document.body.innerText = "파일을 찾을 수 없습니다.";
             }
-        };
     </script>
     </body>
 </html>
