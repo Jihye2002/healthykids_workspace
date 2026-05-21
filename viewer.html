@@ -39,18 +39,8 @@
         .column ul li a:hover { color: #2f63c7; font-weight: bold; background-color: #f8fbff; }
 
         /* PDF 뷰어 영역 (나머지 공간 전부 차지) */
-        .viewer-container { 
-            flex-grow: 1; 
-            width: 100%; 
-            background: #525659; /* PDF 배경색(회색) */
-        }
-        
-        /* iframe 꽉 채우기 */
-        #pdfFrame { 
-            width: 100%; 
-            height: 100%; 
-            border: none; 
-        }
+        .viewer-container { flex-grow: 1; width: 100%; }
+        #pdfFrame { width: 100%; height: 100%; border: none; }
     </style>
 </head>
 <body>
@@ -92,14 +82,15 @@
     <script>
         const urlParams = new URLSearchParams(window.location.search);
         const fileName = urlParams.get('file');
-        const pdfFrame = document.getElementById('pdf-frame');
         
         if (fileName) {
-            // 구글 뷰어를 거치지 않고, 브라우저 엔진으로 직접 호출합니다.
+            // 깃허브 raw 파일 경로
             const rawUrl = "https://github.com/Jihye2002/healthykids_workspace/raw/main/" + encodeURIComponent(fileName);
             
-            // 핵심: 브라우저가 PDF를 인식하게 하고, 툴바를 강제로 띄웁니다.
-            document.getElementById('pdfFrame').src = rawUrl + "#toolbar=1&navpanes=0";
+            // 모질라(Mozilla)에서 제공하는 표준 PDF.js 뷰어 주소 (입시 사이트에서 쓰는 그 뷰어입니다)
+            const viewerUrl = "https://mozilla.github.io/pdf.js/web/viewer.html?file=" + encodeURIComponent(rawUrl);
+            
+            document.getElementById('pdfFrame').src = viewerUrl;
         }
     </script>
 </body>
