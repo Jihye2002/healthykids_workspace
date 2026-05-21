@@ -73,11 +73,14 @@
         </div>
     </nav>
 
-<div class="viewer-container">
-    <iframe id="pdf-viewer" 
-        style="width:100%; height:100%; border:none;">
-    </iframe>
-</div>
+    <div class="viewer-container">
+        <embed id="pdf-viewer" 
+               src="" 
+               type="application/pdf" 
+               width="100%" 
+               height="100%" 
+               style="min-height: 800px;">
+    </div>
 
     <script>
         window.onload = function() {
@@ -85,13 +88,12 @@
             const fileName = urlParams.get('file');
             
             if (fileName) {
-                // raw 주소 뒤에 #view=FitH (너비 맞춤) 등을 붙여서 
-                // 브라우저가 이걸 단순 파일이 아니라 '문서'로 인식하게 유도합니다.
                 const rawUrl = "https://github.com/Jihye2002/healthykids_workspace/raw/main/" + encodeURIComponent(fileName);
                 
                 const viewer = document.getElementById('pdf-viewer');
-                // #을 이용해 브라우저 내장 PDF 뷰어의 기능을 활성화합니다.
-                viewer.src = rawUrl + "#view=FitH&toolbar=1";
+                // 핵심: 주소 끝에 'download=0'을 붙여서 '다운로드하지 말고 열어라'고 지시합니다.
+                // 대부분의 현대 브라우저는 이 신호를 이해하고 뷰어를 띄웁니다.
+                viewer.src = rawUrl + "#toolbar=1&navpanes=0&scrollbar=1&view=FitH";
             }
         };
     </script>
