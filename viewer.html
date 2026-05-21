@@ -82,16 +82,11 @@
         window.onload = function() {
             const urlParams = new URLSearchParams(window.location.search);
             const fileName = urlParams.get('file');
-            
-            // 주의: 파일 경로는 깃허브 저장소에 직접 업로드된 파일 주소를 사용하는 것이 가장 좋습니다.
-            // 구글 드라이브 주소는 보안상 외부 뷰어에서 막히는 경우가 많습니다.
             const fileMap = {
-                "위생안전수칙.pdf": "https://github.com/Jihye2002/healthykids_workspace/blob/02647e50a652bb81b3a4da2ed5c9832a2e36ffde/%EC%9C%84%EC%83%9D%EC%95%88%EC%A0%84%EC%88%98%EC%B9%99.pdf",
-                "실외안전수칙.pdf": "https://github.com/Jihye2002/healthykids_workspace/blob/02647e50a652bb81b3a4da2ed5c9832a2e36ffde/%EC%8B%A4%EC%99%B8%EC%95%88%EC%A0%84%EC%88%98%EC%B9%99.pdf"
-                "생활건강수칙.pdf": "https://github.com/Jihye2002/healthykids_workspace/blob/02647e50a652bb81b3a4da2ed5c9832a2e36ffde/%EC%83%9D%ED%99%9C%EA%B1%B4%EA%B0%95%EC%88%98%EC%B9%99.pdf"
-                "질병예방수칙.pdf": "https://github.com/Jihye2002/healthykids_workspace/blob/02647e50a652bb81b3a4da2ed5c9832a2e36ffde/%EC%A7%88%EB%B3%91%EC%98%88%EB%B0%A9%EC%88%98%EC%B9%99.pdf"
-                    
-                // 다른 파일들도 동일하게 깃허브 raw 주소로 변경하세요.
+                "위생안전수칙.pdf": "https://github.com/Jihye2002/healthykids_workspace/raw/main/위생안전수칙.pdf",
+                "실외안전수칙.pdf": "https://github.com/Jihye2002/healthykids_workspace/raw/main/실외안전수칙.pdf",
+                "생활건강수칙.pdf": "https://github.com/Jihye2002/healthykids_workspace/raw/main/생활건강수칙.pdf",
+                "질병예방수칙.pdf": "https://github.com/Jihye2002/healthykids_workspace/raw/main/질병예방수칙.pdf"
             };
     
             if (fileName && fileMap[fileName]) {
