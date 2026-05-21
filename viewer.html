@@ -82,7 +82,7 @@
     </nav>
 
     <div class="viewer-container">
-        <iframe id="pdfFrame"></iframe>
+        <iframe id="my-unique-healthy-kids-pdf-viewer-2026"></iframe>
     </div>
 
     <script>
@@ -93,10 +93,7 @@
             if (fileName) {
                 // 깃허브의 RAW 파일 주소
                 const rawUrl = "https://github.com/Jihye2002/healthykids_workspace/raw/main/" + encodeURIComponent(fileName);
-                
-                // 브라우저가 PDF를 직접 열도록 설정
-                // #toolbar=1을 붙여야 인쇄/다운로드 툴바가 보입니다.
-                document.getElementById('pdfFrame').src = rawUrl + "#toolbar=1";
+                document.getElementById('my-unique-healthy-kids-pdf-viewer-2026').src = viewerUrl;
             }
         };
     </script>
