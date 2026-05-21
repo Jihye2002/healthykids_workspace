@@ -44,12 +44,7 @@
             height: 100%; /* 높이를 부모와 동일하게 강제 */
             position: relative; 
         }
-        #pdf-viewer {
-            display: block;
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
+        #pdf-viewer { width: 100%; height: 100%; border: none; }
     </style>
 </head>
 <body>
@@ -93,18 +88,15 @@
             const urlParams = new URLSearchParams(window.location.search);
             const fileName = urlParams.get('file');
             
-            // 각 파일명에 대응하는 Google Drive 파일 ID를 매핑합니다.
-            const fileMap = {
-                "위생안전수칙.pdf": "1hdPsLMfbOxACiblLHuHRXQ15ISslmgjf",
-                "실외안전수칙.pdf": "1Xu8M9PxPN4MC8rjk2t9LXgDhO-57eFWy",
-                "생활건강수칙.pdf": "1syWZH4KWx9pJl8tp_N14LHIqGg-za5db",
-                "질병예방수칙.pdf": "1R4wxTGihOcONfY37t8Ge7Eur_HXdhvIk"
-            };
-    
-            if (fileName && fileMap[fileName]) {
+            if (fileName) {
                 const viewer = document.getElementById('pdf-viewer');
-                // Google Drive 뷰어 URL로 src를 설정합니다.
-                viewer.src = "https://docs.google.com/viewer?url=https://drive.google.com/uc?export=view&id=" + fileMap[fileName] + "&embedded=true";
+                
+                // 깃허브에 있는 PDF 파일의 주소를 정확히 계산합니다.
+                const pdfUrl = "https://raw.githubusercontent.com/Jihye2002/healthykids_workspace/main/" + encodeURIComponent(fileName);
+                
+                // 모질라(Mozilla)에서 만든 전문 PDF.js 뷰어 주소를 연결합니다.
+                // 이 뷰어는 입시요강 페이지들처럼 인쇄, 확대, 페이지 이동이 모두 가능합니다.
+                viewer.src = "https://mozilla.github.io/pdf.js/web/viewer.html?file=" + encodeURIComponent(pdfUrl);
             }
         };
     </script>
