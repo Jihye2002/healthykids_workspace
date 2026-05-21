@@ -1,13 +1,11 @@
 document.addEventListener("DOMContentLoaded", () => {
 
   const page = location.pathname.split("/").pop();
-
   const EXCLUDE = ["login.html", "signup.html"];
-
   if (EXCLUDE.includes(page)) return;
 
   /* =========================
-     1. CSS 주입
+     CSS
   ========================= */
   const style = document.createElement("style");
   style.textContent = `
@@ -78,7 +76,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.head.appendChild(style);
 
   /* =========================
-     2. HTML 자동 생성
+     HTML
   ========================= */
   document.body.insertAdjacentHTML("beforeend", `
     <button id="chat-btn">💬</button>
@@ -100,7 +98,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const box = document.getElementById("chat-box");
 
   /* =========================
-     3. 토글
+     토글
   ========================= */
   btn.onclick = () => {
     panel.style.display =
@@ -108,7 +106,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   /* =========================
-     4. 메시지
+     메시지
   ========================= */
   function addMessage(text, isUser) {
     const div = document.createElement("div");
@@ -118,31 +116,40 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* =========================
-     5. 검색 API 연결
+     API 호출 (여기가 핵심)
   ========================= */
-   const results = await ragSearch(q);
+  async function ragSearch(query) {
+    const res = await fetch("/api/search", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ query })
+    });
+
+    return await res.json();
+  }
 
   /* =========================
-     6. 전송
+     전송
   ========================= */
   async function send() {
-    const q = input.value;
+    const q = input.value.trim();
     if (!q) return;
 
     addMessage(q, true);
     input.value = "";
 
-    const results = await search(q);
+    const results = await ragSearch(q);
 
     results.forEach(r => {
       addMessage(`${r.title} → ${r.url}`, false);
     });
   }
 
-  btn.onclick = () => {
-    panel.style.display = panel.style.display === "flex" ? "none" : "flex";
-  };
-
+  /* =========================
+     이벤트
+  ========================= */
   document.getElementById("chat-send").onclick = send;
 
   input.addEventListener("keypress", e => {
