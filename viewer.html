@@ -89,7 +89,6 @@
             const urlParams = new URLSearchParams(window.location.search);
             const fileName = urlParams.get('file');
             
-            // 깃허브 저장소에 올라가 있는 PDF 파일의 주소를 정확히 매핑합니다.
             const fileMap = {
                 "위생안전수칙.pdf": "https://raw.githubusercontent.com/Jihye2002/healthykids_workspace/main/위생안전수칙.pdf",
                 "실외안전수칙.pdf": "https://raw.githubusercontent.com/Jihye2002/healthykids_workspace/main/실외안전수칙.pdf",
@@ -97,12 +96,11 @@
                 "질병예방수칙.pdf": "https://raw.githubusercontent.com/Jihye2002/healthykids_workspace/main/질병예방수칙.pdf"
             };
 
-            const viewer = document.getElementById('pdf-viewer');
             if (fileName && fileMap[fileName]) {
-                viewer.src = fileMap[fileName];
+                // PDF 파일을 직접 iframe에 꽂아 넣습니다.
+                document.getElementById('pdf-viewer').src = fileMap[fileName];
             } else {
-                // 파일명이 없거나 리스트에 없는 경우 사용자에게 안내
-                console.error("파일을 찾을 수 없습니다.");
+                document.body.innerText = "파일을 찾을 수 없습니다.";
             }
         };
     </script>
