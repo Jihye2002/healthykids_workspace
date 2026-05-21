@@ -87,19 +87,19 @@
 
     <script>
         window.onload = function() {
-            // URL에서 파일 경로 불러오기
             const urlParams = new URLSearchParams(window.location.search);
             const fileName = urlParams.get('file');
             
-            // 파일 경로 (raw 주소: 다운로드 링크)
+            // 핵심: 구글 드라이브의 /preview 주소를 사용하면 툴바와 북마크가 포함된 뷰어가 뜹니다.
             const fileMap = {
-                "위생안전수칙.pdf": "https://drive.google.com/file/d/1hdPsLMfbOxACiblLHuHRXQ15ISslmgjf/view?usp=sharing",
-                "실외안전수칙.pdf": "https://drive.google.com/file/d/1Xu8M9PxPN4MC8rjk2t9LXgDhO-57eFWy/view?usp=sharing",
-                "생활건강수칙.pdf": "https://drive.google.com/file/d/1syWZH4KWx9pJl8tp_N14LHIqGg-za5db/view?usp=sharing",
-                "질병예방수칙.pdf": "https://drive.google.com/file/d/1R4wxTGihOcONfY37t8Ge7Eur_HXdhvIk/view?usp=sharing"
+                "위생안전수칙.pdf": "https://drive.google.com/file/d/1hdPsLMfbOxACiblLHuHRXQ15ISslmgjf/preview",
+                "실외안전수칙.pdf": "https://drive.google.com/file/d/1Xu8M9PxPN4MC8rjk2t9LXgDhO-57eFWy/preview",
+                "생활건강수칙.pdf": "https://drive.google.com/file/d/1syWZH4KWx9pJl8tp_N14LHIqGg-za5db/preview",
+                "질병예방수칙.pdf": "https://drive.google.com/file/d/1R4wxTGihOcONfY37t8Ge7Eur_HXdhvIk/preview"
             };
 
             if (fileName && fileMap[fileName]) {
+                // PDFObject로 뷰어 임베드
                 PDFObject.embed(fileMap[fileName], "#id_divPdf");
             } else {
                 document.body.innerText = "파일을 찾을 수 없습니다.";
