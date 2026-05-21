@@ -2,25 +2,24 @@
 <html>
 <body>
 
-<h2>PDF 업로드 (RAG 자동 등록)</h2>
+<h2>PDF 업로드</h2>
 
-<input type="file" id="file" />
+<input type="file" id="file">
 <button onclick="upload()">업로드</button>
 
 <script>
 async function upload() {
   const file = document.getElementById("file").files[0];
 
-  const form = new FormData();
-  form.append("file", file);
+  const formData = new FormData();
+  formData.append("file", file);
 
-  const res = await fetch("http://localhost:3000/upload", {
+  await fetch("/upload", {
     method: "POST",
-    body: form
+    body: file
   });
 
-  const data = await res.json();
-  alert(JSON.stringify(data));
+  alert("업로드 완료");
 }
 </script>
 
