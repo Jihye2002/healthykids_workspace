@@ -38,7 +38,18 @@
         .column ul li a { color: #333; padding: 10px 0; display: block; text-decoration: none; font-size: 14px; }
         .column ul li a:hover { color: #2f63c7; font-weight: bold; background-color: #f8fbff; }
 
-        .viewer-container { flex-grow: 1; width: 100%; }
+        .viewer-container { 
+            flex-grow: 1; 
+            width: 100%; 
+            height: 100%; /* 높이를 부모와 동일하게 강제 */
+            position: relative; 
+        }
+        #pdf-viewer {
+            display: block;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
     </style>
 </head>
 <body>
@@ -88,12 +99,11 @@
             const fileName = urlParams.get('file');
             
             if (fileName) {
-                const rawUrl = "https://github.com/Jihye2002/healthykids_workspace/raw/main/" + encodeURIComponent(fileName);
-                
                 const viewer = document.getElementById('pdf-viewer');
-                // 핵심: 주소 끝에 'download=0'을 붙여서 '다운로드하지 말고 열어라'고 지시합니다.
-                // 대부분의 현대 브라우저는 이 신호를 이해하고 뷰어를 띄웁니다.
-                viewer.src = rawUrl + "#toolbar=1&navpanes=0&scrollbar=1&view=FitH";
+                // src가 이미 설정되어 있다면 다시 설정하지 않도록 방어 코드 추가
+                if (!viewer.src) {
+                    viewer.src = fileName + "#view=FitH&toolbar=1";
+                }
             }
         };
     </script>
