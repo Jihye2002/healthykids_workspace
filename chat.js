@@ -10,14 +10,14 @@ document.addEventListener("DOMContentLoaded", function () {
   ========================= */
   const style = document.createElement("style");
 
-  style.innerHTML = `
-    #chatbox{
-      position:fixed;
-      bottom:90px;
-      right:20px;
-      width:340px;
-      height:500px;
-      background:#ffffff;
+    style.textContent = `
+    #chatbox {
+      position: fixed;
+      bottom: 90px;
+      right: 20px;
+      width: 340px;
+      height: 500px;
+      background: #fff;
       border-radius:18px;
       box-shadow:0 10px 30px rgba(0,0,0,0.18);
       z-index:9999;
