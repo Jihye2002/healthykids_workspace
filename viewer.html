@@ -38,15 +38,9 @@
         .column ul li a { color: #333; padding: 10px 0; display: block; text-decoration: none; font-size: 14px; }
         .column ul li a:hover { color: #2f63c7; font-weight: bold; background-color: #f8fbff; }
 
-        /* 기존 헤더/네비게이션 스타일은 그대로 유지 */
         .viewer-container { flex-grow: 1; width: 100%; }
-        
-        /* 브라우저 내장 뷰어가 꽉 차게 설정 */
-        #pdfFrame { 
-            width: 100%; 
-            height: 100%; 
-            border: none; 
-        }
+        /* 확장 프로그램이 찾지 못하도록 이름을 아주 복잡하게 만듭니다 */
+        #unique-pdf-viewer-2026-no-interference { width: 100%; height: 100%; border: none; }
     </style>
 </head>
 <body>
@@ -91,14 +85,16 @@
             const fileName = urlParams.get('file');
             
             if (fileName) {
-                // 깃허브의 RAW 파일 주소
                 const rawUrl = "https://github.com/Jihye2002/healthykids_workspace/raw/main/" + encodeURIComponent(fileName);
                 
-                // [수정된 부분] 툴바가 포함된 브라우저 내장 뷰어 주소로 바로 연결
-                // 브라우저 자체가 PDF 뷰어 역할을 하도록 rawUrl을 직접 넣어줍니다.
-                const viewerUrl = rawUrl + "#toolbar=1"; 
+                // 브라우저 내장 뷰어 연결
+                const viewerUrl = rawUrl + "#toolbar=1";
                 
-                document.getElementById('my-unique-healthy-kids-pdf-viewer-2026').src = viewerUrl;
+                // 복잡한 ID로 요소를 가져와 연결합니다
+                const viewer = document.getElementById('unique-pdf-viewer-2026-no-interference');
+                if (viewer) {
+                    viewer.src = viewerUrl;
+                }
             }
         };
     </script>
