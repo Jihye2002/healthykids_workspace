@@ -1,8 +1,9 @@
 /* =========================================================
    HEALTHY KIDS AI CHATBOT
    Gemini 기반 AI 챗봇
-   연관검색 + 메뉴추천 + 페이지 이동
 ========================================================= */
+
+let isLoading = false;
 
 document.addEventListener("DOMContentLoaded", function () {
 
@@ -10,7 +11,7 @@ document.addEventListener("DOMContentLoaded", function () {
        1. Gemini API KEY
     ========================================================= */
 
-    const API_KEY = "AIzaSyCT9YhykgrlrHanW1WDq7-Hw5OItZJskUQ";
+    const API_KEY = "AIzaSyAX5QhLOB03yyoMw07I1tRmBucjpy8c4AM";
 
 
     /* =========================================================
@@ -22,299 +23,190 @@ document.addEventListener("DOMContentLoaded", function () {
     style.innerHTML = `
 
     #chatbox{
-
         position:fixed;
-
         bottom:90px;
-
         right:20px;
-
         width:340px;
-
         height:500px;
-
         background:#ffffff;
-
         border-radius:18px;
-
         box-shadow:0 10px 30px rgba(0,0,0,0.18);
-
         z-index:9999;
-
         overflow:hidden;
-
         display:flex;
-
         flex-direction:column;
-
         transition:all 0.3s ease;
     }
 
     .chatbox-hidden{
-
         opacity:0;
-
         transform:translateY(120%);
-
         pointer-events:none;
     }
 
     #chat-header{
-
         background:#2f63c7;
-
         color:white;
-
         padding:15px;
-
         font-size:16px;
-
         font-weight:bold;
-
         display:flex;
-
         align-items:center;
-
         gap:8px;
     }
 
     #chat-body{
-
         flex:1;
-
         overflow-y:auto;
-
         padding:12px;
-
         background:#f7f8fc;
-
         display:flex;
-
         flex-direction:column;
     }
 
     .message{
-
         max-width:85%;
-
         padding:10px 13px;
-
         margin-bottom:12px;
-
         border-radius:15px;
-
         font-size:14px;
-
         line-height:1.5;
-
         word-break:keep-all;
     }
 
     .user-msg{
-
         align-self:flex-end;
-
         background:#2f63c7;
-
         color:white;
     }
 
     .ai-msg{
-
         align-self:flex-start;
-
         background:white;
-
         border:1px solid #e5e5e5;
     }
 
     .input-area{
-
         display:flex;
-
         padding:10px;
-
         border-top:1px solid #eee;
-
         background:white;
     }
 
     #user-input{
-
         flex:1;
-
         border:1px solid #ddd;
-
         border-radius:10px;
-
         padding:10px;
-
         outline:none;
-
         font-size:14px;
     }
 
     #send-btn{
-
         margin-left:7px;
-
         background:#2f63c7;
-
         color:white;
-
         border:none;
-
         border-radius:10px;
-
         padding:10px 14px;
-
         cursor:pointer;
     }
 
+    #send-btn:disabled{
+        opacity:0.6;
+        cursor:not-allowed;
+    }
+
     #chat-toggle-button{
-
         position:fixed;
-
         bottom:20px;
-
         right:20px;
-
         width:65px;
-
         height:65px;
-
         border-radius:50%;
-
         border:none;
-
         background:#2f63c7;
-
         color:white;
-
         font-size:28px;
-
         cursor:pointer;
-
         z-index:10000;
-
         box-shadow:0 5px 20px rgba(0,0,0,0.2);
     }
 
     .related-wrapper{
-
         display:flex;
-
         flex-wrap:wrap;
-
         gap:6px;
-
         margin-top:10px;
     }
 
     .related-btn{
-
         border:none;
-
         background:#eef3ff;
-
         color:#2f63c7;
-
         border-radius:15px;
-
         padding:6px 10px;
-
         cursor:pointer;
-
         font-size:12px;
     }
 
     .related-btn:hover{
-
         background:#dbe7ff;
     }
 
     .menu-card{
-
         margin-top:10px;
-
         background:#ffffff;
-
         border:1px solid #e6e6e6;
-
         border-radius:12px;
-
         padding:10px;
     }
 
     .menu-title{
-
         font-weight:bold;
-
         margin-bottom:8px;
-
         color:#333;
     }
 
     .menu-desc{
-
         font-size:13px;
-
         color:#666;
-
         margin-bottom:10px;
     }
 
     .menu-btn{
-
         width:100%;
-
         border:none;
-
         background:#2f63c7;
-
         color:white;
-
         border-radius:8px;
-
         padding:9px;
-
         cursor:pointer;
     }
 
     .menu-btn:hover{
-
         opacity:0.9;
     }
 
     .loading{
-
         display:flex;
-
         gap:4px;
-
         padding:10px;
     }
 
     .loading span{
-
         width:7px;
-
         height:7px;
-
         border-radius:50%;
-
         background:#999;
-
         animation:loading 1s infinite;
     }
 
     .loading span:nth-child(2){
-
         animation-delay:0.2s;
     }
 
     .loading span:nth-child(3){
-
         animation-delay:0.4s;
     }
 
@@ -363,7 +255,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 예시)<br>
                 • 감기 예방 방법 알려줘<br>
-                • 손씻기 영상 보여줘<br>
+                • 손씻기 알려줘<br>
                 • 놀이자료 다운로드 하고 싶어
 
             </div>
@@ -446,6 +338,8 @@ document.addEventListener("DOMContentLoaded", function () {
                 btn.innerText = keyword;
 
                 btn.addEventListener("click", function () {
+
+                    if (isLoading) return;
 
                     document.getElementById("user-input").value = keyword;
 
@@ -544,11 +438,24 @@ document.addEventListener("DOMContentLoaded", function () {
 
     async function sendMessage() {
 
+        if (isLoading) return;
+
+        isLoading = true;
+
+        document.getElementById("send-btn").disabled = true;
+
         const input = document.getElementById("user-input");
 
         const text = input.value.trim();
 
-        if (!text) return;
+        if (!text) {
+
+            isLoading = false;
+
+            document.getElementById("send-btn").disabled = false;
+
+            return;
+        }
 
         appendMessage("user", text);
 
@@ -563,7 +470,6 @@ document.addEventListener("DOMContentLoaded", function () {
                 `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`,
 
                 {
-
                     method: "POST",
 
                     headers: {
@@ -630,14 +536,46 @@ ${text}
 
             console.log(data);
 
+            /* ===============================
+               API 에러 처리
+            =============================== */
+
+            if (data.error) {
+
+                removeLoading();
+
+                appendMessage(
+
+                    "ai",
+
+                    "현재 AI 요청이 많아요 😢<br><br>잠시 후 다시 시도해주세요."
+                );
+
+                isLoading = false;
+
+                document.getElementById("send-btn").disabled = false;
+
+                return;
+            }
+
+            /* ===============================
+               Gemini 응답 가져오기
+            =============================== */
+
             const aiText =
                 data.candidates[0].content.parts[0].text;
-            
+
+            console.log(aiText);
+
+            /* ===============================
+               JSON 정리
+            =============================== */
+
             let cleanText = aiText
                 .replace(/```json/g, "")
                 .replace(/```/g, "")
                 .trim();
-            
+
             const parsed = JSON.parse(cleanText);
 
             removeLoading();
@@ -654,6 +592,10 @@ ${text}
                 }
             );
 
+            isLoading = false;
+
+            document.getElementById("send-btn").disabled = false;
+
         } catch (error) {
 
             console.error(error);
@@ -666,6 +608,10 @@ ${text}
 
                 "죄송합니다 😢<br><br>AI 응답 생성 중 오류가 발생했어요."
             );
+
+            isLoading = false;
+
+            document.getElementById("send-btn").disabled = false;
         }
     }
 
