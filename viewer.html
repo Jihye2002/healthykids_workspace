@@ -93,7 +93,7 @@
 
             if (fileName && fileMap[fileName]) {
                 // viewerUrl 뒤에 #pagemode=none 을 추가하면 좌측 패널이 기본적으로 닫힌 상태로 열립니다.
-                const viewerUrl = "https://mozilla.github.io/pdf.js/web/viewer.html?file=" + encodeURIComponent(fileMap[fileName]) + "#pagemode=none";
+                const viewerUrl = "https://mozilla.github.io/pdf.js/web/viewer.html?file=" + encodeURIComponent(fileMap[fileName]);
                 
                 const options = {
                     fallbackLink: "<p>PDF를 열 수 없습니다. <a href='[url]'>여기서 다운로드하세요</a></p>"
