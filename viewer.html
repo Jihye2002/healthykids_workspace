@@ -89,20 +89,18 @@
             const urlParams = new URLSearchParams(window.location.search);
             const fileName = urlParams.get('file');
             
-            // 각 파일별 구글 드라이브 파일 ID를 매핑합니다.
-            // 드라이브 링크의 /d/ 와 /view 사이에 있는 긴 영문/숫자 코드입니다.
-            const driveFileIds = {
-                "위생안전수칙.pdf": "여기에_위생안전_파일ID_입력",
-                "실외안전수칙.pdf": "여기에_실외안전_파일ID_입력",
-                "생활건강수칙.pdf": "여기에_생활건강_파일ID_입력",
-                "질병예방수칙.pdf": "여기에_질병예방_파일ID_입력"
+            // 1. 파일 이름에 맞는 깃허브 직접 다운로드 주소 (Raw URL)
+            const fileLinks = {
+                "위생안전수칙.pdf": "https://github.com/Jihye2002/healthykids_workspace/raw/main/위생안전수칙.pdf",
+                "실외안전수칙.pdf": "https://github.com/Jihye2002/healthykids_workspace/raw/main/실외안전수칙.pdf",
+                "생활건강수칙.pdf": "https://github.com/Jihye2002/healthykids_workspace/raw/main/생활건강수칙.pdf",
+                "질병예방수칙.pdf": "https://github.com/Jihye2002/healthykids_workspace/raw/main/질병예방수칙.pdf"
             };
     
-            if (fileName && driveFileIds[fileName]) {
-                const fileId = driveFileIds[fileName];
-                // 구글 드라이브의 공식 임베드 뷰어 주소입니다.
-                const viewerUrl = `https://drive.google.com/file/d/${fileId}/preview`;
-                document.getElementById('pdf-viewer').src = viewerUrl;
+            if (fileName && fileLinks[fileName]) {
+                // 2. 뷰어를 거치지 않고 PDF 파일을 직접 iframe에 띄웁니다.
+                // 이렇게 하면 브라우저(크롬/엣지)가 가진 기본 뷰어(인쇄/다운로드만 있는 심플한 뷰어)가 나옵니다.
+                document.getElementById('pdf-viewer').src = fileLinks[fileName];
             }
         };
     </script>
