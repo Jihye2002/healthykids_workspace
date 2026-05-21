@@ -74,24 +74,25 @@
     </nav>
 
     <div class="viewer-container">
-        <iframe id="pdf-viewer" style="width:100%; height:100%; border:none;"></iframe>
+        <iframe id="unique-pdf-viewer-2026-no-interference" style="width:100%; height:100%; border:none;"></iframe>
     </div>
 
     <script>
         window.onload = function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const fileName = urlParams.get('file');
+        const urlParams = new URLSearchParams(window.location.search);
+        const fileName = urlParams.get('file');
+        
+        if (fileName) {
+            // 깃허브 RAW 주소 사용
+            const rawUrl = "https://github.com/Jihye2002/healthykids_workspace/raw/main/" + encodeURIComponent(fileName);
             
-            if (fileName) {
-                const rawUrl = "https://github.com/Jihye2002/healthykids_workspace/raw/main/" + encodeURIComponent(fileName);
-                
-                // HTML의 ID인 'pdf-viewer'와 동일하게 맞췄습니다.
-                const viewer = document.getElementById('pdf-viewer');
-                if (viewer) {
-                    viewer.src = rawUrl + "#toolbar=1&navpanes=0&scrollbar=1";
-                }
+            // #toolbar=1을 붙여 인쇄 및 다운로드 툴바를 표시합니다
+            const viewer = document.getElementById('unique-pdf-viewer-2026-no-interference');
+            if (viewer) {
+                viewer.src = rawUrl + "#toolbar=1";
             }
-        };
+        }
+    };
     </script>
 </body>
 </html>
