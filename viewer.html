@@ -93,12 +93,18 @@
             const urlParams = new URLSearchParams(window.location.search);
             const fileName = urlParams.get('file');
             
-            if (fileName) {
+            // 각 파일명에 대응하는 Google Drive 파일 ID를 매핑합니다.
+            const fileMap = {
+                "위생안전수칙.pdf": "1hdPsLMfbOxACiblLHuHRXQ15ISslmgjf",
+                "실외안전수칙.pdf": "1Xu8M9PxPN4MC8rjk2t9LXgDhO-57eFWy",
+                "생활건강수칙.pdf": "1syWZH4KWx9pJl8tp_N14LHIqGg-za5db",
+                "질병예방수칙.pdf": "1R4wxTGihOcONfY37t8Ge7Eur_HXdhvIk"
+            };
+    
+            if (fileName && fileMap[fileName]) {
                 const viewer = document.getElementById('pdf-viewer');
-                // 핵심: 깃허브 원본 주소를 바로 iframe에 넣습니다.
-                // 깃허브는 브라우저에서 직접 열면 다운로드되지만, 
-                // 깃허브 내의 뷰어 주소 구조를 타면 내용을 보여줍니다.
-                viewer.src = "https://github.com/Jihye2002/healthykids_workspace/blob/main/" + encodeURIComponent(fileName) + "?raw=true";
+                // Google Drive 뷰어 URL로 src를 설정합니다.
+                viewer.src = "https://docs.google.com/viewer?url=https://drive.google.com/uc?export=view&id=" + fileMap[fileName] + "&embedded=true";
             }
         };
     </script>
