@@ -87,20 +87,24 @@
 
     <script>
         window.onload = function() {
-            // PDF 파일 경로 매핑
-            const fileMap = {
-                "위생안전수칙.pdf": "https://raw.githubusercontent.com/Jihye2002/healthykids_workspace/main/위생안전수칙.pdf",
-                "실외안전수칙.pdf": "https://raw.githubusercontent.com/Jihye2002/healthykids_workspace/main/실외안전수칙.pdf",
-                "생활건강수칙.pdf": "https://raw.githubusercontent.com/Jihye2002/healthykids_workspace/main/생활건강수칙.pdf",
-                "질병예방수칙.pdf": "https://raw.githubusercontent.com/Jihye2002/healthykids_workspace/main/질병예방수칙.pdf"
-            };
-    
+            // URL에서 파일 경로 불러오기
             const urlParams = new URLSearchParams(window.location.search);
             const fileName = urlParams.get('file');
-    
+            
+            // 파일 경로 (raw 주소: 다운로드 링크)
+            const fileMap = {
+                "위생안전수칙.pdf": "https://github.com/Jihye2002/healthykids_workspace/raw/main/위생안전수칙.pdf",
+                "실외안전수칙.pdf": "https://github.com/Jihye2002/healthykids_workspace/raw/main/실외안전수칙.pdf",
+                "생활건강수칙.pdf": "https://github.com/Jihye2002/healthykids_workspace/raw/main/생활건강수칙.pdf",
+                "질병예방수칙.pdf": "https://github.com/Jihye2002/healthykids_workspace/raw/main/질병예방수칙.pdf"
+            };
+
             if (fileName && fileMap[fileName]) {
                 // PDFObject가 경희대 스타일의 브라우저 기본 뷰어를 호출합니다.
+                // iframe은 사용하지 않습니다.
                 PDFObject.embed(fileMap[fileName], "#id_divPdf");
+            } else {
+                document.body.innerText = "파일을 찾을 수 없습니다.";
             }
         };
     </script>
