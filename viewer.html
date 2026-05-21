@@ -80,18 +80,22 @@
     </div>
 
     <script>
+        window.onload = function() {
         const urlParams = new URLSearchParams(window.location.search);
         const fileName = urlParams.get('file');
         
         if (fileName) {
-            // 깃허브 raw 파일 경로
             const rawUrl = "https://github.com/Jihye2002/healthykids_workspace/raw/main/" + encodeURIComponent(fileName);
-            
-            // 모질라(Mozilla)에서 제공하는 표준 PDF.js 뷰어 주소 (입시 사이트에서 쓰는 그 뷰어입니다)
+            // PDF.js 뷰어 주소에 깃허브 raw 파일을 전달합니다.
             const viewerUrl = "https://mozilla.github.io/pdf.js/web/viewer.html?file=" + encodeURIComponent(rawUrl);
             
-            document.getElementById('pdfFrame').src = viewerUrl;
+            // id로 정확히 지정하여 할당합니다.
+            const frame = document.getElementById('pdfFrame');
+            if (frame) {
+                frame.src = viewerUrl;
+            }
         }
+    };
     </script>
 </body>
 </html>
