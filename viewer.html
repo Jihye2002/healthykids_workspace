@@ -81,19 +81,20 @@
 
     <script>
         window.onload = function() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const fileName = urlParams.get('file');
-        
-        if (fileName) {
-            // 핵심: 'blob'이 아닌 'raw' URL 사용
-            const rawUrl = "https://github.com/Jihye2002/healthykids_workspace/raw/main/" + encodeURIComponent(fileName);
+            const urlParams = new URLSearchParams(window.location.search);
+            const fileName = urlParams.get('file');
             
-            // PDF.js 뷰어 주소
-            // view=fitH: 가로폭 맞춤, toolbar=1: 툴바 표시
-            const viewerUrl = "https://mozilla.github.io/pdf.js/web/viewer.html?file=" + encodeURIComponent(rawUrl) + "#view=fitH";
-            
-            document.getElementById('pdfFrame').src = viewerUrl;
-        }
+            if (fileName) {
+                // 핵심: 'blob'이 아닌 'raw' URL 사용
+                const rawUrl = "https://github.com/Jihye2002/healthykids_workspace/raw/main/" + encodeURIComponent(fileName);
+                
+                // PDF.js 뷰어 주소
+                // view=fitH: 가로폭 맞춤, toolbar=1: 툴바 표시
+                const viewerUrl = "https://mozilla.github.io/pdf.js/web/viewer.html?file=" + encodeURIComponent(rawUrl) + "#view=fitH";
+                
+                document.getElementById('pdfFrame').src = viewerUrl;
+            }
+        };
     </script>
 </body>
 </html>
