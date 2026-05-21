@@ -39,14 +39,9 @@
         .column ul li a { color: #333; padding: 10px 0; display: block; text-decoration: none; font-size: 14px; }
         .column ul li a:hover { color: #2f63c7; font-weight: bold; background-color: #f8fbff; }
 
-        .viewer-container { 
-            flex-grow: 1; 
-            width: 100%; 
-            height: 100%; /* 높이를 부모와 동일하게 강제 */
-            position: relative;
-            padding-top: 30px;
-        }
-        #id_divPdf { width: 100%; height: 100%; border: none; }
+        /* 뷰어 영역을 전체 화면으로 */
+        #pdf-viewer { width: 100%; height: 100%; padding-top: 30px;}
+        iframe { width: 100%; height: 100%; border: none; }
     </style>
 </head>
 <body>
@@ -81,26 +76,32 @@
         </div>
     </nav>
 
-    <div class="viewer-container">
-        <div id="id_divPdf"></div>
-    </div>
+    <div id="pdf-viewer"></div>
 
     <script>
         window.onload = function() {
             const urlParams = new URLSearchParams(window.location.search);
             const fileName = urlParams.get('file');
             
-            // 핵심: 구글 드라이브의 /preview 주소를 사용하면 툴바와 북마크가 포함된 뷰어가 뜹니다.
+            // 1. 실제 PDF 파일 주소 (구글 드라이브 공유 링크를 파일 직접 접근 주소로 변환)
             const fileMap = {
-                "위생안전수칙.pdf": "https://drive.google.com/file/d/1hdPsLMfbOxACiblLHuHRXQ15ISslmgjf/preview",
-                "실외안전수칙.pdf": "https://drive.google.com/file/d/1Xu8M9PxPN4MC8rjk2t9LXgDhO-57eFWy/preview",
-                "생활건강수칙.pdf": "https://drive.google.com/file/d/1syWZH4KWx9pJl8tp_N14LHIqGg-za5db/preview",
-                "질병예방수칙.pdf": "https://drive.google.com/file/d/1R4wxTGihOcONfY37t8Ge7Eur_HXdhvIk/preview"
+                "위생안전수칙.pdf": "https://drive.google.com/uc?export=view&id=1hdPsLMfbOxACiblLHuHRXQ15ISslmgjf",
+                "실외안전수칙.pdf": "https://drive.google.com/uc?export=view&id=1Xu8M9PxPN4MC8rjk2t9LXgDhO-57eFWy",
+                "생활건강수칙.pdf": "https://drive.google.com/uc?export=view&id=1syWZH4KWx9pJl8tp_N14LHIqGg-za5db",
+                "질병예방수칙.pdf": "https://drive.google.com/uc?export=view&id=1R4wxTGihOcONfY37t8Ge7Eur_HXdhvIk"
             };
 
             if (fileName && fileMap[fileName]) {
-                // PDFObject로 뷰어 임베드
-                PDFObject.embed(fileMap[fileName], "#id_divPdf");
+                // 2. 모질라 PDF.js 뷰어 주소 (경희대 뷰어와 동일한 UI를 제공합니다)
+                const viewerUrl = "https://mozilla.github.io/pdf.js/web/viewer.html?file=" + encodeURIComponent(fileMap[fileName]);
+                
+                // 3. PDFObject를 사용하여 뷰어를 임베드
+                const options = {
+                    fallbackLink: "<p>PDF를 열 수 없습니다. <a href='[url]'>여기서 다운로드하세요</a></p>"
+                };
+                
+                // PDFObject로 뷰어 실행
+                PDFObject.embed(viewerUrl, "#pdf-viewer", options);
             } else {
                 document.body.innerText = "파일을 찾을 수 없습니다.";
             }
