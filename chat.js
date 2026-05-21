@@ -34,17 +34,39 @@ document.addEventListener("DOMContentLoaded", function() {
         document.getElementById('chatbox').classList.toggle('chatbox-hidden');
     };
 
-    window.sendMessage = function() {
+    window.sendMessage = async function() {
         const input = document.getElementById('user-input');
         const body = document.getElementById('chat-body');
-        if (input.value.trim() === "") return;
+        const text = input.value.trim();
         
-        const msgDiv = document.createElement('div');
-        msgDiv.className = 'message';
-        msgDiv.innerText = input.value;
-        body.appendChild(msgDiv);
+        if (text === "") return;
         
+        // 1. 사용자 메시지 추가
+        appendMessage('user', text);
         input.value = "";
-        body.scrollTop = body.scrollHeight;
+    
+        // 2. 서버(API 연동)로 요청
+        try {
+            const response = await fetch('YOUR_SERVER_API_URL', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt: text })
+            });
+            const data = await response.json();
+            
+            // 3. AI 응답 추가
+            appendMessage('ai', data.reply);
+        } catch (error) {
+            appendMessage('ai', "죄송합니다. 서버 연결에 실패했습니다.");
+        }
     };
+    
+    function appendMessage(sender, text) {
+        const body = document.getElementById('chat-body');
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `message ${sender}-msg`;
+        msgDiv.innerText = text;
+        body.appendChild(msgDiv);
+        body.scrollTop = body.scrollHeight;
+    }
 });
