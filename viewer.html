@@ -80,7 +80,7 @@
     <div id="pdf-viewer"></div>
 
     <script>
-        document.addEventListener("DOMContentLoaded", function() {
+        window.onload = function() {
             const urlParams = new URLSearchParams(window.location.search);
             const fileName = urlParams.get('file');
             
