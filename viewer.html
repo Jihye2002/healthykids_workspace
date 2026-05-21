@@ -85,14 +85,13 @@
             const fileName = urlParams.get('file');
             
             if (fileName) {
-                // 깃허브 raw 경로
+                // raw 주소 뒤에 #view=FitH (너비 맞춤) 등을 붙여서 
+                // 브라우저가 이걸 단순 파일이 아니라 '문서'로 인식하게 유도합니다.
                 const rawUrl = "https://github.com/Jihye2002/healthykids_workspace/raw/main/" + encodeURIComponent(fileName);
                 
-                // PDF.js 뷰어 경로 + ?file=파일주소
                 const viewer = document.getElementById('pdf-viewer');
-                
-                // PDF.js 뷰어에 PDF 주소를 전달
-                viewer.src = "pdfjs/web/viewer.html?file=" + encodeURIComponent(rawUrl);
+                // #을 이용해 브라우저 내장 PDF 뷰어의 기능을 활성화합니다.
+                viewer.src = rawUrl + "#view=FitH&toolbar=1";
             }
         };
     </script>
