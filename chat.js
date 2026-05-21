@@ -10,7 +10,7 @@ document.addEventListener("DOMContentLoaded", function () {
        1. Gemini API KEY
     ========================================================= */
 
-    const API_KEY = "여기에_네_GEMINI_API_KEY_붙여넣기";
+    const API_KEY = "AIzaSyCT9YhykgrlrHanW1WDq7-Hw5OItZJskUQ";
 
 
     /* =========================================================
