@@ -90,11 +90,11 @@
             };
     
             if (fileName && fileMap[fileName]) {
-                // PDFObject가 브라우저의 기본 PDF 엔진을 호출하게 합니다.
-                // 이게 가장 깔끔하고 오류가 없습니다.
-                PDFObject.embed(fileMap[fileName], "#pdf-viewer");
+            const viewer = document.getElementById('pdf-viewer');
+                // iframe으로 직접 PDF를 호출하면 브라우저 자체 뷰어가 뜹니다 (인쇄/다운로드 버튼 포함)
+                viewer.innerHTML = `<iframe src="${fileMap[fileName]}" width="100%" height="100%" style="border:none;"></iframe>`;
             } else {
-                document.body.innerText = "파일을 찾을 수 없습니다.";
+                document.getElementById('pdf-viewer').innerText = "파일을 찾을 수 없습니다.";
             }
         };
     </script>
