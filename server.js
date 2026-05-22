@@ -3,7 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const pdfParse = require("pdf-parse");
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 /* =========================
    1. DOCUMENT DATABASE
