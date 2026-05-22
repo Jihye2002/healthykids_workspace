@@ -4,340 +4,499 @@ const path = require("path");
 const pdfParse = require("pdf-parse");
 
 const PORT = process.env.PORT || 3000;
-
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
+/* =========================
+   DATABASE
+========================= */
 let DOCUMENTS = [];
 
 /* =========================
-   TOKENIZE
+   OPENAI EMBEDDING
 ========================= */
-function tokenize(text) {
+async function createEmbedding(text) {
 
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9가-힣\s]/g, " ")
-    .split(/\s+/)
-    .filter(Boolean);
+  const response = await fetch(
+    "https://api.openai.com/v1/embeddings",
+    {
+      method: "POST",
+
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${OPENAI_API_KEY}`
+      },
+
+      body: JSON.stringify({
+        model: "text-embedding-3-small",
+        input: text
+      })
+    }
+  );
+
+  const data = await response.json();
+
+  if (!data.data?.length) {
+
+    console.error(data);
+
+    throw new Error("EMBEDDING ERROR");
+  }
+
+  return data.data[0].embedding;
 }
 
 /* =========================
-   VECTOR SEARCH
+   COSINE SIMILARITY
 ========================= */
-function tf(tokens) {
-
-  const map = {};
-
-  tokens.forEach(t => {
-    map[t] = (map[t] || 0) + 1;
-  });
-
-  return map;
-}
-
-function idf(docs) {
-
-  const df = {};
-
-  docs.forEach(doc => {
-
-    new Set(doc.tokens).forEach(t => {
-      df[t] = (df[t] || 0) + 1;
-    });
-  });
-
-  const result = {};
-
-  const N = docs.length;
-
-  Object.keys(df).forEach(t => {
-    result[t] = Math.log((N + 1) / (df[t] + 1));
-  });
-
-  return result;
-}
-
-function vector(tfMap, idfMap) {
-
-  const v = {};
-
-  for (let k in tfMap) {
-    v[k] = tfMap[k] * (idfMap[k] || 0);
-  }
-
-  return v;
-}
-
-function cosine(a, b) {
+function cosineSimilarity(a, b) {
 
   let dot = 0;
-  let ma = 0;
-  let mb = 0;
+  let normA = 0;
+  let normB = 0;
 
-  for (let k in a) {
-    dot += (a[k] || 0) * (b[k] || 0);
-    ma += (a[k] || 0) ** 2;
+  for (let i = 0; i < a.length; i++) {
+
+    dot += a[i] * b[i];
+    normA += a[i] * a[i];
+    normB += b[i] * b[i];
   }
 
-  for (let k in b) {
-    mb += (b[k] || 0) ** 2;
-  }
-
-  return dot / (Math.sqrt(ma) * Math.sqrt(mb) + 1e-9);
+  return dot / (
+    Math.sqrt(normA) *
+    Math.sqrt(normB) +
+    1e-10
+  );
 }
 
-let VECTORS = [];
-let IDF_MAP = {};
+/* =========================
+   ADD DOCUMENT
+========================= */
+async function addDocument(doc) {
 
-function rebuild() {
+  const embedding = await createEmbedding(
+    `
+    ${doc.title}
+    ${doc.description || ""}
+    ${doc.text}
+    `
+  );
 
-  const processed = DOCUMENTS.map(doc => {
-
-    const tokens = tokenize(
-      `${doc.title} ${doc.text}`
-    );
-
-    return {
-      ...doc,
-      tokens
-    };
+  DOCUMENTS.push({
+    ...doc,
+    embedding
   });
 
-  IDF_MAP = idf(processed);
-
-  VECTORS = processed.map(doc => ({
-    ...doc,
-    vec: vector(tf(doc.tokens), IDF_MAP)
-  }));
+  console.log("✅ DOCUMENT INDEXED:", doc.title);
 }
 
-function search(query) {
+/* =========================
+   INITIAL DOCUMENTS
+========================= */
+async function initializeDocuments() {
+
+  DOCUMENTS = [];
+
+  await addDocument({
+    title: "😷 질병예방",
+    text: `
+    감기 예방 독감 바이러스 예방 면역력
+    기침예절 마스크 착용 호흡기 건강
+    손씻기 감염 예방 건강관리
+    `,
+    description:
+      "감기와 바이러스 예방 교육 자료",
+    url: "/video.html?type=precaution"
+  });
+
+  await addDocument({
+    title: "🧼 위생안전",
+    text: `
+    손씻기 세균 예방 개인위생 마스크
+    올바른 손씻기 방법 기침예절
+    바이러스 예방 위생 교육
+    `,
+    description:
+      "손씻기와 개인위생 교육 자료",
+    url: "/video.html?type=hygiene"
+  });
+
+  await addDocument({
+    title: "🚦 실외안전",
+    text: `
+    횡단보도 교통안전 길건너기
+    보행자 안전 신호등 안전수칙
+    `,
+    description:
+      "횡단보도와 교통안전 교육",
+    url: "/video.html?type=crosswalk"
+  });
+
+  await addDocument({
+    title: "🥗 생활건강",
+    text: `
+    건강한 식습관 영양관리 편식예방
+    음식 건강 생활습관 어린이 건강
+    `,
+    description:
+      "건강한 식습관과 영양관리 교육",
+    url: "/video.html?type=foodsafety"
+  });
+
+  /* =========================
+     PDF AUTO INDEX
+  ========================= */
+  const uploadDir = path.join(__dirname, "uploads");
+
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir);
+  }
+
+  const files = fs.readdirSync(uploadDir);
+
+  for (const file of files) {
+
+    if (!file.endsWith(".pdf")) continue;
+
+    try {
+
+      const filePath = path.join(uploadDir, file);
+
+      const buffer = fs.readFileSync(filePath);
+
+      const pdf = await pdfParse(buffer);
+
+      await addDocument({
+        title: `📄 ${file}`,
+        text: pdf.text,
+        description: "업로드된 PDF 교육 자료",
+        url: `/uploads/${file}`
+      });
+
+    } catch (err) {
+
+      console.error("PDF ERROR:", file);
+      console.error(err);
+    }
+  }
+
+  console.log("✅ ALL DOCUMENTS READY");
+}
+
+/* =========================
+   AI SEARCH
+========================= */
+async function searchDocuments(query) {
 
   if (!query) return [];
 
-  const qTokens = tokenize(query);
+  const queryEmbedding =
+    await createEmbedding(query);
 
-  const qVec = vector(
-    tf(qTokens),
-    IDF_MAP
-  );
+  const scored = DOCUMENTS.map(doc => {
 
-  return VECTORS
-    .map(doc => ({
-      ...doc,
-      score: cosine(qVec, doc.vec)
-    }))
-    .filter(doc => doc.score > 0.05)
+    const score = cosineSimilarity(
+      queryEmbedding,
+      doc.embedding
+    );
+
+    return {
+      title: doc.title,
+      text: doc.text,
+      description: doc.description,
+      url: doc.url,
+      score
+    };
+  });
+
+  return scored
+    .filter(item => item.score > 0.35)
     .sort((a, b) => b.score - a.score)
     .slice(0, 5);
 }
 
 /* =========================
-   DOCUMENTS
+   AI CHAT RESPONSE
 ========================= */
-DOCUMENTS.push(
-  {
-    title:"😷 질병예방",
-    text:"감기 독감 바이러스 기침예절 예방 면역",
-    description:"감기와 독감 예방 교육",
-    url:"/video.html?type=precaution"
-  },
+async function generateAIResponse(
+  userMessage,
+  results
+) {
 
-  {
-    title:"🧼 위생안전",
-    text:"손씻기 개인위생 마스크 세균 위생",
-    description:"손씻기와 마스크 착용, 기침예절 교육",
-    url:"/video.html?type=hygiene"
-  },
-
-  {
-    title:"🚦 실외안전",
-    text:"횡단보도 교통안전 길건너기 길",
-    description:"교통안전 교육",
-    url:"/video.html?type=crosswalk"
-  },
-
-  {
-    title:"🥗 생활건강",
-    text:"식습관 영양관리 건강 음식",
-    description:"건강한 식습관 교육",
-    url:"/video.html?type=foodsafety"
-  }
-);
-
-rebuild();
-
-/* =========================
-   SERVER
-========================= */
-const MIME = {
-  ".html":"text/html",
-  ".css":"text/css",
-  ".js":"text/javascript",
-  ".png":"image/png",
-  ".jpg":"image/jpeg",
-  ".pdf":"application/pdf",
-  ".mp4":"video/mp4"
-};
-
-const server = http.createServer(async (req, res) => {
-
-  const cleanUrl = req.url.split("?")[0];
-
-  res.setHeader(
-    "Access-Control-Allow-Origin",
-    "*"
-  );
-
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "Content-Type"
-  );
-
-  if (req.method === "OPTIONS") {
-
-    res.writeHead(204);
-
-    return res.end();
-  }
-
-  /* =========================
-     CHAT API
-  ========================= */
-  if (
-    cleanUrl === "/api/chat" &&
-    req.method === "POST"
-  ) {
-
-    let body = "";
-
-    req.on("data", chunk => {
-      body += chunk;
-    });
-
-    req.on("end", async () => {
-
-      try {
-
-        const parsed = JSON.parse(body);
-
-        const message = parsed.message || "";
-
-        const results = search(message);
-
-        const context = results
-          .map(r => `
-제목:${r.title}
-설명:${r.description}
-내용:${r.text}
+  const context = results
+    .map(r => `
+제목: ${r.title}
+설명: ${r.description}
+내용:
+${r.text}
 `)
-          .join("\n");
+    .join("\n");
 
-        const response = await fetch(
-          "https://api.openai.com/v1/chat/completions",
+  const response = await fetch(
+    "https://api.openai.com/v1/chat/completions",
+    {
+      method: "POST",
+
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${OPENAI_API_KEY}`
+      },
+
+      body: JSON.stringify({
+
+        model: "gpt-4.1-mini",
+
+        messages: [
+
           {
-            method:"POST",
+            role: "system",
+            content: `
+너는 헬시키즈 AI 건강교육 챗봇이다.
 
-            headers:{
-              "Content-Type":"application/json",
-              "Authorization":
-                `Bearer ${OPENAI_API_KEY}`
-            },
-
-            body: JSON.stringify({
-
-              model:"gpt-4.1-mini",
-
-              messages:[
-                {
-                  role:"system",
-                  content:`
-너는 어린이 건강교육 AI 챗봇이다.
-
-검색 결과를 기반으로
-정확하고 자연스럽게 설명해라.
+반드시:
+- 어린이 교육처럼 친절하게 설명
+- 검색 결과를 기반으로 설명
+- 없는 정보는 지어내지 말 것
+- 자연스럽게 요약할 것
 `
-                },
+          },
 
-                {
-                  role:"user",
-                  content:`
+          {
+            role: "user",
+            content: `
 사용자 질문:
-${message}
+${userMessage}
 
 검색 자료:
 ${context}
 `
-                }
-              ]
-            })
           }
-        );
+        ],
 
-        const aiData = await response.json();
+        temperature: 0.7
+      })
+    }
+  );
 
-        const reply =
-          aiData.choices?.[0]?.message?.content
-          || "답변 생성 실패";
+  const data = await response.json();
 
-        res.writeHead(200, {
-          "Content-Type":"application/json"
-        });
+  return (
+    data.choices?.[0]?.message?.content ||
+    "답변 생성 실패 😢"
+  );
+}
 
-        res.end(JSON.stringify({
-          reply,
-          results
-        }));
+/* =========================
+   MIME
+========================= */
+const MIME = {
+  ".html": "text/html",
+  ".css": "text/css",
+  ".js": "text/javascript",
+  ".json": "application/json",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".ico": "image/x-icon",
+  ".pdf": "application/pdf",
+  ".mp4": "video/mp4"
+};
 
-      } catch (err) {
+/* =========================
+   SERVER
+========================= */
+const server = http.createServer(
+  async (req, res) => {
 
-        console.error(err);
+    const cleanUrl =
+      req.url.split("?")[0];
 
-        res.writeHead(500, {
-          "Content-Type":"application/json"
-        });
+    console.log(
+      "REQ:",
+      req.method,
+      req.url
+    );
 
-        res.end(JSON.stringify({
-          error:"SERVER ERROR"
-        }));
-      }
-    });
+    /* =========================
+       CORS
+    ========================= */
+    res.setHeader(
+      "Access-Control-Allow-Origin",
+      "*"
+    );
 
-    return;
-  }
+    res.setHeader(
+      "Access-Control-Allow-Headers",
+      "Content-Type"
+    );
 
-  /* =========================
-     STATIC FILE
-  ========================= */
-  let filePath;
+    res.setHeader(
+      "Access-Control-Allow-Methods",
+      "GET,POST,OPTIONS"
+    );
 
-  if (cleanUrl === "/") {
-    filePath = path.join(__dirname, "index.html");
-  } else {
-    filePath = path.join(__dirname, cleanUrl);
-  }
+    if (req.method === "OPTIONS") {
 
-  fs.readFile(filePath, (err, data) => {
+      res.writeHead(204);
 
-    if (err) {
-
-      res.writeHead(404);
-
-      return res.end("404");
+      return res.end();
     }
 
-    const ext = path.extname(filePath);
+    /* =========================
+       AI CHAT API
+    ========================= */
+    if (
+      cleanUrl === "/api/chat" &&
+      req.method === "POST"
+    ) {
 
-    res.writeHead(200, {
-      "Content-Type":
-        MIME[ext] || "text/plain"
+      let body = "";
+
+      req.on("data", chunk => {
+        body += chunk;
+      });
+
+      req.on("end", async () => {
+
+        try {
+
+          const parsed =
+            JSON.parse(body || "{}");
+
+          const message =
+            parsed.message || "";
+
+          console.log(
+            "🔍 USER:",
+            message
+          );
+
+          /* =========================
+             AI SEARCH
+          ========================= */
+          const results =
+            await searchDocuments(message);
+
+          console.log(
+            "✅ SEARCH RESULTS:",
+            results.length
+          );
+
+          /* =========================
+             AI RESPONSE
+          ========================= */
+          const reply =
+            await generateAIResponse(
+              message,
+              results
+            );
+
+          res.writeHead(200, {
+            "Content-Type":
+              "application/json"
+          });
+
+          return res.end(
+            JSON.stringify({
+              reply,
+              results
+            })
+          );
+
+        } catch (err) {
+
+          console.error(err);
+
+          res.writeHead(500, {
+            "Content-Type":
+              "application/json"
+          });
+
+          return res.end(
+            JSON.stringify({
+              error:
+                "AI SERVER ERROR"
+            })
+          );
+        }
+      });
+
+      return;
+    }
+
+    /* =========================
+       STATIC FILE
+    ========================= */
+    let filePath;
+
+    if (cleanUrl === "/") {
+
+      filePath = path.join(
+        __dirname,
+        "index.html"
+      );
+
+    } else {
+
+      filePath = path.join(
+        __dirname,
+        cleanUrl
+      );
+    }
+
+    fs.readFile(
+      filePath,
+      (err, data) => {
+
+        if (err) {
+
+          console.log(
+            "❌ FILE NOT FOUND:",
+            filePath
+          );
+
+          res.writeHead(404, {
+            "Content-Type":
+              "text/plain"
+          });
+
+          return res.end(
+            "404 NOT FOUND"
+          );
+        }
+
+        const ext =
+          path.extname(filePath);
+
+        res.writeHead(200, {
+          "Content-Type":
+            MIME[ext] ||
+            "text/plain"
+        });
+
+        res.end(data);
+      }
+    );
+  }
+);
+
+/* =========================
+   START SERVER
+========================= */
+initializeDocuments()
+  .then(() => {
+
+    server.listen(PORT, () => {
+
+      console.log(
+        `🚀 SERVER RUNNING : ${PORT}`
+      );
     });
+  })
+  .catch(err => {
 
-    res.end(data);
+    console.error(
+      "❌ INIT ERROR"
+    );
+
+    console.error(err);
   });
-});
-
-server.listen(PORT, () => {
-
-  console.log("SERVER RUNNING");
-});
