@@ -12,154 +12,152 @@ const DOCUMENTS = [
   {
     id: 1,
     title: "😷 질병예방",
-    content: "감기 독감 바이러스 예방 면역 기침예절",
+    content: "감기 독감 바이러스 예방 면역 기침예절 손씻기",
     url: "/video.html?type=precaution"
   },
   {
     id: 2,
     title: "🧼 위생안전",
-    content: "손씻기 세균 위생 마스크 개인위생",
+    content: "손씻기 세균 마스크 개인위생 바이러스 예방",
     url: "/video.html?type=hygiene"
   },
   {
     id: 3,
     title: "🚦 실외안전",
-    content: "횡단보도 교통 안전 길건너기 사고예방",
+    content: "횡단보도 교통 안전 사고 예방 길건너기",
     url: "/video.html?type=crosswalk"
   },
   {
     id: 4,
     title: "🥗 생활건강",
-    content: "식습관 영양 건강 음식 균형",
+    content: "식습관 영양 건강 음식 균형 성장",
     url: "/video.html?type=foodsafety"
   }
 ];
 
 /* =========================
-   1. PURE SEMANTIC ANALYSIS (핵심)
+   1. QUERY EXPANSION (AI)
 ========================= */
-async function semanticAnalyze(query) {
+async function expandQuery(query) {
 
-  const res = await fetch(
-    "https://api.groq.com/openai/v1/chat/completions",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${GROQ_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: "llama-3.1-70b-versatile",
-        temperature: 0.1,
-        messages: [
-          {
-            role: "system",
-            content: `
-너는 "검색 의도 분석 AI"다.
+  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${GROQ_API_KEY}`
+    },
+    body: JSON.stringify({
+      model: "llama-3.1-70b-versatile",
+      messages: [
+        {
+          role: "system",
+          content: `
+너는 검색어 확장 AI다.
 
-사용자 질문을 아래 3개로 변환하라:
+사용자 질문을 검색 키워드 6~10개로 변환해라.
 
-1. intent (의도 한줄)
-2. topic (핵심 주제 1개)
-3. exclude (관련 없어야 할 것)
-
-⚠️ 매우 중요:
-- 억지 연결 금지
-- 의미 기반 판단
-- 손씻기는 항상 자동 포함하지 말 것
-
-JSON ONLY:
-{
-  "intent":"",
-  "topic":"",
-  "exclude":[]
-}
+JSON 배열만 출력:
+["키워드1","키워드2","키워드3"]
 `
-          },
-          { role: "user", content: query }
-        ]
-      })
-    }
-  );
+        },
+        {
+          role: "user",
+          content: query
+        }
+      ]
+    })
+  });
 
   const data = await res.json();
 
   try {
     return JSON.parse(data.choices[0].message.content);
   } catch {
-    return {
-      intent: query,
-      topic: query,
-      exclude: []
-    };
+    return query.split(" ");
   }
 }
 
 /* =========================
-   2. AI DOCUMENT SELECTOR (핵심)
+   2. HYBRID SCORING (핵심)
 ========================= */
-async function aiSelectDocuments(query, analysis) {
+function score(doc, keywords) {
 
-  const context = DOCUMENTS.map(d => `
-ID:${d.id}
-TITLE:${d.title}
-CONTENT:${d.content}
-URL:${d.url}
+  let keywordScore = 0;
+  let semanticScore = 0;
+
+  for (let k of keywords) {
+
+    if (doc.title.includes(k)) keywordScore += 5;
+    if (doc.content.includes(k)) keywordScore += 2;
+  }
+
+  for (let k of keywords) {
+    if (doc.content.includes(k)) semanticScore += 1;
+  }
+
+  return keywordScore * 0.6 + semanticScore * 0.4;
+}
+
+/* =========================
+   3. SEARCH ENGINE CORE
+========================= */
+function search(query, keywords) {
+
+  return DOCUMENTS
+    .map(doc => ({
+      ...doc,
+      score: score(doc, keywords)
+    }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5);
+}
+
+/* =========================
+   4. AI RESPONSE GENERATION
+========================= */
+async function generateAnswer(query, results) {
+
+  const context = results.map(r => `
+제목: ${r.title}
+내용: ${r.content}
+URL: ${r.url}
 `).join("\n");
 
-  const res = await fetch(
-    "https://api.groq.com/openai/v1/chat/completions",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${GROQ_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: "llama-3.1-70b-versatile",
-        temperature: 0.1,
-        messages: [
-          {
-            role: "system",
-            content: `
-너는 "초정밀 검색 엔진"이다.
+  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${GROQ_API_KEY}`
+    },
+    body: JSON.stringify({
+      model: "llama-3.1-70b-versatile",
+      messages: [
+        {
+          role: "system",
+          content: `
+너는 Google 검색 AI다.
 
 규칙:
-- topic 기준으로 가장 관련 있는 것만 선택
-- 최대 3개
-- 무관하면 제외
-- 억지 추천 금지
-- 손씻기는 위생 관련일 때만 선택
+1. 자연스럽게 설명
+2. 결과 기반으로 답변
+3. JSON 출력
 
-출력 JSON:
+형식:
 {
+  "reply":"설명",
   "results":[
-    {
-      "title":"",
-      "description":"",
-      "url":"",
-      "reason":"왜 선택했는지"
-    }
+    {"title":"","description":"","url":""}
   ]
 }
 `
-          },
-          {
-            role: "user",
-            content: `
-질문: ${query}
-
-분석 결과:
-${JSON.stringify(analysis)}
-
-문서:
-${context}
-`
-          }
-        ]
-      })
-    }
-  );
+        },
+        {
+          role: "user",
+          content: `질문:${query}\n\n검색결과:\n${context}`
+        }
+      ]
+    })
+  });
 
   const data = await res.json();
 
@@ -167,50 +165,10 @@ ${context}
     return JSON.parse(data.choices[0].message.content);
   } catch {
     return {
-      results: []
+      reply: "검색 결과를 찾았어요",
+      results
     };
   }
-}
-
-/* =========================
-   3. FINAL SUMMARY AI (가벼운 설명)
-========================= */
-async function summarize(query, results) {
-
-  const res = await fetch(
-    "https://api.groq.com/openai/v1/chat/completions",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${GROQ_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: "llama-3.1-70b-versatile",
-        temperature: 0.2,
-        messages: [
-          {
-            role: "system",
-            content: `
-너는 어린이 건강교육 설명 AI다.
-짧고 쉽게 설명해라 (3~4줄).
-`
-          },
-          {
-            role: "user",
-            content: `
-질문: ${query}
-추천 결과: ${JSON.stringify(results)}
-`
-          }
-        ]
-      })
-    }
-  );
-
-  const data = await res.json();
-
-  return data.choices?.[0]?.message?.content || "검색 결과입니다.";
 }
 
 /* =========================
@@ -218,7 +176,7 @@ async function summarize(query, results) {
 ========================= */
 const server = http.createServer(async (req, res) => {
 
-  const cleanUrl = req.url.split("?")[0];
+  const url = req.url.split("?")[0];
 
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Content-Type", "application/json");
@@ -228,56 +186,34 @@ const server = http.createServer(async (req, res) => {
     return res.end();
   }
 
-  /* =========================
-     AI SEARCH PIPELINE v4
-  ========================= */
-  if (cleanUrl === "/api/chat" && req.method === "POST") {
+  if (url === "/api/chat" && req.method === "POST") {
 
     let body = "";
     req.on("data", c => body += c);
 
     req.on("end", async () => {
 
-      try {
+      const { message } = JSON.parse(body);
 
-        const { message } = JSON.parse(body);
+      // 1. query expand
+      const keywords = await expandQuery(message);
 
-        // 1️⃣ 의도 분석 (핵심 업그레이드)
-        const analysis = await semanticAnalyze(message);
+      // 2. search
+      const results = search(message, keywords);
 
-        // 2️⃣ AI 문서 선택 (정밀 필터링)
-        const selected = await aiSelectDocuments(message, analysis);
+      // 3. AI generate
+      const answer = await generateAnswer(message, results);
 
-        // 3️⃣ 설명 생성
-        const reply = await summarize(message, selected.results || []);
-
-        res.end(JSON.stringify({
-          reply,
-          results: selected.results || [],
-          debug: analysis
-        }));
-
-      } catch (err) {
-
-        console.error(err);
-
-        res.writeHead(500);
-        res.end(JSON.stringify({
-          error: "AI SEARCH ERROR"
-        }));
-      }
+      res.end(JSON.stringify(answer));
     });
 
     return;
   }
 
-  /* =========================
-     STATIC
-  ========================= */
-  let filePath =
-    cleanUrl === "/"
-      ? path.join(__dirname, "index.html")
-      : path.join(__dirname, cleanUrl);
+  /* STATIC */
+  let filePath = url === "/"
+    ? "index.html"
+    : path.join(__dirname, url);
 
   fs.readFile(filePath, (err, data) => {
 
@@ -292,5 +228,5 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log("🚀 AI SEMANTIC SEARCH ENGINE v4 (FINAL) RUNNING");
+  console.log("🚀 GOOGLE-STYLE SEARCH ENGINE RUNNING");
 });
