@@ -271,7 +271,16 @@ const server = http.createServer((req, res) => {
   /* =========================
      SEARCH API
   ========================= */
-  if (req.url === "/api/search" && req.method === "POST") {
+  if (req.url.startsWith("/api/")) {
+
+     res.writeHead(404, {
+       "Content-Type": "application/json"
+     });
+   
+     return res.end(JSON.stringify({
+       error: "API NOT FOUND"
+     }));
+   }
 
     let body = "";
 
@@ -330,13 +339,13 @@ const server = http.createServer((req, res) => {
   /* =========================
      STATIC FILE
   ========================= */
-  let filePath;
+  const cleanUrl = req.url.split("?")[0];
 
-  if (req.url === "/") {
-    filePath = path.join(__dirname, "index.html");
-  } else {
-    filePath = path.join(__dirname, req.url);
-  }
+   if (cleanUrl === "/") {
+     filePath = path.join(__dirname, "index.html");
+   } else {
+     filePath = path.join(__dirname, cleanUrl);
+   }
 
   fs.readFile(filePath, (err, data) => {
 
