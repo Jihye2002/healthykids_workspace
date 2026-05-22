@@ -259,26 +259,23 @@ video { width:100%; height:100%; }
 </div>
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-    
+
         const contentDB = {
             hygiene: {
                 title: '손씻기 • 마스크착용',
                 src: 'https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/%EC%9C%84%EC%83%9D%EC%95%88%EC%A0%84.mp4',
                 kahoot: 'https://kahoot.it/solo?quizId=e21b4892-c67f-4c95-bd1d-6a6e660d7a85'
             },
-    
             crosswalk: {
                 title: '횡단보도 안전',
                 src: 'https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/%EC%83%9D%ED%99%9C%EA%B1%B4%EA%B0%95.mp4',
                 kahoot: 'https://kahoot.it/solo?quizId=987654'
             },
-    
             foodsafety: {
                 title: '올바른 식습관',
                 src: 'https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/food.mp4',
                 kahoot: 'https://kahoot.it/solo?quizId=food123'
             },
-    
             precaution: {
                 title: '감기 • 독감 예방',
                 src: 'https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/cold.mp4',
@@ -288,7 +285,6 @@ video { width:100%; height:100%; }
     
         const params = new URLSearchParams(window.location.search);
         const type = params.get('type');
-    
         const data = contentDB[type];
     
         const video = document.getElementById('main-video');
@@ -302,28 +298,22 @@ video { width:100%; height:100%; }
             return;
         }
     
-        // 🎬 제목
         title.innerText = data.title;
     
-        // 🎥 영상 세팅
-        if (video && data.src) {
-            video.src = data.src;
-            video.load();
+        video.src = data.src;
+        video.load();
     
-            video.play().catch(() => {});
-        }
+        video.play().catch(() => {});
     
-        // 🔗 카훗 링크
-        if (link && data.kahoot) {
-            link.href = data.kahoot;
-        }
+        link.href = data.kahoot;
     
-        // 🎯 영상 끝 → 슬라이드 전환 + UI 개선
-        function showQuiz() {
+        // 🔥 핵심: ended만 사용
+        video.addEventListener("ended", () => {
+    
+            if (!quiz) return;
+            if (quiz.style.display === "block") return;
     
             quiz.style.display = "block";
-    
-            // 🎬 부드러운 등장
             quiz.style.opacity = "0";
             quiz.style.transform = "translateY(40px)";
     
@@ -333,7 +323,6 @@ video { width:100%; height:100%; }
                 quiz.style.transform = "translateY(0)";
             }, 50);
     
-            // 🎥 영상 영역 확대 축소 + 숨김
             if (videoWrapper) {
                 videoWrapper.style.transition = "all 0.6s ease";
                 videoWrapper.style.transform = "scale(0.95)";
@@ -345,43 +334,9 @@ video { width:100%; height:100%; }
             }
     
             quiz.scrollIntoView({ behavior: "smooth" });
-        }
+        });
     
-        let isEnded = false;
-        let isReady = false;
-        
-        // 🎬 영상 메타데이터 로딩 완료 확인
-        video.addEventListener("loadedmetadata", () => {
-            isReady = true;
-            isEnded = false;
-        });
-        
-        // 🎬 실제 종료 감지 (진짜 끝 + 준비된 경우만)
-        video.addEventListener("timeupdate", () => {
-            if (!isReady) return;
-            if (!video.duration || isNaN(video.duration)) return;
-        
-            const remaining = video.duration - video.currentTime;
-        
-            // 👉 마지막 0.3초 기준
-            if (remaining <= 0.3 && !isEnded && video.currentTime > 0) {
-                isEnded = true;
-                showQuiz();
-            }
-        });
-        
-        // 🎬 fallback (진짜 ended)
-        video.addEventListener("ended", () => {
-            if (!isReady) return;
-            if (isEnded) return;
-        
-            isEnded = true;
-            showQuiz();
-        });
-
-        function showQuiz() {
-
-            if (!quiz || quiz.style.display === "block") return;
+    });
 </script>
 
 </body>
