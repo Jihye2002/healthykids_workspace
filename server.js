@@ -14,6 +14,7 @@ let DOCUMENTS = [];
    2. TOKENIZE
 ========================= */
 function tokenize(text) {
+
   return text
     .toLowerCase()
     .replace(/[^a-z0-9가-힣\s]/g, " ")
@@ -25,6 +26,7 @@ function tokenize(text) {
    3. TF
 ========================= */
 function tf(tokens) {
+
   const map = {};
 
   tokens.forEach(t => {
@@ -38,9 +40,11 @@ function tf(tokens) {
    4. IDF
 ========================= */
 function idf(docs) {
+
   const df = {};
 
   docs.forEach(doc => {
+
     new Set(doc.tokens).forEach(t => {
       df[t] = (df[t] || 0) + 1;
     });
@@ -60,6 +64,7 @@ function idf(docs) {
    5. VECTOR
 ========================= */
 function vector(tfMap, idfMap) {
+
   const v = {};
 
   for (let k in tfMap) {
@@ -70,7 +75,7 @@ function vector(tfMap, idfMap) {
 }
 
 /* =========================
-   6. COSINE
+   6. COSINE SIMILARITY
 ========================= */
 function cosine(a, b) {
 
@@ -79,6 +84,7 @@ function cosine(a, b) {
   let mb = 0;
 
   for (let k in a) {
+
     dot += (a[k] || 0) * (b[k] || 0);
     ma += (a[k] || 0) ** 2;
   }
@@ -134,6 +140,7 @@ function search(query) {
     .map(doc => ({
       title: doc.title,
       text: doc.text,
+      description: doc.description || "",
       url: doc.url,
       score: cosine(qVec, doc.vec)
     }))
@@ -155,6 +162,7 @@ async function addPDF(filePath, filename) {
     DOCUMENTS.push({
       title: "📄 " + filename,
       text: data.text,
+      description: "업로드된 PDF 자료입니다.",
       url: "/uploads/" + filename
     });
 
@@ -177,6 +185,8 @@ DOCUMENTS.push(
     title: "📌 헬시키즈 이용 가이드",
     text:
       "헬시키즈는 어린이 건강 교육 플랫폼입니다. 위생안전 실외안전 생활건강 질병예방 영상을 제공합니다.",
+    description:
+      "사이트 이용 방법과 교육 콘텐츠 사용법을 확인할 수 있어요.",
     url: "/notice.html#guide"
   },
 
@@ -184,6 +194,8 @@ DOCUMENTS.push(
     title: "🧼 위생안전",
     text:
       "손씻기 마스크착용 기침예절 감기예방 개인위생 교육 영상입니다.",
+    description:
+      "손씻기와 개인위생 방법을 배울 수 있어요.",
     url: "/video.html?type=hygiene"
   },
 
@@ -191,6 +203,8 @@ DOCUMENTS.push(
     title: "🚦 실외안전",
     text:
       "횡단보도 교통안전 길건너기 실외 안전수칙 교육입니다.",
+    description:
+      "횡단보도와 교통안전 수칙을 배울 수 있어요.",
     url: "/video.html?type=crosswalk"
   },
 
@@ -198,6 +212,8 @@ DOCUMENTS.push(
     title: "🥗 생활건강",
     text:
       "올바른 식습관 편식예방 영양관리 건강한 음식 교육입니다.",
+    description:
+      "건강한 식습관과 영양 관리를 배울 수 있어요.",
     url: "/video.html?type=foodsafety"
   },
 
@@ -205,6 +221,8 @@ DOCUMENTS.push(
     title: "😷 질병예방",
     text:
       "감기 독감 바이러스 예방 면역 건강관리 교육입니다.",
+    description:
+      "감기와 독감 예방 방법을 학습할 수 있어요.",
     url: "/video.html?type=precaution"
   }
 
@@ -278,12 +296,18 @@ const server = http.createServer((req, res) => {
     });
 
     return res.end(JSON.stringify({
+
       messages: [
         "👋 안녕하세요! 헬시키즈 AI입니다.",
         "🔎 원하는 건강 교육 내용을 검색해보세요.",
         "📌 예시: 손씻기 / 감기예방 / 횡단보도 / 식습관"
       ],
-      guide: "/notice.html#guide"
+
+      guide: {
+        title: "📌 헬시키즈 이용 가이드",
+        description: "사이트 사용 방법을 확인할 수 있어요.",
+        url: "/notice.html#guide"
+      }
     }));
   }
 
@@ -383,8 +407,11 @@ const server = http.createServer((req, res) => {
   let filePath;
 
   if (cleanUrl === "/") {
+
     filePath = path.join(__dirname, "index.html");
+
   } else {
+
     filePath = path.join(__dirname, cleanUrl);
   }
 
@@ -412,10 +439,10 @@ const server = http.createServer((req, res) => {
 });
 
 /* =========================
-   START SERVER
+   14. START SERVER
 ========================= */
 server.listen(PORT, () => {
 
   console.log("🚀 SERVER RUNNING");
-  console.log(`🌐 http://localhost:${PORT}`);
+  console.log(`🌐 SERVER PORT : ${PORT}`);
 });
