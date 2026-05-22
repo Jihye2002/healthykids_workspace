@@ -119,7 +119,7 @@ document.addEventListener("DOMContentLoaded", () => {
      API 호출 (여기가 핵심)
   ========================= */
   async function ragSearch(query) {
-    const res = await fetch("http://localhost:3000/api/search", {
+    const res = await fetch("/api/search", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
