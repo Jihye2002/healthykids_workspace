@@ -1,312 +1,130 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <link rel="icon" type="icon" href="https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/favicon.ico">
-    <script src="chat.js"></script>
-    <title>헬시키즈</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Arial', sans-serif; background-color: #fff; }
+<meta charset="UTF-8">
+<link rel="icon" type="icon" href="https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/favicon.ico">
+<title>헬시키즈</title>
 
-        .header { display: flex; align-items: center; padding: 10px 20px; flex-wrap: nowrap; gap: 10px; }
-        .logo { flex-shrink: 0; }
-        .logo img { display: block; width: 100%; max-width: 180px; height: auto; }
-        .container { display: flex; align-items: center; width: 100%; min-width: 0; gap: 20px;}
-        .search-bar { display: flex; align-items: center; margin-left: 20px; flex: 1 1 auto; max-width: 1280px; gap: 8px; }
-        .search-bar input { flex: 1 1 auto; padding: 10px; font-size: 15px; border: 1px solid #316ef4; min-width: 50px; border-radius: 5px; }
-        .search-bar button { background-color: #fff; border: none; cursor: pointer; flex-shrink: 0; width: 30px; }
-        .user-menu { margin-left: auto; display: flex; align-items: center; white-space: nowrap; flex-shrink: 0; font-size: 15px; font-weight: 600;}
-        .user-menu a { white-space: nowrap; text-decoration: none; color: #6d6d6d; }
-        .divider { margin: 0 8px; color: #6d6d6d; }
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:Arial; background:#fff; }
 
-        /* --- 내비게이션 --- */
-        /* --- 네비게이션바 전체 설정 --- */
-        .navbar { 
-            background-color: #2f63c7; 
-            position: relative; 
-        }
+.header { display:flex; align-items:center; padding:10px 20px; gap:10px; }
 
-        .menu-list { 
-            width: 100%;
-            display: flex; 
-            justify-content: center; /* 메뉴를 가로 중앙으로 정렬 */
-            align-items: center;
-            flex-wrap: nowrap;
-            white-space: nowrap;
-            list-style: none; 
-            padding: 0;         /* 위아래 적절한 여백 */
-            margin: 0;
-            overflow-x: visible;
-        }
+.page-container { max-width:900px; margin:40px auto; padding:20px; }
 
-        .menu-list > li { 
-            flex: 1; 
-            padding: 0 20px;
-            text-align: center;
-            position: relative;
-            white-space: nowrap;
-        }
+#video-title { margin-bottom:20px; color:#2f63c7; }
 
-        /* 상단 메인 메뉴 링크 스타일 */
-        .menu-list > li > a { 
-            display: block; 
-            padding: 10px 15px; 
-            color: white; 
-            text-decoration: none; 
-            font-weight: 600;
-            transition: background 0.3s;
-            white-space: nowrap;
-        }
+.video-wrapper {
+    width:100%;
+    aspect-ratio:16/9;
+    background:#000;
+    border-radius:20px;
+    overflow:hidden;
+}
 
-        /* 마우스를 올렸을 때 상단 메뉴 배경 변경 */
-        .menu-list > li:hover > a { 
-            background-color: #1e4fa8;
-        }
+video { width:100%; height:100%; }
 
-        /* 1. 메가 메뉴 전체 패널 */
-        .mega-menu {
-            display: none;
-            position: absolute;
-            top: 100%;
-            left: 0;
-            width: 100%; 
-            background-color: #ffffff;
-            border-bottom: 3px solid #2f63c7;
-            box-shadow: 0 5px 10px rgba(0,0,0,0.1);
-            z-index: 1000;
-        }
+/* 🎯 카훗 영역 (처음 숨김) */
+.quiz-section {
+    margin-top:40px;
+    padding:30px;
+    background:#f8f9fa;
+    border-radius:20px;
+    display:none;
+    text-align:center;
+}
 
-        /* 호버 시 메가 메뉴 나타남 */
-        .navbar:hover .mega-menu {
-            display: block; 
-        }
+.btn {
+    padding:15px 20px;
+    border:1px solid #2f63c7;
+    background:white;
+    cursor:pointer;
+    border-radius:10px;
+    font-size:16px;
+}
 
-        /* 2. 컬럼 컨테이너 (정렬 담당) */
-        .mega-content {
-            display: flex;
-            justify-content: stretch;
-            width: 100%;
-            padding: 20px 0;
-        }
-
-        /* 3. 각 컬럼 스타일 */
-        .column {
-            flex: 1;
-            text-align: center;
-            border-right: 1px solid #eee;
-        }
-
-        .column:last-child {
-            border-right: none;
-        }
-
-        .column ul {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .column ul li a {
-            color: #333;
-            padding: 10px 0;
-            display: block;
-            text-decoration: none;
-            font-size: 14px;
-            transition: color 0.2s;
-        }
-
-        .column ul li a:hover {
-            color: #2f63c7;
-            font-weight: bold;
-            background-color: #f8fbff;
-        }
-
-        /* 콘텐츠 영역 */
-        .page-container { max-width: 900px; margin: 40px auto; padding: 20px; }
-        #video-title { margin-bottom: 20px; color: #2f63c7; }
-        .video-wrapper { width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: 20px; overflow: hidden; }
-        video { width: 100%; height: 100%; }
-
-        /* 퀴즈 영역 */
-        .quiz-section { margin-top: 40px; padding: 30px; background: #f8f9fa; border-radius: 20px; }
-        .quiz-q { font-size: 1.2rem; font-weight: bold; margin-bottom: 20px; }
-        .quiz-btns { display: grid; gap: 10px; }
-        .btn { padding: 15px; border: 1px solid #2f63c7; background: white; cursor: pointer; border-radius: 10px; }
-        .btn:hover { background: #eef5ff; }
-        #feedback { margin-top: 20px; font-weight: bold; }
-    </style>
+.btn:hover { background:#eef5ff; }
+</style>
 </head>
+
 <body>
 
 <header class="header">
-    <div class="logo">
-        <a href="index.html">
-            <img src="https://github.com/Jihye2002/healthykids_workspace/blob/main/logo.png?raw=true" alt="헬시키즈로고">
-        </a>
-    </div>
-    <div class="container">
-        <form class="search-bar" action="search.html" method="get">
-            <input type="text" name="q" placeholder="검색어를 입력하세요">
-            <button type="submit"><img src="https://github.com/Jihye2002/healthykids_workspace/blob/main/search.png?raw=true" alt="검색버튼" width="40" height="40"></button>
-        </form>
-        <div class="user-menu">
-            <a href="login.html">로그인</a>
-            <span class="divider">|</span>
-            <a href="signup.html">회원가입</a>
-        </div>
-    </div>
+    <h2>헬시키즈</h2>
 </header>
 
-<nav class="navbar">
-    <ul class="menu-list">
-        <li><a href="#">회원정보</a></li>
-        <li><a href="#">영상보기</a></li>
-        <li><a href="#">놀이&활동자료 다운로드</a></li>
-        <li><a href="#">안전수칙자료 다운로드</a></li>
-        <li><a href="#">Q&A</a></li>
-    </ul>
-
-    <div class="mega-menu">
-        <div class="mega-content">
-            <div class="column">
-                <ul>
-                    <li><a href="#">개인정보 수정</a></li>
-                    <li><a href="#">회원탈퇴</a></li>
-                </ul>
-            </div>
-
-            <div class="column">
-                <ul>
-                    <li><a href="#">진행중인 영상</a></li>
-                    <li><a href="video.html?type=hygiene">위생안전</a></li>
-                    <li><a href="video.html?type=crosswalk">실외안전</a></li>
-                    <li><a href="video.html?type=foodsafety">생활건강</a></li>
-                    <li><a href="video.html?type=precaution">질병예방</a></li>
-                </ul>
-            </div>
-            
-            <div class="column">
-                <ul>
-                    <li><a href="#">하루건강 체크리스트</a></li>
-                    <li><a href="#">퀴즈</a></li>
-                    <li><a href="#">놀이학습자료</a></li>
-                </ul>
-            </div>
-
-            <div class="column">
-                <ul>
-                    <li><a href="viewer.html?file=위생안전수칙.pdf">위생안전자료</a></li>
-                    <li><a href="viewer.html?file=실외안전수칙.pdf">실외안전자료</a></li>
-                    <li><a href="viewer.html?file=생활건강수칙.pdf">생활건강자료</a></li>
-                    <li><a href="viewer.html?file=질병예방수칙.pdf">질병예방자료</a></li>
-                </ul>
-            </div>
-
-            <div class="column">
-                <ul>
-                    <li><a href="#">자주 묻는 질문</a></li>
-                    <li><a href="#">1:1상담 문의</a></li>
-                    <li><a href="#">영상오류 해결방법</a></li>
-                </ul>
-            </div>
-
-        </div>
-    </div>
-</nav>
-
 <div class="page-container">
+
     <h2 id="video-title">불러오는 중...</h2>
+
     <div class="video-wrapper">
-        <video id="main-video" controls muted autoplay playsinline>
-            <source id="video-source" src="" type="video/mp4">
-            브라우저가 비디오 태그를 지원하지 않습니다.
-        </video>    
+        <video id="main-video" controls muted autoplay playsinline></video>
     </div>
 
-    <div class="quiz-section">
-        <div class="quiz-q" id="quiz-question">질문을 불러오는 중...</div>
-        <div class="quiz-btns" id="quiz-options"></div>
-        <div id="feedback"></div>
+    <!-- 🎯 카훗 영역 -->
+    <div class="quiz-section" id="quiz-section">
+        <h3 style="margin-bottom:15px;">🎯 영상이 끝났어요!</h3>
+
+        <a id="kahoot-link" target="_blank">
+            <button class="btn">🚀 카훗 퀴즈 시작하기</button>
+        </a>
     </div>
+
 </div>
 
 <script>
-    // 1. 영상 및 퀴즈 데이터 정의 (여기를 수정했습니다!)
-    document.addEventListener('DOMContentLoaded', async () => {
-        const contentDB = {
-            'hygiene': { 
-                title: '손씻기 • 마스크착용 • 기침할 땐 이렇게 해요', 
-                // 아래 src에 실제 주소를 넣었습니다.
-                src: 'https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/%EC%9C%84%EC%83%9D%EC%95%88%EC%A0%84.mp4', 
-                q: '손을 씻을 때 가장 올바른 방법은?', 
-                opts: ['물로만', '비누칠 30초', '그냥 털기'], 
-                ans: 1
-            },
-            'crosswalk': { 
-                title: '횡단보도 건널 때는 이렇게 해요', 
-                src: 'https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/AI%20%EC%BA%90%EB%A6%AD%ED%84%B0%20%EC%8B%9C%EC%97%B0%EC%98%81%EC%83%81_%ED%9A%A1%EB%8B%A8%EB%B3%B4%EB%8F%84.mp4', 
-                q: '초록불에 건널 때 어떻게 해야 할까요?', 
-                opts: ['뛰어간다', '손을 들고 확인한다', '핸드폰을 본다'], 
-                ans: 1
-            },
-            'foodsafety': { 
-                title: '영양소 듬뿍! 골고루 먹어요', 
-                src: 'https://github.com/.../food.mp4', 
-                q: '골고루 먹으면 어디에 좋을까요?', 
-                opts: ['키가 커져요', '잠만 와요', '배가 아파요'], 
-                ans: 0 
-            },
-            'precaution': { 
-                title: '감기 • 독감 예방은 이렇게 해요', 
-                src: 'https://github.com/.../cold.mp4', 
-                q: '감기 예방을 위한 올바른 행동은?', 
-                opts: ['손 자주 씻기', '창문 닫기', '아이스크림 먹기'], 
-                ans: 0 
-            }
-        };
+document.addEventListener('DOMContentLoaded', () => {
 
-    // 2. URL에서 정보 가져오기
+    // 1. 콘텐츠 데이터
+    const contentDB = {
+        hygiene: {
+            title: '손씻기 • 마스크착용 • 기침예절',
+            src: 'https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/%EC%9C%84%EC%83%9D%EC%95%88%EC%A0%84.mp4',
+            kahoots: [
+                'https://kahoot.it/solo?quizId=e21b4892-c67f-4c95-bd1d-6a6e660d7a85',
+                'https://kahoot.it/solo?quizId=001236c4-8caf-45e4-b350-22d887ce5aad'
+            ]
+        }
+        crosswalk: {
+            title: '횡단보도 안전',
+            src: 'https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/AI%20%EC%BA%90%EB%A6%AD%ED%84%B0%20%EC%8B%9C%EC%97%B0%EC%98%81%EC%83%81_%ED%9A%A1%EB%8B%A8%EB%B3%B4%EB%8F%84.mp4',
+            kahoot: 'https://kahoot.it/challenge/987654'
+        }
+    };
+
+    // 2. URL 파라미터
     const params = new URLSearchParams(window.location.search);
     const type = params.get('type');
     const data = contentDB[type];
 
-    // ... (위쪽 코드 동일)
+    const video = document.getElementById('main-video');
+    const title = document.getElementById('video-title');
+    const quiz = document.getElementById('quiz-section');
+    const link = document.getElementById('kahoot-link');
 
-        if (data) {
-            // 1. 제목 설정
-            document.getElementById('video-title').innerText = data.title;
-            
-            // 2. 비디오 요소 선택 및 소스 직접 변경
-            const video = document.getElementById('main-video');
-            
-            // <source> 태그를 따로 건드리지 말고 video 태그의 src를 직접 설정합니다.
-            video.src = data.src; 
-            video.load(); // 새로 불러오기
-            video.play(); // 재생 시도
-    
-            // 3. 퀴즈 설정 (기존 코드 유지)
-            const quizQuestion = document.getElementById('quiz-question');
-            const optDiv = document.getElementById('quiz-options');
-            
-            if (quizQuestion && optDiv) {
-                quizQuestion.innerText = data.q;
-                optDiv.innerHTML = ""; 
-                data.opts.forEach((opt, idx) => {
-                    const btn = document.createElement('button');
-                    btn.className = 'btn';
-                    btn.innerText = opt;
-                    btn.onclick = () => {
-                        document.getElementById('feedback').innerText = (idx === data.ans) ? "✅ 정답입니다!" : "❌ 다시 한번 생각해보세요!";
-                    };
-                    optDiv.appendChild(btn);
-                });
-            }
-        } else {
-            document.getElementById('video-title').innerText = "데이터를 찾을 수 없습니다.";
-        }
-    }); // <--- 여기가 중요합니다! (addEventListener를 닫는 괄호)
+    if (!data) {
+        title.innerText = "데이터를 찾을 수 없습니다.";
+        return;
+    }
+
+    // 3. 영상 세팅
+    title.innerText = data.title;
+    video.src = data.src;
+    video.load();
+    video.play();
+
+    // 4. 카훗 링크 세팅
+    link.href = data.kahoot;
+
+    // 5. 🎯 핵심: 영상 끝나면 카훗 등장
+    video.addEventListener("ended", () => {
+        quiz.style.display = "block";
+        quiz.scrollIntoView({ behavior: "smooth" });
+    });
+
+});
 </script>
-</script>
+
 </body>
 </html>
