@@ -1,502 +1,204 @@
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
-const pdfParse = require("pdf-parse");
 
 const PORT = process.env.PORT || 3000;
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
 /* =========================
-   DATABASE
+   DOCUMENTS (AI 검색 대상)
 ========================= */
-let DOCUMENTS = [];
-
-/* =========================
-   OPENAI EMBEDDING
-========================= */
-async function createEmbedding(text) {
-
-  const response = await fetch(
-    "https://api.openai.com/v1/embeddings",
-    {
-      method: "POST",
-
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${OPENAI_API_KEY}`
-      },
-
-      body: JSON.stringify({
-        model: "text-embedding-3-small",
-        input: text
-      })
-    }
-  );
-
-  const data = await response.json();
-
-  if (!data.data?.length) {
-
-    console.error(data);
-
-    throw new Error("EMBEDDING ERROR");
-  }
-
-  return data.data[0].embedding;
-}
-
-/* =========================
-   COSINE SIMILARITY
-========================= */
-function cosineSimilarity(a, b) {
-
-  let dot = 0;
-  let normA = 0;
-  let normB = 0;
-
-  for (let i = 0; i < a.length; i++) {
-
-    dot += a[i] * b[i];
-    normA += a[i] * a[i];
-    normB += b[i] * b[i];
-  }
-
-  return dot / (
-    Math.sqrt(normA) *
-    Math.sqrt(normB) +
-    1e-10
-  );
-}
-
-/* =========================
-   ADD DOCUMENT
-========================= */
-async function addDocument(doc) {
-
-  const embedding = await createEmbedding(
-    `
-    ${doc.title}
-    ${doc.description || ""}
-    ${doc.text}
-    `
-  );
-
-  DOCUMENTS.push({
-    ...doc,
-    embedding
-  });
-
-  console.log("✅ DOCUMENT INDEXED:", doc.title);
-}
-
-/* =========================
-   INITIAL DOCUMENTS
-========================= */
-async function initializeDocuments() {
-
-  DOCUMENTS = [];
-
-  await addDocument({
+let DOCUMENTS = [
+  {
     title: "😷 질병예방",
-    text: `
-    감기 예방 독감 바이러스 예방 면역력
-    기침예절 마스크 착용 호흡기 건강
-    손씻기 감염 예방 건강관리
-    `,
-    description:
-      "감기와 바이러스 예방 교육 자료",
+    text: "감기 독감 바이러스 기침예절 면역 예방",
+    description: "감기와 독감 예방 교육",
     url: "/video.html?type=precaution"
-  });
-
-  await addDocument({
+  },
+  {
     title: "🧼 위생안전",
-    text: `
-    손씻기 세균 예방 개인위생 마스크
-    올바른 손씻기 방법 기침예절
-    바이러스 예방 위생 교육
-    `,
-    description:
-      "손씻기와 개인위생 교육 자료",
+    text: "손씻기 개인위생 마스크 세균 예방",
+    description: "손씻기와 위생 교육",
     url: "/video.html?type=hygiene"
-  });
-
-  await addDocument({
+  },
+  {
     title: "🚦 실외안전",
-    text: `
-    횡단보도 교통안전 길건너기
-    보행자 안전 신호등 안전수칙
-    `,
-    description:
-      "횡단보도와 교통안전 교육",
+    text: "횡단보도 교통안전 길건너기 안전수칙",
+    description: "교통안전 교육",
     url: "/video.html?type=crosswalk"
-  });
-
-  await addDocument({
+  },
+  {
     title: "🥗 생활건강",
-    text: `
-    건강한 식습관 영양관리 편식예방
-    음식 건강 생활습관 어린이 건강
-    `,
-    description:
-      "건강한 식습관과 영양관리 교육",
+    text: "식습관 영양 건강 음식 편식 예방",
+    description: "건강한 식습관 교육",
     url: "/video.html?type=foodsafety"
-  });
-
-  /* =========================
-     PDF AUTO INDEX
-  ========================= */
-  const uploadDir = path.join(__dirname, "uploads");
-
-  if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir);
   }
+];
 
-  const files = fs.readdirSync(uploadDir);
+/* =========================
+   SIMPLE VECTOR SEARCH
+========================= */
+function tokenize(text) {
+  return text.toLowerCase()
+    .replace(/[^a-z0-9가-힣\s]/g, " ")
+    .split(/\s+/)
+    .filter(Boolean);
+}
 
-  for (const file of files) {
+function search(query) {
+  const qTokens = tokenize(query);
 
-    if (!file.endsWith(".pdf")) continue;
+  return DOCUMENTS.map(doc => {
+    const docTokens = tokenize(doc.title + " " + doc.text);
 
-    try {
+    let score = 0;
 
-      const filePath = path.join(uploadDir, file);
+    qTokens.forEach(q => {
+      if (docTokens.includes(q)) score++;
+    });
 
-      const buffer = fs.readFileSync(filePath);
-
-      const pdf = await pdfParse(buffer);
-
-      await addDocument({
-        title: `📄 ${file}`,
-        text: pdf.text,
-        description: "업로드된 PDF 교육 자료",
-        url: `/uploads/${file}`
-      });
-
-    } catch (err) {
-
-      console.error("PDF ERROR:", file);
-      console.error(err);
-    }
-  }
-
-  console.log("✅ ALL DOCUMENTS READY");
+    return { ...doc, score };
+  })
+  .filter(d => d.score > 0)
+  .sort((a, b) => b.score - a.score)
+  .slice(0, 5);
 }
 
 /* =========================
-   AI SEARCH
+   GROQ API CALL
 ========================= */
-async function searchDocuments(query) {
+async function askGroq(question, context) {
 
-  if (!query) return [];
-
-  const queryEmbedding =
-    await createEmbedding(query);
-
-  const scored = DOCUMENTS.map(doc => {
-
-    const score = cosineSimilarity(
-      queryEmbedding,
-      doc.embedding
-    );
-
-    return {
-      title: doc.title,
-      text: doc.text,
-      description: doc.description,
-      url: doc.url,
-      score
-    };
-  });
-
-  return scored
-    .filter(item => item.score > 0.35)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 5);
-}
-
-/* =========================
-   AI CHAT RESPONSE
-========================= */
-async function generateAIResponse(
-  userMessage,
-  results
-) {
-
-  const context = results
-    .map(r => `
-제목: ${r.title}
-설명: ${r.description}
-내용:
-${r.text}
-`)
-    .join("\n");
-
-  const response = await fetch(
-    "https://api.openai.com/v1/chat/completions",
-    {
-      method: "POST",
-
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${OPENAI_API_KEY}`
-      },
-
-      body: JSON.stringify({
-
-        model: "gpt-4.1-mini",
-
-        messages: [
-
-          {
-            role: "system",
-            content: `
-너는 헬시키즈 AI 건강교육 챗봇이다.
-
-반드시:
-- 어린이 교육처럼 친절하게 설명
-- 검색 결과를 기반으로 설명
-- 없는 정보는 지어내지 말 것
-- 자연스럽게 요약할 것
+  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${GROQ_API_KEY}`
+    },
+    body: JSON.stringify({
+      model: "llama-3.1-8b-instant",
+      messages: [
+        {
+          role: "system",
+          content: `
+너는 어린이 건강교육 AI다.
+반드시 쉬운 말로 설명해라.
 `
-          },
+        },
+        {
+          role: "user",
+          content: `
+질문: ${question}
 
-          {
-            role: "user",
-            content: `
-사용자 질문:
-${userMessage}
-
-검색 자료:
+관련 자료:
 ${context}
 `
-          }
-        ],
-
-        temperature: 0.7
-      })
-    }
-  );
+        }
+      ]
+    })
+  });
 
   const data = await response.json();
 
-  return (
-    data.choices?.[0]?.message?.content ||
-    "답변 생성 실패 😢"
-  );
+  return data.choices?.[0]?.message?.content || "답변 실패";
 }
-
-/* =========================
-   MIME
-========================= */
-const MIME = {
-  ".html": "text/html",
-  ".css": "text/css",
-  ".js": "text/javascript",
-  ".json": "application/json",
-  ".png": "image/png",
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".ico": "image/x-icon",
-  ".pdf": "application/pdf",
-  ".mp4": "video/mp4"
-};
 
 /* =========================
    SERVER
 ========================= */
-const server = http.createServer(
-  async (req, res) => {
+const server = http.createServer(async (req, res) => {
 
-    const cleanUrl =
-      req.url.split("?")[0];
+  const cleanUrl = req.url.split("?")[0];
 
-    console.log(
-      "REQ:",
-      req.method,
-      req.url
-    );
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-    /* =========================
-       CORS
-    ========================= */
-    res.setHeader(
-      "Access-Control-Allow-Origin",
-      "*"
-    );
+  if (req.method === "OPTIONS") {
+    res.writeHead(204);
+    return res.end();
+  }
 
-    res.setHeader(
-      "Access-Control-Allow-Headers",
-      "Content-Type"
-    );
+  /* =========================
+     CHAT API
+  ========================= */
+  if (cleanUrl === "/api/chat" && req.method === "POST") {
 
-    res.setHeader(
-      "Access-Control-Allow-Methods",
-      "GET,POST,OPTIONS"
-    );
+    let body = "";
 
-    if (req.method === "OPTIONS") {
+    req.on("data", chunk => body += chunk);
 
-      res.writeHead(204);
+    req.on("end", async () => {
 
-      return res.end();
-    }
+      try {
 
-    /* =========================
-       AI CHAT API
-    ========================= */
-    if (
-      cleanUrl === "/api/chat" &&
-      req.method === "POST"
-    ) {
+        const { message } = JSON.parse(body);
 
-      let body = "";
+        const results = search(message);
 
-      req.on("data", chunk => {
-        body += chunk;
-      });
+        const context = results
+          .map(r => `${r.title}: ${r.text}`)
+          .join("\n");
 
-      req.on("end", async () => {
-
-        try {
-
-          const parsed =
-            JSON.parse(body || "{}");
-
-          const message =
-            parsed.message || "";
-
-          console.log(
-            "🔍 USER:",
-            message
-          );
-
-          /* =========================
-             AI SEARCH
-          ========================= */
-          const results =
-            await searchDocuments(message);
-
-          console.log(
-            "✅ SEARCH RESULTS:",
-            results.length
-          );
-
-          /* =========================
-             AI RESPONSE
-          ========================= */
-          const reply =
-            await generateAIResponse(
-              message,
-              results
-            );
-
-          res.writeHead(200, {
-            "Content-Type":
-              "application/json"
-          });
-
-          return res.end(
-            JSON.stringify({
-              reply,
-              results
-            })
-          );
-
-        } catch (err) {
-
-          console.error(err);
-
-          res.writeHead(500, {
-            "Content-Type":
-              "application/json"
-          });
-
-          return res.end(
-            JSON.stringify({
-              error:
-                "AI SERVER ERROR"
-            })
-          );
-        }
-      });
-
-      return;
-    }
-
-    /* =========================
-       STATIC FILE
-    ========================= */
-    let filePath;
-
-    if (cleanUrl === "/") {
-
-      filePath = path.join(
-        __dirname,
-        "index.html"
-      );
-
-    } else {
-
-      filePath = path.join(
-        __dirname,
-        cleanUrl
-      );
-    }
-
-    fs.readFile(
-      filePath,
-      (err, data) => {
-
-        if (err) {
-
-          console.log(
-            "❌ FILE NOT FOUND:",
-            filePath
-          );
-
-          res.writeHead(404, {
-            "Content-Type":
-              "text/plain"
-          });
-
-          return res.end(
-            "404 NOT FOUND"
-          );
-        }
-
-        const ext =
-          path.extname(filePath);
+        const reply = await askGroq(message, context);
 
         res.writeHead(200, {
-          "Content-Type":
-            MIME[ext] ||
-            "text/plain"
+          "Content-Type": "application/json"
         });
 
-        res.end(data);
+        res.end(JSON.stringify({
+          reply,
+          results
+        }));
+
+      } catch (err) {
+
+        console.error(err);
+
+        res.writeHead(500);
+
+        res.end(JSON.stringify({
+          error: "SERVER ERROR"
+        }));
       }
-    );
-  }
-);
-
-/* =========================
-   START SERVER
-========================= */
-initializeDocuments()
-  .then(() => {
-
-    server.listen(PORT, () => {
-
-      console.log(
-        `🚀 SERVER RUNNING : ${PORT}`
-      );
     });
-  })
-  .catch(err => {
 
-    console.error(
-      "❌ INIT ERROR"
-    );
+    return;
+  }
 
-    console.error(err);
+  /* =========================
+     STATIC FILE
+  ========================= */
+  let filePath = cleanUrl === "/"
+    ? "index.html"
+    : cleanUrl;
+
+  filePath = path.join(__dirname, filePath);
+
+  fs.readFile(filePath, (err, data) => {
+
+    if (err) {
+      res.writeHead(404);
+      return res.end("404");
+    }
+
+    const ext = path.extname(filePath);
+
+    const MIME = {
+      ".html": "text/html",
+      ".css": "text/css",
+      ".js": "text/javascript",
+      ".png": "image/png",
+      ".jpg": "image/jpeg"
+    };
+
+    res.writeHead(200, {
+      "Content-Type": MIME[ext] || "text/plain"
+    });
+
+    res.end(data);
   });
+});
+
+server.listen(PORT, () => {
+  console.log("🚀 GROQ AI SERVER RUNNING");
+});
