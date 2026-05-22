@@ -148,12 +148,16 @@
         
         .video-wrapper {
             width: 100%;
-            max-width: 900px;   /* 크게 제한 */
+            max-width: 900px;
             aspect-ratio: 16/9;
+        
+            background: black;      /* ✔ 핵심 */
             border-radius: 20px;
             overflow: hidden;
-            margin: 0 auto;
-            background: black; 
+        
+            display: flex;          /* ✔ 핵심 */
+            align-items: center;
+            justify-content: center;
         }
         
         #main-video {
