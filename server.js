@@ -11,34 +11,100 @@ const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const DOCUMENTS = [
   {
     id: 1,
-    title: "😷 질병예방",
-    content: "감기 독감 바이러스 예방 면역 기침예절 손씻기",
+    title: "질병예방",
+    text: "감기 독감 바이러스 예방 면역 손씻기 기침예절",
+    popularity: 8,
     url: "/video.html?type=precaution"
   },
   {
     id: 2,
-    title: "🧼 위생안전",
-    content: "손씻기 세균 마스크 개인위생 바이러스 예방",
+    title: "위생안전",
+    text: "손씻기 세균 마스크 개인위생 바이러스",
+    popularity: 10,
     url: "/video.html?type=hygiene"
   },
   {
     id: 3,
-    title: "🚦 실외안전",
-    content: "횡단보도 교통 안전 사고 예방 길건너기",
+    title: "실외안전",
+    text: "횡단보도 교통 안전 사고 예방 길건너기",
+    popularity: 7,
     url: "/video.html?type=crosswalk"
   },
   {
     id: 4,
-    title: "🥗 생활건강",
-    content: "식습관 영양 건강 음식 균형 성장",
+    title: "생활건강",
+    text: "식습관 영양 건강 음식 균형 성장",
+    popularity: 6,
     url: "/video.html?type=foodsafety"
   }
 ];
 
 /* =========================
-   1. QUERY EXPANSION (AI)
+   1. EMBEDDING
 ========================= */
-async function expandQuery(query) {
+async function embed(text) {
+
+  const res = await fetch("https://api.groq.com/openai/v1/embeddings", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${GROQ_API_KEY}`
+    },
+    body: JSON.stringify({
+      model: "llama-3.1-embedding",
+      input: text
+    })
+  });
+
+  const data = await res.json();
+
+  return data.data[0].embedding;
+}
+
+/* =========================
+   2. COSINE
+========================= */
+function cosine(a, b) {
+
+  let dot = 0;
+  let ma = 0;
+  let mb = 0;
+
+  for (let i = 0; i < a.length; i++) {
+    dot += a[i] * b[i];
+    ma += a[i] * a[i];
+    mb += b[i] * b[i];
+  }
+
+  return dot / (Math.sqrt(ma) * Math.sqrt(mb) + 1e-9);
+}
+
+/* =========================
+   3. VECTOR DB
+========================= */
+let VECTOR_DB = [];
+
+async function buildDB() {
+
+  for (let doc of DOCUMENTS) {
+
+    const vec = await embed(doc.title + " " + doc.text);
+
+    VECTOR_DB.push({
+      ...doc,
+      vector: vec
+    });
+  }
+
+  console.log("✅ VECTOR DB READY");
+}
+
+buildDB();
+
+/* =========================
+   4. QUERY INTENT ANALYSIS (AI)
+========================= */
+async function analyzeIntent(query) {
 
   const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
@@ -52,12 +118,13 @@ async function expandQuery(query) {
         {
           role: "system",
           content: `
-너는 검색어 확장 AI다.
+너는 검색 의도 분석기다.
 
-사용자 질문을 검색 키워드 6~10개로 변환해라.
-
-JSON 배열만 출력:
-["키워드1","키워드2","키워드3"]
+출력 JSON:
+{
+  "keywords":["..."],
+  "category":"health|safety|hygiene|etc"
+}
 `
         },
         {
@@ -73,53 +140,56 @@ JSON 배열만 출력:
   try {
     return JSON.parse(data.choices[0].message.content);
   } catch {
-    return query.split(" ");
+    return {
+      keywords: query.split(" "),
+      category: "general"
+    };
   }
 }
 
 /* =========================
-   2. HYBRID SCORING (핵심)
+   5. HYBRID SEARCH (핵심)
 ========================= */
-function score(doc, keywords) {
+async function search(query, keywords) {
 
-  let keywordScore = 0;
-  let semanticScore = 0;
+  const qVec = await embed(query);
 
-  for (let k of keywords) {
+  const scored = VECTOR_DB.map(doc => {
 
-    if (doc.title.includes(k)) keywordScore += 5;
-    if (doc.content.includes(k)) keywordScore += 2;
-  }
+    let vectorScore = cosine(qVec, doc.vector);
 
-  for (let k of keywords) {
-    if (doc.content.includes(k)) semanticScore += 1;
-  }
+    let keywordScore = keywords.reduce((acc, k) => {
+      return acc +
+        (doc.text.includes(k) ? 2 : 0) +
+        (doc.title.includes(k) ? 4 : 0);
+    }, 0);
 
-  return keywordScore * 0.6 + semanticScore * 0.4;
-}
+    let popularityScore = doc.popularity / 10;
 
-/* =========================
-   3. SEARCH ENGINE CORE
-========================= */
-function search(query, keywords) {
+    let finalScore =
+      vectorScore * 0.7 +
+      keywordScore * 0.2 +
+      popularityScore * 0.1;
 
-  return DOCUMENTS
-    .map(doc => ({
+    return {
       ...doc,
-      score: score(doc, keywords)
-    }))
+      score: finalScore
+    };
+  });
+
+  return scored
     .sort((a, b) => b.score - a.score)
     .slice(0, 5);
 }
 
 /* =========================
-   4. AI RESPONSE GENERATION
+   6. AI RERANK + ANSWER
 ========================= */
 async function generateAnswer(query, results) {
 
   const context = results.map(r => `
 제목: ${r.title}
-내용: ${r.content}
+내용: ${r.text}
 URL: ${r.url}
 `).join("\n");
 
@@ -138,22 +208,19 @@ URL: ${r.url}
 너는 Google 검색 AI다.
 
 규칙:
-1. 자연스럽게 설명
-2. 결과 기반으로 답변
+1. 결과 기반 설명
+2. 자연스럽게 요약
 3. JSON 출력
 
-형식:
 {
-  "reply":"설명",
-  "results":[
-    {"title":"","description":"","url":""}
-  ]
+ "reply":"설명",
+ "results":[{"title":"","description":"","url":""}]
 }
 `
         },
         {
           role: "user",
-          content: `질문:${query}\n\n검색결과:\n${context}`
+          content: `질문:${query}\n\n결과:\n${context}`
         }
       ]
     })
@@ -165,7 +232,7 @@ URL: ${r.url}
     return JSON.parse(data.choices[0].message.content);
   } catch {
     return {
-      reply: "검색 결과를 찾았어요",
+      reply: "검색 결과를 찾았습니다",
       results
     };
   }
@@ -195,13 +262,13 @@ const server = http.createServer(async (req, res) => {
 
       const { message } = JSON.parse(body);
 
-      // 1. query expand
-      const keywords = await expandQuery(message);
+      // 1. intent analysis
+      const intent = await analyzeIntent(message);
 
-      // 2. search
-      const results = search(message, keywords);
+      // 2. hybrid search
+      const results = await search(message, intent.keywords);
 
-      // 3. AI generate
+      // 3. AI answer
       const answer = await generateAnswer(message, results);
 
       res.end(JSON.stringify(answer));
@@ -216,7 +283,6 @@ const server = http.createServer(async (req, res) => {
     : path.join(__dirname, url);
 
   fs.readFile(filePath, (err, data) => {
-
     if (err) {
       res.writeHead(404);
       return res.end("404");
@@ -228,5 +294,5 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log("🚀 GOOGLE-STYLE SEARCH ENGINE RUNNING");
+  console.log("🚀 v3 PRODUCTION SEARCH ENGINE RUNNING");
 });
