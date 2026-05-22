@@ -152,7 +152,7 @@ DOCUMENTS.push(
 
   {
     title:"🚦 실외안전",
-    text:"횡단보도 교통안전 길건너기",
+    text:"횡단보도 교통안전 길건너기 길",
     description:"교통안전 교육",
     url:"/video.html?type=crosswalk"
   },
