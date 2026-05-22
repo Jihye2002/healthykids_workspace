@@ -5,12 +5,13 @@ const pdfParse = require("pdf-parse");
 const PORT = 3000;
 
 /* =========================
-   RAG DB
+   RAG DATABASE
 ========================= */
 let DOCUMENTS = [];
+let VECTORS = [];
 
 /* =========================
-   토큰화
+   TOKENIZER
 ========================= */
 function tokenize(text) {
   return text
@@ -24,13 +25,16 @@ function tokenize(text) {
    TF-IDF
 ========================= */
 function tf(tokens) {
-  const m = {};
-  tokens.forEach(t => m[t] = (m[t] || 0) + 1);
-  return m;
+  const map = {};
+  tokens.forEach(t => {
+    map[t] = (map[t] || 0) + 1;
+  });
+  return map;
 }
 
 function idf(docs) {
   const df = {};
+
   docs.forEach(d => {
     new Set(d.tokens).forEach(t => {
       df[t] = (df[t] || 0) + 1;
@@ -71,13 +75,11 @@ function cosine(a, b) {
 }
 
 /* =========================
-   RAG INDEX
+   INDEX BUILD
 ========================= */
-let VECTORS = [];
-
 function rebuild() {
   const processed = DOCUMENTS.map(d => {
-    const tokens = tokenize(d.text + " " + d.title);
+    const tokens = tokenize(d.title + " " + d.text);
     return { ...d, tokens };
   });
 
@@ -93,67 +95,81 @@ function rebuild() {
    SEARCH
 ========================= */
 function search(query) {
-  const qTokens = tokenize(query);
-  const tempDocs = VECTORS;
+  if (!VECTORS.length) return [];
 
-  if (!tempDocs.length) return [];
+  const qTokens = tokenize(query);
 
   const idfMap = {};
-  tempDocs.forEach(d => {
-    Object.keys(d.vec).forEach(k => idfMap[k] = 1);
+  VECTORS.forEach(v => {
+    Object.keys(v.vec).forEach(k => {
+      idfMap[k] = 1;
+    });
   });
 
   const qVec = vector(tf(qTokens), idfMap);
 
-  return tempDocs
-    .map(d => ({
-      id: d.id,
-      title: d.title,
-      url: d.url,
-      score: cosine(qVec, d.vec)
+  return VECTORS
+    .map(v => ({
+      id: v.id,
+      title: v.title,
+      text: v.text,
+      url: v.url,
+      score: cosine(qVec, v.vec)
     }))
     .sort((a, b) => b.score - a.score)
     .slice(0, 5);
 }
 
 /* =========================
-   PDF 업로드
+   PDF INDEXER
 ========================= */
 async function addPDF(filePath, filename) {
-  const buffer = fs.readFileSync(filePath);
-  const data = await pdfParse(buffer);
+  try {
+    const buffer = fs.readFileSync(filePath);
+    const data = await pdfParse(buffer);
 
-  DOCUMENTS.push({
-    id: filename,
-    title: filename,
-    text: data.text,
-    url: "/uploads/" + filename
-  });
+    DOCUMENTS.push({
+      id: filename,
+      title: filename,
+      text: data.text,
+      url: "/uploads/" + filename
+    });
 
-  rebuild();
+    rebuild();
+
+    console.log("PDF indexed:", filename);
+
+  } catch (e) {
+    console.error("PDF ERROR:", e);
+  }
 }
 
 /* =========================
-   기본 데이터
+   INITIAL DATA
 ========================= */
 DOCUMENTS.push(
-  { id: "hygiene", title: "위생", text: "손씻기 마스크 감기 예방", url: "/video.html" },
-  { id: "food", title: "식습관", text: "영양 편식 건강 음식", url: "/video.html" },
-  { id: "disease", title: "질병예방", text: "감기 독감 바이러스 면역", url: "/video.html" },
-  { id: "safe", title: "실외안전", text: "횡단보도 교통 안전", url: "/video.html" }
+  { id: "hygiene", title: "위생안전", text: "손씻기 마스크 기침 감기 예방", url: "/video.html?type=hygiene" },
+  { id: "food", title: "생활건강", text: "영양 식습관 편식 건강 음식", url: "/video.html?type=foodsafety" },
+  { id: "disease", title: "질병예방", text: "감기 독감 바이러스 면역 예방", url: "/video.html?type=precaution" },
+  { id: "safe", title: "실외안전", text: "횡단보도 교통 안전 도로", url: "/video.html?type=crosswalk" },
+  { id: "guide", title: "이용가이드", text: "사이트 사용 방법 안내", url: "/notice.html#guide" }
 );
 
 rebuild();
 
 /* =========================
-   uploads
+   UPLOAD FOLDER
 ========================= */
 if (!fs.existsSync("./uploads")) {
   fs.mkdirSync("./uploads");
 }
 
-fs.watch("./uploads", (e, file) => {
+/* =========================
+   WATCH PDF UPLOADS
+========================= */
+fs.watch("./uploads", (event, file) => {
   if (file && file.endsWith(".pdf")) {
+    console.log("New PDF detected:", file);
     addPDF("./uploads/" + file, file);
   }
 });
@@ -165,64 +181,97 @@ const server = http.createServer((req, res) => {
 
   console.log(req.method, req.url);
 
-  /* ================= API ================= */
+  /* =========================
+     API: SEARCH (RAG)
+  ========================= */
   if (req.url === "/api/search" && req.method === "POST") {
 
     let body = "";
 
-    req.on("data", c => body += c);
+    req.on("data", chunk => body += chunk);
 
     req.on("end", () => {
-      const { query } = JSON.parse(body || "{}");
-      const results = search(query);
+      try {
+        const { query } = JSON.parse(body || "{}");
 
-      res.writeHead(200, {
-        "Content-Type": "application/json"
-      });
+        const results = search(query || "");
 
-      res.end(JSON.stringify(results));
+        res.writeHead(200, {
+          "Content-Type": "application/json; charset=utf-8"
+        });
+
+        return res.end(JSON.stringify(results));
+
+      } catch (err) {
+        console.error(err);
+
+        res.writeHead(500, {
+          "Content-Type": "application/json; charset=utf-8"
+        });
+
+        return res.end(JSON.stringify({ error: "server error" }));
+      }
     });
 
     return;
   }
 
-  /* ================= UPLOAD PAGE ================= */
+  /* =========================
+     UPLOAD PAGE
+  ========================= */
   if (req.url === "/upload" && req.method === "GET") {
     const html = fs.readFileSync("./upload.html");
     res.writeHead(200, { "Content-Type": "text/html" });
     return res.end(html);
   }
 
-  /* ================= FILE UPLOAD ================= */
+  /* =========================
+     FILE UPLOAD (PDF)
+  ========================= */
   if (req.url === "/upload" && req.method === "POST") {
 
     const filename = "file_" + Date.now() + ".pdf";
     const filePath = "./uploads/" + filename;
 
-    const write = fs.createWriteStream(filePath);
+    const writeStream = fs.createWriteStream(filePath);
 
-    req.pipe(write);
+    req.pipe(writeStream);
 
-    req.on("end", () => {
-      res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ ok: true }));
+    writeStream.on("finish", () => {
+      res.writeHead(200, {
+        "Content-Type": "application/json; charset=utf-8"
+      });
+
+      res.end(JSON.stringify({
+        ok: true,
+        file: filename
+      }));
+    });
+
+    writeStream.on("error", () => {
+      res.writeHead(500);
+      res.end(JSON.stringify({ ok: false }));
     });
 
     return;
   }
 
-  /* ================= STATIC ================= */
+  /* =========================
+     STATIC FILES
+  ========================= */
   let filePath = req.url === "/" ? "index.html" : "." + req.url;
 
   fs.readFile(filePath, (err, data) => {
     if (err) {
-      res.writeHead(404);
-      return res.end("404");
+      res.writeHead(404, {
+        "Content-Type": "text/plain; charset=utf-8"
+      });
+      return res.end("404 NOT FOUND");
     }
     res.end(data);
   });
 });
 
 server.listen(PORT, () => {
-  console.log("RAG SERVER RUN → http://localhost:" + PORT);
+  console.log("🚀 RAG SERVER RUNNING → http://localhost:" + PORT);
 });
