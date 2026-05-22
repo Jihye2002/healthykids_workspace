@@ -146,7 +146,7 @@ DOCUMENTS.push(
   {
     title:"🧼 위생안전",
     text:"손씻기 개인위생 마스크 세균 위생",
-    description:"손씻기와 위생 교육",
+    description:"손씻기와 마스크 착용, 기침예절 교육",
     url:"/video.html?type=hygiene"
   },
 
