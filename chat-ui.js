@@ -1,10 +1,9 @@
 let isLoading = false;
-let lastRequestTime = 0;
 
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", () => {
 
   /* =========================
-     스타일
+     STYLE
   ========================= */
   const style = document.createElement("style");
 
@@ -17,13 +16,12 @@ document.addEventListener("DOMContentLoaded", function () {
     height:560px;
     background:#fff;
     border-radius:20px;
-    box-shadow:0 12px 35px rgba(0,0,0,0.18);
+    box-shadow:0 10px 35px rgba(0,0,0,0.18);
     z-index:9999;
     overflow:hidden;
     display:flex;
     flex-direction:column;
-    transition:all 0.3s ease;
-    font-family:'Pretendard',sans-serif;
+    transition:0.3s;
   }
 
   .chatbox-hidden{
@@ -37,28 +35,25 @@ document.addEventListener("DOMContentLoaded", function () {
     color:white;
     padding:16px;
     font-size:17px;
-    font-weight:700;
-    display:flex;
-    align-items:center;
-    gap:8px;
+    font-weight:bold;
   }
 
   #chat-body{
     flex:1;
     overflow-y:auto;
     padding:14px;
-    background:#f6f8fc;
+    background:#f5f7fb;
     display:flex;
     flex-direction:column;
   }
 
   .message{
-    max-width:88%;
+    max-width:85%;
     padding:12px 14px;
-    margin-bottom:14px;
+    margin-bottom:12px;
     border-radius:16px;
-    font-size:14px;
     line-height:1.6;
+    font-size:14px;
     word-break:keep-all;
   }
 
@@ -71,12 +66,12 @@ document.addEventListener("DOMContentLoaded", function () {
   .ai-msg{
     align-self:flex-start;
     background:white;
-    border:1px solid #e8e8e8;
+    border:1px solid #e4e4e4;
   }
 
   .input-area{
     display:flex;
-    padding:12px;
+    padding:10px;
     border-top:1px solid #eee;
     background:white;
   }
@@ -84,10 +79,10 @@ document.addEventListener("DOMContentLoaded", function () {
   #user-input{
     flex:1;
     border:1px solid #ddd;
-    border-radius:12px;
-    padding:12px;
-    outline:none;
+    border-radius:10px;
+    padding:10px;
     font-size:14px;
+    outline:none;
   }
 
   #send-btn{
@@ -95,20 +90,15 @@ document.addEventListener("DOMContentLoaded", function () {
     border:none;
     background:#2f63c7;
     color:white;
-    border-radius:12px;
-    padding:0 16px;
+    border-radius:10px;
+    padding:10px 14px;
     cursor:pointer;
-    font-weight:bold;
-  }
-
-  #send-btn:hover{
-    opacity:0.9;
   }
 
   #chat-toggle-button{
     position:fixed;
-    right:20px;
     bottom:20px;
+    right:20px;
     width:68px;
     height:68px;
     border:none;
@@ -118,66 +108,38 @@ document.addEventListener("DOMContentLoaded", function () {
     font-size:28px;
     cursor:pointer;
     z-index:10000;
-    box-shadow:0 8px 24px rgba(0,0,0,0.2);
+    box-shadow:0 5px 20px rgba(0,0,0,0.2);
   }
 
-  .related-wrapper{
-    display:flex;
-    flex-wrap:wrap;
-    gap:7px;
-    margin-top:10px;
-  }
-
-  .related-btn{
-    border:none;
-    background:#edf3ff;
-    color:#2f63c7;
-    border-radius:20px;
-    padding:7px 12px;
-    cursor:pointer;
-    font-size:12px;
-    font-weight:600;
-  }
-
-  .related-btn:hover{
-    background:#dbe7ff;
-  }
-
-  .menu-card{
+  .result-card{
     margin-top:12px;
-    background:white;
-    border:1px solid #e7e7e7;
+    border:1px solid #e5e5e5;
     border-radius:14px;
-    padding:13px;
+    padding:12px;
+    background:white;
   }
 
-  .menu-title{
+  .result-title{
+    font-weight:bold;
     font-size:15px;
-    font-weight:700;
     margin-bottom:6px;
-    color:#222;
   }
 
-  .menu-desc{
-    font-size:13px;
+  .result-desc{
     color:#666;
+    font-size:13px;
     line-height:1.5;
     margin-bottom:10px;
   }
 
-  .menu-btn{
-    width:100%;
-    border:none;
+  .result-btn{
+    display:inline-block;
     background:#2f63c7;
     color:white;
-    border-radius:10px;
-    padding:10px;
-    cursor:pointer;
-    font-weight:600;
-  }
-
-  .menu-btn:hover{
-    opacity:0.92;
+    text-decoration:none;
+    padding:8px 12px;
+    border-radius:8px;
+    font-size:13px;
   }
 
   .loading{
@@ -203,25 +165,16 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   @keyframes loading{
-    0%{
-      opacity:0.3;
-      transform:translateY(0);
-    }
-    50%{
-      opacity:1;
-      transform:translateY(-3px);
-    }
-    100%{
-      opacity:0.3;
-      transform:translateY(0);
-    }
+    0%{opacity:0.3;transform:translateY(0);}
+    50%{opacity:1;transform:translateY(-4px);}
+    100%{opacity:0.3;transform:translateY(0);}
   }
   `;
 
   document.head.appendChild(style);
 
   /* =========================
-     기본 UI 생성
+     UI
   ========================= */
   document.body.insertAdjacentHTML("beforeend", `
     <div id="chatbox" class="chatbox-hidden">
@@ -236,107 +189,115 @@ document.addEventListener("DOMContentLoaded", function () {
         <input
           id="user-input"
           type="text"
-          placeholder="궁금한 건강교육 내용을 검색해보세요"
-        >
+          placeholder="건강 교육 내용을 검색해보세요..."
+        />
+
         <button id="send-btn">전송</button>
       </div>
-
     </div>
 
     <button id="chat-toggle-button">💬</button>
   `);
 
   const body = document.getElementById("chat-body");
-  const chatbox = document.getElementById("chatbox");
 
   /* =========================
-     메시지 추가
+     INIT MESSAGE
   ========================= */
-  function appendMessage(sender, text, options = {}) {
+  appendMessage("ai", `
+    안녕하세요 😊<br><br>
 
-    const msg = document.createElement("div");
-    msg.className = `message ${sender}-msg`;
+    헬시키즈 AI입니다.<br><br>
 
-    const textDiv = document.createElement("div");
-    textDiv.innerHTML = text;
+    원하는 건강 교육 내용을 검색해보세요.<br><br>
 
-    msg.appendChild(textDiv);
+    예시:<br>
+    • 감기 예방 방법<br>
+    • 손씻기 방법<br>
+    • 교통안전 교육<br>
+    • 건강한 식습관
+  `);
 
-    /* =========================
-       연관 키워드
-    ========================= */
-    if (options.related?.length) {
+  /* =========================
+     MESSAGE
+  ========================= */
+  function appendMessage(sender, html) {
 
-      const relatedWrap = document.createElement("div");
-      relatedWrap.className = "related-wrapper";
+    const div = document.createElement("div");
 
-      options.related.forEach(keyword => {
+    div.className = `message ${sender}-msg`;
 
-        const btn = document.createElement("button");
+    div.innerHTML = html;
 
-        btn.className = "related-btn";
-        btn.innerText = keyword;
-
-        btn.onclick = () => {
-
-          document.getElementById("user-input").value = keyword;
-
-          sendMessage();
-        };
-
-        relatedWrap.appendChild(btn);
-      });
-
-      msg.appendChild(relatedWrap);
-    }
-
-    /* =========================
-       메뉴 카드
-    ========================= */
-    if (options.menus?.length) {
-
-      options.menus.forEach(menu => {
-
-        const card = document.createElement("div");
-
-        card.className = "menu-card";
-
-        card.innerHTML = `
-          <div class="menu-title">${menu.title}</div>
-          <div class="menu-desc">${menu.description || ""}</div>
-          <button class="menu-btn">바로가기</button>
-        `;
-
-        card.querySelector("button").onclick = () => {
-          window.location.href = menu.url;
-        };
-
-        msg.appendChild(card);
-      });
-    }
-
-    body.appendChild(msg);
+    body.appendChild(div);
 
     body.scrollTop = body.scrollHeight;
   }
 
   /* =========================
-     로딩
+     RESULT CARD
+  ========================= */
+  function appendResults(results) {
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "message ai-msg";
+
+    if (!results.length) {
+
+      wrapper.innerHTML = `
+        검색 결과를 찾지 못했어요 😢
+      `;
+
+      body.appendChild(wrapper);
+
+      return;
+    }
+
+    results.forEach(item => {
+
+      const card = document.createElement("div");
+
+      card.className = "result-card";
+
+      card.innerHTML = `
+        <div class="result-title">
+          ${item.title}
+        </div>
+
+        <div class="result-desc">
+          ${item.description || item.text}
+        </div>
+
+        <a class="result-btn" href="${item.url}">
+          바로가기
+        </a>
+      `;
+
+      wrapper.appendChild(card);
+    });
+
+    body.appendChild(wrapper);
+
+    body.scrollTop = body.scrollHeight;
+  }
+
+  /* =========================
+     LOADING
   ========================= */
   function showLoading() {
 
-    const loading = document.createElement("div");
+    const div = document.createElement("div");
 
-    loading.className = "loading";
-    loading.id = "loading";
+    div.className = "loading";
+    div.id = "loading";
 
-    loading.innerHTML = `
+    div.innerHTML = `
       <span></span>
       <span></span>
       <span></span>
     `;
 
-    body.appendChild(loading);
+    body.appendChild(div);
 
     body.scrollTop = body.scrollHeight;
   }
@@ -346,77 +307,11 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   /* =========================
-     초기 메시지
-  ========================= */
-  async function loadInit() {
-
-    try {
-
-      const response = await fetch("/api/init");
-
-      const data = await response.json();
-
-      appendMessage(
-        "ai",
-        `
-        안녕하세요 😊<br><br>
-        헬시키즈 AI 검색 도우미입니다.<br><br>
-        원하는 건강교육 내용을 검색해보세요.<br><br>
-        예시)<br>
-        • 감기 예방<br>
-        • 손씻기 방법<br>
-        • 횡단보도 안전수칙
-        `
-      );
-
-      if (data.guide) {
-
-        appendMessage(
-          "ai",
-          "📌 처음 이용한다면 가이드를 먼저 확인해보세요!",
-          {
-            menus: [
-              {
-                title: data.guide.title,
-                description: data.guide.description,
-                url: data.guide.url
-              }
-            ]
-          }
-        );
-      }
-
-    } catch (err) {
-
-      console.error(err);
-
-      appendMessage(
-        "ai",
-        "초기 데이터를 불러오지 못했어요 😢"
-      );
-    }
-  }
-
-  /* =========================
-     메시지 전송
+     SEND MESSAGE
   ========================= */
   async function sendMessage() {
 
     if (isLoading) return;
-
-    const now = Date.now();
-
-    if (now - lastRequestTime < 1500) {
-
-      appendMessage(
-        "ai",
-        "잠시만 기다려주세요 😊"
-      );
-
-      return;
-    }
-
-    lastRequestTime = now;
 
     const input = document.getElementById("user-input");
 
@@ -424,23 +319,23 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (!text) return;
 
+    isLoading = true;
+
     appendMessage("user", text);
 
     input.value = "";
-
-    isLoading = true;
 
     showLoading();
 
     try {
 
-      const response = await fetch("/api/search", {
+      const response = await fetch("/api/chat", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type":"application/json"
         },
         body: JSON.stringify({
-          query: text
+          message: text
         })
       });
 
@@ -448,26 +343,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
       removeLoading();
 
-      if (!data.reply) {
+      appendMessage("ai", data.reply);
 
-        appendMessage(
-          "ai",
-          "검색 결과를 찾지 못했어요 😢"
-        );
-
-        isLoading = false;
-
-        return;
-      }
-
-      appendMessage(
-        "ai",
-        data.reply,
-        {
-          related: data.related || [],
-          menus: data.menus || []
-        }
-      );
+      appendResults(data.results || []);
 
     } catch (err) {
 
@@ -477,7 +355,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
       appendMessage(
         "ai",
-        "AI 서버 연결 중 오류가 발생했어요 😢"
+        "서버 오류가 발생했어요 😢"
       );
 
     } finally {
@@ -487,17 +365,16 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   /* =========================
-     이벤트
+     EVENTS
   ========================= */
-  document.getElementById("send-btn").onclick = sendMessage;
+  document.getElementById("send-btn")
+    .onclick = sendMessage;
 
   document.getElementById("user-input")
-    .addEventListener("keypress", (e) => {
+    .addEventListener("keypress", e => {
 
       if (e.key === "Enter") {
-
         e.preventDefault();
-
         sendMessage();
       }
     });
@@ -505,12 +382,9 @@ document.addEventListener("DOMContentLoaded", function () {
   document.getElementById("chat-toggle-button")
     .onclick = () => {
 
-      chatbox.classList.toggle("chatbox-hidden");
+      document
+        .getElementById("chatbox")
+        .classList
+        .toggle("chatbox-hidden");
     };
-
-  /* =========================
-     초기 로드
-  ========================= */
-  loadInit();
-
 });
