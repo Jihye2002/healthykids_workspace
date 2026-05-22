@@ -180,45 +180,54 @@ document.addEventListener("DOMContentLoaded", () => {
   const chatbox = document.getElementById("chatbox");
 
   /* =========================
-     INIT
+     INIT MESSAGE
   ========================= */
-  appendMessage("ai",
+  appendMessage(
+    "ai",
     `안녕하세요 😊<br>
-    감기, 위생, 안전 등 무엇이든 물어보세요!`,
+     감기, 위생, 안전 등 무엇이든 물어보세요!`,
     [
       {
-        title:"📌 헬시키즈 이용 가이드",
-        description:"사용 방법 안내",
-        url:"/guide.html"
+        title: "📌 헬시키즈 이용 가이드",
+        description: "사이트 이용 방법을 확인할 수 있어요.",
+        url: "/guide.html"
       }
     ]
   );
 
   /* =========================
-     MESSAGE
+     MESSAGE FUNCTION
   ========================= */
   function appendMessage(sender, text, results = []) {
 
     const msg = document.createElement("div");
     msg.className = `message ${sender}-msg`;
 
-    msg.innerHTML = `<div>${text}</div>`;
+    const textDiv = document.createElement("div");
+    textDiv.innerHTML = text;
+    msg.appendChild(textDiv);
 
-    if (results && results.length > 0) {
+    /* =========================
+       RESULTS (AI 추천 카드)
+    ========================= */
+    if (Array.isArray(results) && results.length > 0) {
 
-      results.forEach(r => {
+      results.forEach(result => {
 
         const card = document.createElement("div");
         card.className = "result-card";
 
         card.innerHTML = `
-          <div class="result-title">${r.title}</div>
-          <div class="result-desc">${r.description || ""}</div>
+          <div class="result-title">${result.title || ""}</div>
+          <div class="result-desc">${result.description || ""}</div>
           <button class="result-btn">바로가기</button>
         `;
 
         card.querySelector("button").onclick = () => {
-          window.location.href = r.url;
+
+          if (result.url) {
+            window.open(result.url, "_blank");
+          }
         };
 
         msg.appendChild(card);
@@ -229,7 +238,10 @@ document.addEventListener("DOMContentLoaded", () => {
     chatBody.scrollTop = chatBody.scrollHeight;
   }
 
-  function showLoading(){
+  /* =========================
+     LOADING
+  ========================= */
+  function showLoading() {
     const div = document.createElement("div");
     div.className = "loading";
     div.id = "loading";
@@ -237,26 +249,26 @@ document.addEventListener("DOMContentLoaded", () => {
     chatBody.appendChild(div);
   }
 
-  function removeLoading(){
+  function removeLoading() {
     document.getElementById("loading")?.remove();
   }
 
   /* =========================
-     SEND
+     SEND MESSAGE
   ========================= */
-  async function sendMessage(){
+  async function sendMessage() {
 
-    if(isLoading) return;
+    if (isLoading) return;
 
     const now = Date.now();
-    if(now - lastRequestTime < 1200) return;
+    if (now - lastRequestTime < 1200) return;
 
     lastRequestTime = now;
 
     const input = document.getElementById("user-input");
     const text = input.value.trim();
 
-    if(!text) return;
+    if (!text) return;
 
     appendMessage("user", text);
     input.value = "";
@@ -267,30 +279,36 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
 
       const res = await fetch("/api/chat", {
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({ message:text })
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text })
       });
 
       const data = await res.json();
 
       removeLoading();
 
-      if(data.error){
-        appendMessage("ai", "서버 오류 😢");
+      if (!data || data.error) {
+        appendMessage("ai", "서버 오류가 발생했어요 😢");
         return;
       }
 
       appendMessage(
         "ai",
-        data.reply,
+        data.reply || "응답 없음",
         data.results || []
       );
 
-    } catch(e){
+    } catch (err) {
+
+      console.error(err);
 
       removeLoading();
-      appendMessage("ai", "네트워크 오류 😢");
+
+      appendMessage(
+        "ai",
+        "네트워크 오류가 발생했어요 😢"
+      );
 
     } finally {
       isLoading = false;
@@ -302,16 +320,15 @@ document.addEventListener("DOMContentLoaded", () => {
   ========================= */
   document.getElementById("send-btn").onclick = sendMessage;
 
-  document.getElementById("user-input")
-    .addEventListener("keypress", e => {
-      if(e.key === "Enter"){
-        sendMessage();
-      }
-    });
+  document.getElementById("user-input").addEventListener("keypress", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
 
-  document.getElementById("chat-toggle-button")
-    .onclick = () => {
-      chatbox.classList.toggle("chatbox-hidden");
-    };
+  document.getElementById("chat-toggle-button").onclick = () => {
+    chatbox.classList.toggle("chatbox-hidden");
+  };
 
 });
