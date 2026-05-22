@@ -9,7 +9,7 @@
     <style>
         /* 기본 리셋 */
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Arial', sans-serif; background-color: #fff; justify-content: center;}
+        body { font-family: 'Arial', sans-serif; background-color: #fff;}
 
         /* --- 헤더 --- */
         .header { display: flex; align-items: center; padding: 10px 20px; flex-wrap: nowrap; gap: 10px; }
@@ -123,14 +123,18 @@
             color: #2f63c7;
             font-weight: bold;
             background-color: #f8fbff;
-        }        
+        }   
+        
         .page-container {
+            width: 100%;
             max-width: 1280px;
+        
+            margin: 0 auto;   /* 핵심 */
             padding: 30px;
         
             display: flex;
-            flex-direction: column;   /* 핵심 */
-            align-items: center;
+            flex-direction: column;
+            align-items: center; /* 내부 요소 중앙 */
         }
     
         #video-title,
@@ -141,14 +145,20 @@
         }
         
         #video-title {
-        color: #2f63c7;
+            width: 100%;
+            max-width: 900px;
+        
+            color: #2f63c7;
             padding-bottom: 30px;
+        
+            text-align: center; /* 제목 중앙 */
         }
         
        .video-wrapper {
             width: 100%;
             max-width: 900px;
             aspect-ratio: 16/9;
+            margin:0 auto;
         
             background: #000;
             overflow: hidden;
@@ -163,11 +173,19 @@
                 
         /* 🎯 카훗 영역 (처음 숨김) */
         .quiz-section {
+            width: 100%;
+            max-width: 900px;
+        
             margin-top: 40px;
             padding: 30px;
+        
             background: #f5f6fa;
+        
             display: none;
+        
             text-align: center;
+        
+            border-radius: 10px;
         }
         
         .quiz-section h3 {
@@ -283,7 +301,7 @@
         <video id="main-video" controls muted autoplay playsinline></video>
     </div>
 
-    <div class="quiz-section" id="quiz-section" style="display:none;">
+    <div class="quiz-section" id="quiz-section">
         <h3 style="margin-bottom:15px;">🎬 영상이 끝났어요!</h3>
         <p>아래에서 퀴즈를 시작해보세요</p>
     
