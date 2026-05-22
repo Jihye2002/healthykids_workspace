@@ -1,4 +1,5 @@
 let isLoading = false;
+let lastRequestTime = 0;
 
 document.addEventListener("DOMContentLoaded", () => {
 
@@ -8,6 +9,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const style = document.createElement("style");
 
   style.textContent = `
+  
   #chatbox{
     position:fixed;
     bottom:90px;
@@ -15,10 +17,10 @@ document.addEventListener("DOMContentLoaded", () => {
     width:360px;
     height:560px;
     background:#fff;
-    border-radius:20px;
-    box-shadow:0 10px 35px rgba(0,0,0,0.18);
-    z-index:9999;
+    border-radius:22px;
+    box-shadow:0 12px 40px rgba(0,0,0,0.18);
     overflow:hidden;
+    z-index:9999;
     display:flex;
     flex-direction:column;
     transition:0.3s;
@@ -36,19 +38,22 @@ document.addEventListener("DOMContentLoaded", () => {
     padding:16px;
     font-size:17px;
     font-weight:bold;
+    display:flex;
+    align-items:center;
+    gap:8px;
   }
 
   #chat-body{
     flex:1;
     overflow-y:auto;
     padding:14px;
-    background:#f5f7fb;
+    background:#f7f8fc;
     display:flex;
     flex-direction:column;
   }
 
   .message{
-    max-width:85%;
+    max-width:88%;
     padding:12px 14px;
     margin-bottom:12px;
     border-radius:16px;
@@ -66,7 +71,8 @@ document.addEventListener("DOMContentLoaded", () => {
   .ai-msg{
     align-self:flex-start;
     background:white;
-    border:1px solid #e4e4e4;
+    border:1px solid #e8e8e8;
+    color:#333;
   }
 
   .input-area{
@@ -79,10 +85,10 @@ document.addEventListener("DOMContentLoaded", () => {
   #user-input{
     flex:1;
     border:1px solid #ddd;
-    border-radius:10px;
-    padding:10px;
-    font-size:14px;
+    border-radius:12px;
+    padding:12px;
     outline:none;
+    font-size:14px;
   }
 
   #send-btn{
@@ -90,56 +96,66 @@ document.addEventListener("DOMContentLoaded", () => {
     border:none;
     background:#2f63c7;
     color:white;
-    border-radius:10px;
-    padding:10px 14px;
+    border-radius:12px;
+    padding:12px 15px;
     cursor:pointer;
+    font-weight:bold;
+  }
+
+  #send-btn:hover{
+    opacity:0.9;
   }
 
   #chat-toggle-button{
     position:fixed;
-    bottom:20px;
     right:20px;
+    bottom:20px;
     width:68px;
     height:68px;
-    border:none;
     border-radius:50%;
+    border:none;
     background:#2f63c7;
     color:white;
-    font-size:28px;
+    font-size:30px;
     cursor:pointer;
     z-index:10000;
-    box-shadow:0 5px 20px rgba(0,0,0,0.2);
+    box-shadow:0 8px 25px rgba(0,0,0,0.2);
   }
 
   .result-card{
     margin-top:12px;
-    border:1px solid #e5e5e5;
-    border-radius:14px;
     padding:12px;
-    background:white;
+    border-radius:14px;
+    background:#f8fbff;
+    border:1px solid #dce7ff;
   }
 
   .result-title{
     font-weight:bold;
-    font-size:15px;
+    font-size:14px;
     margin-bottom:6px;
+    color:#234ea5;
   }
 
   .result-desc{
-    color:#666;
     font-size:13px;
+    color:#555;
     line-height:1.5;
     margin-bottom:10px;
   }
 
   .result-btn{
-    display:inline-block;
+    border:none;
     background:#2f63c7;
     color:white;
-    text-decoration:none;
+    border-radius:10px;
     padding:8px 12px;
-    border-radius:8px;
+    cursor:pointer;
     font-size:13px;
+  }
+
+  .result-btn:hover{
+    opacity:0.92;
   }
 
   .loading{
@@ -165,10 +181,22 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   @keyframes loading{
-    0%{opacity:0.3;transform:translateY(0);}
-    50%{opacity:1;transform:translateY(-4px);}
-    100%{opacity:0.3;transform:translateY(0);}
+    0%{
+      opacity:0.3;
+      transform:translateY(0);
+    }
+
+    50%{
+      opacity:1;
+      transform:translateY(-4px);
+    }
+
+    100%{
+      opacity:0.3;
+      transform:translateY(0);
+    }
   }
+
   `;
 
   document.head.appendChild(style);
@@ -177,6 +205,7 @@ document.addEventListener("DOMContentLoaded", () => {
      UI
   ========================= */
   document.body.insertAdjacentHTML("beforeend", `
+
     <div id="chatbox" class="chatbox-hidden">
 
       <div id="chat-header">
@@ -189,96 +218,94 @@ document.addEventListener("DOMContentLoaded", () => {
         <input
           id="user-input"
           type="text"
-          placeholder="건강 교육 내용을 검색해보세요..."
-        />
+          placeholder="궁금한 건강교육 내용을 입력하세요"
+        >
 
-        <button id="send-btn">전송</button>
+        <button id="send-btn">
+          전송
+        </button>
       </div>
+
     </div>
 
-    <button id="chat-toggle-button">💬</button>
+    <button id="chat-toggle-button">
+      💬
+    </button>
+
   `);
 
-  const body = document.getElementById("chat-body");
+  const chatbox = document.getElementById("chatbox");
+  const chatBody = document.getElementById("chat-body");
 
   /* =========================
      INIT MESSAGE
   ========================= */
-  appendMessage("ai", `
+  appendMessage(
+    "ai",
+    `
     안녕하세요 😊<br><br>
 
-    헬시키즈 AI입니다.<br><br>
+    저는 헬시키즈 AI 건강교육 도우미예요.<br><br>
 
-    원하는 건강 교육 내용을 검색해보세요.<br><br>
+    궁금한 내용을 자연스럽게 질문해보세요!<br><br>
 
-    예시:<br>
-    • 감기 예방 방법<br>
-    • 손씻기 방법<br>
-    • 교통안전 교육<br>
-    • 건강한 식습관
-  `);
-
-  /* =========================
-     MESSAGE
-  ========================= */
-  function appendMessage(sender, html) {
-
-    const div = document.createElement("div");
-
-    div.className = `message ${sender}-msg`;
-
-    div.innerHTML = html;
-
-    body.appendChild(div);
-
-    body.scrollTop = body.scrollHeight;
-  }
+    예시)<br>
+    • 감기 예방 방법 알려줘<br>
+    • 손씻기 교육 자료 찾아줘<br>
+    • 횡단보도 안전수칙 알려줘
+    `
+  );
 
   /* =========================
-     RESULT CARD
+     APPEND MESSAGE
   ========================= */
-  function appendResults(results) {
+  function appendMessage(sender, text, results = []) {
 
-    const wrapper = document.createElement("div");
-    wrapper.className = "message ai-msg";
+    const msg = document.createElement("div");
 
-    if (!results.length) {
+    msg.className = `message ${sender}-msg`;
 
-      wrapper.innerHTML = `
-        검색 결과를 찾지 못했어요 😢
-      `;
+    msg.innerHTML = `
+      <div>${text}</div>
+    `;
 
-      body.appendChild(wrapper);
+    /* =========================
+       RESULT CARDS
+    ========================= */
+    if (results.length > 0) {
 
-      return;
+      results.forEach(result => {
+
+        const card = document.createElement("div");
+
+        card.className = "result-card";
+
+        card.innerHTML = `
+          <div class="result-title">
+            ${result.title}
+          </div>
+
+          <div class="result-desc">
+            ${result.description || ""}
+          </div>
+
+          <button class="result-btn">
+            바로가기
+          </button>
+        `;
+
+        card.querySelector("button")
+          .onclick = () => {
+            window.location.href = result.url;
+          };
+
+        msg.appendChild(card);
+      });
     }
 
-    results.forEach(item => {
+    chatBody.appendChild(msg);
 
-      const card = document.createElement("div");
-
-      card.className = "result-card";
-
-      card.innerHTML = `
-        <div class="result-title">
-          ${item.title}
-        </div>
-
-        <div class="result-desc">
-          ${item.description || item.text}
-        </div>
-
-        <a class="result-btn" href="${item.url}">
-          바로가기
-        </a>
-      `;
-
-      wrapper.appendChild(card);
-    });
-
-    body.appendChild(wrapper);
-
-    body.scrollTop = body.scrollHeight;
+    chatBody.scrollTop = chatBody.scrollHeight;
   }
 
   /* =========================
@@ -286,20 +313,20 @@ document.addEventListener("DOMContentLoaded", () => {
   ========================= */
   function showLoading() {
 
-    const div = document.createElement("div");
+    const loading = document.createElement("div");
 
-    div.className = "loading";
-    div.id = "loading";
+    loading.className = "loading";
+    loading.id = "loading";
 
-    div.innerHTML = `
+    loading.innerHTML = `
       <span></span>
       <span></span>
       <span></span>
     `;
 
-    body.appendChild(div);
+    chatBody.appendChild(loading);
 
-    body.scrollTop = body.scrollHeight;
+    chatBody.scrollTop = chatBody.scrollHeight;
   }
 
   function removeLoading() {
@@ -313,29 +340,56 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (isLoading) return;
 
+    const now = Date.now();
+
+    if (now - lastRequestTime < 1500) {
+
+      appendMessage(
+        "ai",
+        "조금만 기다려주세요 😊"
+      );
+
+      return;
+    }
+
+    lastRequestTime = now;
+
     const input = document.getElementById("user-input");
 
     const text = input.value.trim();
 
     if (!text) return;
 
-    isLoading = true;
+    if (text.length > 200) {
+
+      appendMessage(
+        "ai",
+        "질문은 200자 이하로 입력해주세요 😊"
+      );
+
+      return;
+    }
 
     appendMessage("user", text);
 
     input.value = "";
+
+    isLoading = true;
 
     showLoading();
 
     try {
 
       const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: {
+
+        method:"POST",
+
+        headers:{
           "Content-Type":"application/json"
         },
+
         body: JSON.stringify({
-          message: text
+          message:text
         })
       });
 
@@ -343,9 +397,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
       removeLoading();
 
-      appendMessage("ai", data.reply);
+      if (data.error) {
 
-      appendResults(data.results || []);
+        appendMessage(
+          "ai",
+          "AI 서버 오류가 발생했어요 😢"
+        );
+
+        return;
+      }
+
+      appendMessage(
+        "ai",
+        data.reply,
+        data.results || []
+      );
 
     } catch (err) {
 
@@ -355,7 +421,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       appendMessage(
         "ai",
-        "서버 오류가 발생했어요 😢"
+        "서버 연결 오류가 발생했어요 😢"
       );
 
     } finally {
@@ -367,24 +433,29 @@ document.addEventListener("DOMContentLoaded", () => {
   /* =========================
      EVENTS
   ========================= */
-  document.getElementById("send-btn")
+  document
+    .getElementById("send-btn")
     .onclick = sendMessage;
 
-  document.getElementById("user-input")
+  document
+    .getElementById("user-input")
     .addEventListener("keypress", e => {
 
       if (e.key === "Enter") {
+
         e.preventDefault();
+
         sendMessage();
       }
     });
 
-  document.getElementById("chat-toggle-button")
+  document
+    .getElementById("chat-toggle-button")
     .onclick = () => {
 
-      document
-        .getElementById("chatbox")
-        .classList
-        .toggle("chatbox-hidden");
+      chatbox.classList.toggle(
+        "chatbox-hidden"
+      );
     };
+
 });
