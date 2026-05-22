@@ -127,7 +127,14 @@ document.addEventListener("DOMContentLoaded", () => {
       body: JSON.stringify({ query })
     });
 
-    return await res.json();
+   const text = await res.text();
+
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      console.error("JSON ERROR:", text);
+      return [];
+    }
   }
 
   /* =========================
