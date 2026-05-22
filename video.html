@@ -148,7 +148,23 @@ video { width:100%; height:100%; }
     text-align:center;
 }
 
+        .quiz-section h3 {
+    margin-bottom: 12px;
+}
+
+.quiz-section p {
+    margin-bottom: 20px;
+    line-height: 1.6;
+    color: #555;
+}
+
+/* 버튼 감싸는 a 태그 때문에 간격 안 먹는 문제 해결 */
+.quiz-section a {
+    display: inline-block;
+}
+
 .btn {
+    margin-top: 10px;
     padding:15px 20px;
     border:1px solid #2f63c7;
     background:blue;
@@ -250,7 +266,7 @@ video { width:100%; height:100%; }
 
     <div class="quiz-section" id="quiz-section" style="display:none;">
         <h3 style="margin-bottom:15px;">🎬 영상이 끝났어요!</h3>
-        <p style="margin-bottom:12px;">아래에서 퀴즈를 시작해보세요</p>
+        <p>아래에서 퀴즈를 시작해보세요</p>
     
         <a id="kahoot-link" target="_blank">
             <button class="btn">🚀 카훗 퀴즈 시작하기</button>
@@ -315,8 +331,31 @@ video { width:100%; height:100%; }
         }
     
         // 🎬 영상 끝났을 때
+        let isReady = false;
+        let isEnded = false;
+        
+        // 메타데이터 준비 확인
+        video.addEventListener("loadedmetadata", () => {
+            isReady = true;
+            isEnded = false;
+        });
+        
+        // 🎬 핵심: ended 검증 강화
         video.addEventListener("ended", () => {
-            localStorage.setItem(key, "done"); // 1회 완료 저장
+        
+            if (!isReady) return;
+            if (isEnded) return;
+        
+            // 🔥 핵심 방어 코드
+            if (video.currentTime < video.duration - 0.3) {
+                return; // 아직 끝 아님 (오작동 방지)
+            }
+        
+            isEnded = true;
+        
+            const key = "watched_" + type;
+            localStorage.setItem(key, "done");
+        
             showQuiz();
         });
     
