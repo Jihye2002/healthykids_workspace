@@ -6,12 +6,12 @@ const pdfParse = require("pdf-parse");
 const PORT = 3000;
 
 /* =========================
-   1. RAG DATABASE
+   RAG DB
 ========================= */
 let DOCUMENTS = [];
 
 /* =========================
-   2. TOKENIZE
+   TOKENIZE
 ========================= */
 function tokenize(text) {
   return text
@@ -22,7 +22,7 @@ function tokenize(text) {
 }
 
 /* =========================
-   3. TF-IDF
+   TF-IDF
 ========================= */
 function tf(tokens) {
   const map = {};
@@ -72,7 +72,7 @@ function cosine(a, b) {
 }
 
 /* =========================
-   4. INDEX
+   INDEX
 ========================= */
 let VECTORS = [];
 let IDF_MAP = {};
@@ -92,7 +92,7 @@ function rebuild() {
 }
 
 /* =========================
-   5. SEARCH (RAG CORE)
+   SEARCH (RAG CORE)
 ========================= */
 function search(query) {
   if (!query || !VECTORS.length) return [];
@@ -102,7 +102,6 @@ function search(query) {
 
   return VECTORS
     .map(d => ({
-      id: d.id,
       title: d.title,
       url: d.url,
       score: cosine(qVec, d.vec)
@@ -112,8 +111,52 @@ function search(query) {
 }
 
 /* =========================
-   6. PDF INDEXING
+   INIT DATA
 ========================= */
+DOCUMENTS.push(
+  {
+    id: "guide",
+    title: "헬시키즈 이용 가이드",
+    text: "이 사이트는 위생 식습관 질병예방 실외안전 교육 자료를 제공합니다",
+    url: "/notice.html#guide"
+  },
+  {
+    id: "hygiene",
+    title: "위생안전",
+    text: "손씻기 마스크 기침 감기 예방",
+    url: "/video.html?type=hygiene"
+  },
+  {
+    id: "food",
+    title: "식습관",
+    text: "영양 편식 건강 음식",
+    url: "/video.html?type=foodsafety"
+  },
+  {
+    id: "disease",
+    title: "질병예방",
+    text: "감기 독감 바이러스 면역",
+    url: "/video.html?type=precaution"
+  },
+  {
+    id: "safe",
+    title: "실외안전",
+    text: "횡단보도 교통 안전",
+    url: "/video.html?type=crosswalk"
+  }
+);
+
+rebuild();
+
+/* =========================
+   PDF UPLOAD
+========================= */
+const UPLOAD_DIR = "./uploads";
+
+if (!fs.existsSync(UPLOAD_DIR)) {
+  fs.mkdirSync(UPLOAD_DIR);
+}
+
 async function addPDF(filePath, filename) {
   try {
     const buffer = fs.readFileSync(filePath);
@@ -134,53 +177,7 @@ async function addPDF(filePath, filename) {
   }
 }
 
-/* =========================
-   7. INIT DATA (GUIDE + VIDEO)
-========================= */
-DOCUMENTS.push(
-  {
-    id: "guide",
-    title: "📌 헬시키즈 이용 가이드",
-    text: "이 사이트는 위생 안전 식습관 질병예방 실외안전 교육 영상과 PDF 자료를 제공합니다",
-    url: "/notice.html#guide"
-  },
-  {
-    id: "hygiene",
-    title: "위생안전",
-    text: "손씻기 마스크 기침 감기 예방 위생",
-    url: "/video.html?type=hygiene"
-  },
-  {
-    id: "food",
-    title: "식습관",
-    text: "영양 편식 건강 음식 비만 예방",
-    url: "/video.html?type=foodsafety"
-  },
-  {
-    id: "disease",
-    title: "질병예방",
-    text: "감기 독감 바이러스 면역 예방",
-    url: "/video.html?type=precaution"
-  },
-  {
-    id: "safe",
-    title: "실외안전",
-    text: "횡단보도 교통 안전 사고 예방",
-    url: "/video.html?type=crosswalk"
-  }
-);
-
-rebuild();
-
-/* =========================
-   8. UPLOAD FOLDER
-========================= */
-const UPLOAD_DIR = "./uploads";
-if (!fs.existsSync(UPLOAD_DIR)) {
-  fs.mkdirSync(UPLOAD_DIR);
-}
-
-/* auto index pdf */
+/* watch pdf */
 fs.watch(UPLOAD_DIR, (event, file) => {
   if (file && file.endsWith(".pdf")) {
     addPDF(path.join(UPLOAD_DIR, file), file);
@@ -188,14 +185,14 @@ fs.watch(UPLOAD_DIR, (event, file) => {
 });
 
 /* =========================
-   9. SERVER
+   SERVER
 ========================= */
 const server = http.createServer((req, res) => {
 
   console.log(req.method, req.url);
 
   /* =====================
-     CORS SAFE HEADER
+     CORS
   ===================== */
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
@@ -207,26 +204,30 @@ const server = http.createServer((req, res) => {
   }
 
   /* =====================
-     INIT MESSAGE (중요)
-     → chat 첫 화면 안내
+     CHAT INIT (첫 화면 안내)
   ===================== */
   if (req.url === "/api/init") {
     res.writeHead(200, { "Content-Type": "application/json" });
 
     return res.end(JSON.stringify({
       messages: [
-        "👋 안녕하세요! 헬시키즈 AI입니다.",
-        "🔎 위생, 식습관, 질병예방을 검색해보세요.",
-        "📌 '헬시키즈 이용 가이드'를 눌러 사용법을 확인할 수 있어요."
+        "👋 안녕하세요! 헬시키즈입니다.",
+        "🔎 위생 / 식습관 / 질병예방을 검색해보세요.",
+        "📌 아래 가이드를 눌러 사용법을 확인하세요."
       ],
       guide: "/notice.html#guide"
     }));
   }
 
   /* =====================
-     SEARCH API
+     SEARCH API (RAG)
   ===================== */
-  if (req.url === "/api/search" && req.method === "POST") {
+  if (req.url === "/api/search") {
+
+    if (req.method !== "POST") {
+      res.writeHead(405, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "Method Not Allowed" }));
+    }
 
     let body = "";
 
@@ -254,7 +255,7 @@ const server = http.createServer((req, res) => {
 
   /* =====================
      UPLOAD PDF
-  ===================== */
+===================== */
   if (req.url === "/upload" && req.method === "POST") {
 
     const filename = "file_" + Date.now() + ".pdf";
@@ -264,10 +265,7 @@ const server = http.createServer((req, res) => {
     req.pipe(write);
 
     req.on("end", () => {
-      res.writeHead(200, {
-        "Content-Type": "application/json"
-      });
-
+      res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ ok: true, file: filename }));
     });
 
@@ -279,19 +277,19 @@ const server = http.createServer((req, res) => {
   ===================== */
   let filePath = req.url === "/" ? "index.html" : "." + req.url;
 
-  const ext = path.extname(filePath);
-  const types = {
-    ".html": "text/html",
-    ".js": "text/javascript",
-    ".css": "text/css",
-    ".pdf": "application/pdf"
-  };
-
   fs.readFile(filePath, (err, data) => {
     if (err) {
       res.writeHead(404, { "Content-Type": "text/plain" });
       return res.end("Not found");
     }
+
+    const ext = path.extname(filePath);
+    const types = {
+      ".html": "text/html",
+      ".js": "text/javascript",
+      ".css": "text/css",
+      ".pdf": "application/pdf"
+    };
 
     res.writeHead(200, {
       "Content-Type": types[ext] || "text/plain"
@@ -302,5 +300,5 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log("🚀 RAG SERVER RUNNING → http://localhost:" + PORT);
+  console.log("🚀 SERVER RUNNING → http://localhost:" + PORT);
 });
