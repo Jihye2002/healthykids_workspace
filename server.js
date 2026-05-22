@@ -241,7 +241,8 @@ const MIME = {
   ".png": "image/png",
   ".jpg": "image/jpeg",
   ".jpeg": "image/jpeg",
-  ".ico": "image/x-icon"
+  ".ico": "image/x-icon",
+  ".mp4": "video/mp4"
 };
 
 /* =========================
@@ -251,7 +252,11 @@ const server = http.createServer((req, res) => {
 
   console.log("REQ:", req.method, req.url);
 
-  /* CORS */
+  const cleanUrl = req.url.split("?")[0];
+
+  /* =========================
+     CORS
+  ========================= */
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -266,7 +271,7 @@ const server = http.createServer((req, res) => {
   /* =========================
      INIT API
   ========================= */
-  if (req.url === "/api/init" && req.method === "GET") {
+  if (cleanUrl === "/api/init" && req.method === "GET") {
 
     res.writeHead(200, {
       "Content-Type": "application/json"
@@ -285,7 +290,7 @@ const server = http.createServer((req, res) => {
   /* =========================
      SEARCH API
   ========================= */
-  if (req.url === "/api/search" && req.method === "POST") {
+  if (cleanUrl === "/api/search" && req.method === "POST") {
 
     let body = "";
 
@@ -331,7 +336,7 @@ const server = http.createServer((req, res) => {
   /* =========================
      WRONG METHOD
   ========================= */
-  if (req.url === "/api/search" && req.method !== "POST") {
+  if (cleanUrl === "/api/search" && req.method !== "POST") {
 
     res.writeHead(405, {
       "Content-Type": "application/json"
@@ -343,42 +348,38 @@ const server = http.createServer((req, res) => {
   }
 
   /* =========================
-   UPLOAD FILE SERVE
-   ========================= */
-   if (cleanUrl.startsWith("/uploads/")) {
-   
-     const uploadPath = path.join(__dirname, cleanUrl);
-   
-     fs.readFile(uploadPath, (err, data) => {
-   
-       if (err) {
-   
-         res.writeHead(404, {
-           "Content-Type": "text/plain"
-         });
-   
-         return res.end("UPLOAD FILE NOT FOUND");
-       }
-   
-       const ext = path.extname(uploadPath);
-   
-       res.writeHead(200, {
-         "Content-Type": MIME[ext] || "application/octet-stream"
-       });
-   
-       res.end(data);
-     });
-   
-     return;
-   } 
+     UPLOAD FILE SERVE
+  ========================= */
+  if (cleanUrl.startsWith("/uploads/")) {
+
+    const uploadPath = path.join(__dirname, cleanUrl);
+
+    fs.readFile(uploadPath, (err, data) => {
+
+      if (err) {
+
+        res.writeHead(404, {
+          "Content-Type": "text/plain"
+        });
+
+        return res.end("UPLOAD FILE NOT FOUND");
+      }
+
+      const ext = path.extname(uploadPath);
+
+      res.writeHead(200, {
+        "Content-Type": MIME[ext] || "application/octet-stream"
+      });
+
+      res.end(data);
+    });
+
+    return;
+  }
 
   /* =========================
      STATIC FILE
   ========================= */
-  console.log("REQ:", req.method, req.url);
-
-  const cleanUrl = req.url.split("?")[0];
-
   let filePath;
 
   if (cleanUrl === "/") {
@@ -415,6 +416,6 @@ const server = http.createServer((req, res) => {
 ========================= */
 server.listen(PORT, () => {
 
-  console.log(`🚀 SERVER RUNNING`);
+  console.log("🚀 SERVER RUNNING");
   console.log(`🌐 http://localhost:${PORT}`);
 });
