@@ -205,6 +205,13 @@
             font-size:16px;
             color: white;
         }
+
+        #quiz-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
         
         .btn:hover { background:#709ac4 }
 </style>
@@ -300,9 +307,7 @@
         <h3 style="margin-bottom:15px;">🎬 영상이 끝났어요!</h3>
         <p>아래에서 퀴즈를 시작해보세요</p>
     
-        <a id="kahoot-link" target="_blank">
-            <button class="btn">🚀 카훗 퀴즈 시작하기</button>
-        </a>
+       <div id="quiz-buttons"></div>
     </div>
 
 </div>
@@ -316,24 +321,31 @@
                 kahoot: [
                     'https://kahoot.it/solo?quizId=e21b4892-c67f-4c95-bd1d-6a6e660d7a85',
                     'https://kahoot.it/solo?quizId=001236c4-8caf-45e4-b350-22d887ce5aad'
-    ]
+                ]
             },
             crosswalk: {
                 title: '횡단보도 안전',
                 src: '',
-                kahoot: 'https://kahoot.it/solo?quizId=d79af7ac-f9ec-4cab-90b3-9564c22dbf24'
+                kahoot: [
+                    'https://kahoot.it/solo?quizId=d79af7ac-f9ec-4cab-90b3-9564c22dbf24'
+                ]
             },
+            
             foodsafety: {
                 title: '올바른 식습관',
                 src: 'https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/%EC%83%9D%ED%99%9C%EA%B1%B4%EA%B0%95.mp4',
-                kahoot: 'https://kahoot.it/solo?quizId=7f16fe3b-0452-415a-a36a-a7da64a422ae'
+                kahoot: [
+                    'https://kahoot.it/solo?quizId=7f16fe3b-0452-415a-a36a-a7da64a422ae'
+                ]
             },
+            
             precaution: {
                 title: '감기 • 독감 예방',
                 src: 'https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/cold.mp4',
-                kahoot: 'https://kahoot.it/solo?quizId=a68c9d68-4e5f-4318-9b75-e3aba40adf16'
+                kahoot: [
+                    'https://kahoot.it/solo?quizId=a68c9d68-4e5f-4318-9b75-e3aba40adf16'
+                ]
             }
-        };
     
         const params = new URLSearchParams(window.location.search);
         const type = params.get('type');
@@ -342,7 +354,7 @@
         const video = document.getElementById('main-video');
         const title = document.getElementById('video-title');
         const quiz = document.getElementById('quiz-section');
-        const link = document.getElementById('kahoot-link');
+        const quizButtons = document.getElementById('quiz-buttons');
     
         if (!data) {
             title.innerText = "데이터를 찾을 수 없습니다.";
@@ -350,7 +362,22 @@
         }
     
         title.innerText = data.title;
-        link.href = data.kahoot;
+        quizButtons.innerHTML = "";
+
+        data.kahoot.forEach((url, index) => {
+        
+            const a = document.createElement("a");
+            a.href = url;
+            a.target = "_blank";
+        
+            const button = document.createElement("button");
+            button.className = "btn";
+            button.innerText = `🚀 카훗 퀴즈 ${index + 1}`;
+        
+            a.appendChild(button);
+        
+            quizButtons.appendChild(a);
+        });
     
         // 처음에는 완전히 숨김
         quiz.style.display = "none";
