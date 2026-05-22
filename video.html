@@ -9,7 +9,7 @@
     <style>
         /* 기본 리셋 */
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Arial', sans-serif; background-color: #fff; }
+        body { font-family: 'Arial', sans-serif; background-color: #fff; justify-content: center;}
 
         /* --- 헤더 --- */
         .header { display: flex; align-items: center; padding: 10px 20px; flex-wrap: nowrap; gap: 10px; }
@@ -294,101 +294,96 @@
 
 </div>
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-
-    const contentDB = {
-        hygiene: {
-            title: '손씻기 • 마스크착용',
-            src: 'https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/%EC%9C%84%EC%83%9D%EC%95%88%EC%A0%84.mp4',
-            kahoot: 'https://kahoot.it/solo?quizId=e21b4892-c67f-4c95-bd1d-6a6e660d7a85'
-        },
-        crosswalk: {
-            title: '횡단보도 안전',
-            src: 'https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/%EC%83%9D%ED%99%9C%EA%B1%B4%EA%B0%95.mp4',
-            kahoot: 'https://kahoot.it/solo?quizId=987654'
-        },
-        foodsafety: {
-            title: '올바른 식습관',
-            src: 'https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/food.mp4',
-            kahoot: 'https://kahoot.it/solo?quizId=food123'
-        },
-        precaution: {
-            title: '감기 • 독감 예방',
-            src: 'https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/cold.mp4',
-            kahoot: 'https://kahoot.it/solo?quizId=cold123'
+    document.addEventListener('DOMContentLoaded', () => {
+    
+        const contentDB = {
+            hygiene: {
+                title: '손씻기 • 마스크착용',
+                src: 'https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/%EC%9C%84%EC%83%9D%EC%95%88%EC%A0%84.mp4',
+                kahoot: 'https://kahoot.it/solo?quizId=e21b4892-c67f-4c95-bd1d-6a6e660d7a85'
+            },
+            crosswalk: {
+                title: '횡단보도 안전',
+                src: 'https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/%EC%83%9D%ED%99%9C%EA%B1%B4%EA%B0%95.mp4',
+                kahoot: 'https://kahoot.it/solo?quizId=987654'
+            },
+            foodsafety: {
+                title: '올바른 식습관',
+                src: 'https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/food.mp4',
+                kahoot: 'https://kahoot.it/solo?quizId=food123'
+            },
+            precaution: {
+                title: '감기 • 독감 예방',
+                src: 'https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/cold.mp4',
+                kahoot: 'https://kahoot.it/solo?quizId=cold123'
+            }
+        };
+    
+        const params = new URLSearchParams(window.location.search);
+        const type = params.get('type');
+        const data = contentDB[type];
+    
+        const video = document.getElementById('main-video');
+        const title = document.getElementById('video-title');
+        const quiz = document.getElementById('quiz-section');
+        const link = document.getElementById('kahoot-link');
+    
+        if (!data) {
+            title.innerText = "데이터를 찾을 수 없습니다.";
+            return;
         }
-    };
-
-    const params = new URLSearchParams(window.location.search);
-    const type = params.get('type');
-    const data = contentDB[type];
-
-    const video = document.getElementById('main-video');
-    const title = document.getElementById('video-title');
-    const quiz = document.getElementById('quiz-section');
-    const link = document.getElementById('kahoot-link');
-    const videoWrapper = document.querySelector('.video-wrapper');
-
-    if (!data) {
-        title.innerText = "데이터를 찾을 수 없습니다.";
-        return;
-    }
-
-    // 제목
-    title.innerText = data.title;
-
-    // 영상 세팅
-    video.src = data.src;
-    video.load();
-
-    // 자동 재생
-    video.play().catch(() => {});
-
-    // 카훗 링크
-    if (link) {
+    
+        title.innerText = data.title;
         link.href = data.kahoot;
-    }
-
-    // 🔑 한 번만 실행되도록
-    let isEnded = false;
-    const key = "watched_" + type;
-
-    // 이미 본 경우 바로 퀴즈
-    if (localStorage.getItem(key) === "done") {
-        showQuiz();
-    }
-
-    // 🎬 핵심: 종료 이벤트만 사용
-    video.addEventListener("ended", () => {
-
-        if (isEnded) return;
-        isEnded = true;
-
-        localStorage.setItem(key, "done");
-        showQuiz();
-    });
-
-    function showQuiz() {
-
-        if (!quiz) return;
-
-        quiz.style.display = "block";
-
-        // 초기 상태
-        quiz.style.opacity = "0";
-        quiz.style.transform = "translateY(30px)";
-
-        // 애니메이션
-        setTimeout(() => {
+    
+        let allowEnd = false;
+        let isEnded = false;
+    
+        // 영상 세팅
+        video.src = data.src;
+        video.load();
+    
+        // 🔥 핵심 1: canplay 이후에만 허용
+        video.addEventListener('canplay', () => {
+            allowEnd = true;
+        });
+    
+        // 자동재생
+        video.play().catch(() => {});
+    
+        // 🔥 핵심 2: ended 방어
+        video.addEventListener('ended', () => {
+    
+            if (!allowEnd) return;   // 아직 로딩 안됨 → 무시
+            if (isEnded) return;
+    
+            isEnded = true;
+    
+            localStorage.setItem("watched_" + type, "done");
+            showQuiz();
+        });
+    
+        function showQuiz() {
+            if (!quiz) return;
+    
+            quiz.style.display = "block";
+            quiz.style.opacity = "0";
+            quiz.style.transform = "translateY(30px)";
+    
+            setTimeout(() => {
                 quiz.style.transition = "all 0.6s ease";
                 quiz.style.opacity = "1";
                 quiz.style.transform = "translateY(0)";
             }, 50);
-
-            // 스크롤 이동
+    
             quiz.scrollIntoView({ behavior: "smooth" });
         }
-
+    
+        // 이미 본 경우
+        if (localStorage.getItem("watched_" + type) === "done") {
+            showQuiz();
+        }
+    
     });
 </script>
 
