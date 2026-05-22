@@ -343,8 +343,40 @@ const server = http.createServer((req, res) => {
   }
 
   /* =========================
+   UPLOAD FILE SERVE
+   ========================= */
+   if (cleanUrl.startsWith("/uploads/")) {
+   
+     const uploadPath = path.join(__dirname, cleanUrl);
+   
+     fs.readFile(uploadPath, (err, data) => {
+   
+       if (err) {
+   
+         res.writeHead(404, {
+           "Content-Type": "text/plain"
+         });
+   
+         return res.end("UPLOAD FILE NOT FOUND");
+       }
+   
+       const ext = path.extname(uploadPath);
+   
+       res.writeHead(200, {
+         "Content-Type": MIME[ext] || "application/octet-stream"
+       });
+   
+       res.end(data);
+     });
+   
+     return;
+   } 
+
+  /* =========================
      STATIC FILE
   ========================= */
+  console.log("REQ:", req.method, req.url);
+
   const cleanUrl = req.url.split("?")[0];
 
   let filePath;
