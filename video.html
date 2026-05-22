@@ -159,21 +159,14 @@
                 
         /* 🎯 카훗 영역 (처음 숨김) */
         .quiz-section {
-            width: 100%;
-            max-width: 900px;
             margin-top: 40px;
             padding: 30px;
             background: #f8f9fa;
             border-radius: 20px;
         
-            display: block;
+            display: none;
         
-            /* 처음엔 숨김 상태 */
-            opacity: 0;
-            transform: translateY(60px);
-            pointer-events: none;
-        
-            transition: all 0.6s ease;
+            text-align: center;
         }
         
         .quiz-section h3 {
@@ -201,12 +194,6 @@
         }
         
         .btn:hover { background:#eef5ff; }
-
-        .quiz-section.show {
-            opacity: 1;
-            transform: translateY(0);
-            pointer-events: auto;
-        }
 </style>
 </head>
 
@@ -391,19 +378,23 @@
             showQuiz();
         });
     
-        function showQuiz() {
-
-            if (!quiz) return;
-        
-            quiz.style.display = "block";
-        
-            // 강제 reflow (애니메이션 트리거)
-            void quiz.offsetWidth;
-        
-            quiz.classList.add("show");
-        
-            quiz.scrollIntoView({ behavior: "smooth", block: "start" });
-        }
+        function showQuiz() { 
+            
+                if (!quiz) return; 
+                
+                    quiz.style.display = "block"; 
+                    quiz.style.opacity = "0"; 
+                    quiz.style.transform = "translateY(30px)"; 
+                
+                setTimeout(() => { 
+                    quiz.style.transition = "all 0.6s ease"; 
+                    quiz.style.opacity = "1"; 
+                    quiz.style.transform = "translateY(0)"; 
+                }, 50); 
+                
+                quiz.scrollIntoView({ behavior: "smooth" }); 
+            } 
+        });
 </script>
 
 </body>
