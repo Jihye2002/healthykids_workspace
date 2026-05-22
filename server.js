@@ -5,13 +5,12 @@ const pdfParse = require("pdf-parse");
 
 const PORT = process.env.PORT || 3000;
 
-/* =========================
-   1. DOCUMENT DATABASE
-========================= */
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+
 let DOCUMENTS = [];
 
 /* =========================
-   2. TOKENIZE
+   TOKENIZE
 ========================= */
 function tokenize(text) {
 
@@ -23,7 +22,7 @@ function tokenize(text) {
 }
 
 /* =========================
-   3. TF
+   VECTOR SEARCH
 ========================= */
 function tf(tokens) {
 
@@ -36,9 +35,6 @@ function tf(tokens) {
   return map;
 }
 
-/* =========================
-   4. IDF
-========================= */
 function idf(docs) {
 
   const df = {};
@@ -51,6 +47,7 @@ function idf(docs) {
   });
 
   const result = {};
+
   const N = docs.length;
 
   Object.keys(df).forEach(t => {
@@ -60,9 +57,6 @@ function idf(docs) {
   return result;
 }
 
-/* =========================
-   5. VECTOR
-========================= */
 function vector(tfMap, idfMap) {
 
   const v = {};
@@ -74,9 +68,6 @@ function vector(tfMap, idfMap) {
   return v;
 }
 
-/* =========================
-   6. COSINE SIMILARITY
-========================= */
 function cosine(a, b) {
 
   let dot = 0;
@@ -84,7 +75,6 @@ function cosine(a, b) {
   let mb = 0;
 
   for (let k in a) {
-
     dot += (a[k] || 0) * (b[k] || 0);
     ma += (a[k] || 0) ** 2;
   }
@@ -96,9 +86,6 @@ function cosine(a, b) {
   return dot / (Math.sqrt(ma) * Math.sqrt(mb) + 1e-9);
 }
 
-/* =========================
-   7. VECTOR INDEX
-========================= */
 let VECTORS = [];
 let IDF_MAP = {};
 
@@ -106,7 +93,9 @@ function rebuild() {
 
   const processed = DOCUMENTS.map(doc => {
 
-    const tokens = tokenize(doc.title + " " + doc.text);
+    const tokens = tokenize(
+      `${doc.title} ${doc.text}`
+    );
 
     return {
       ...doc,
@@ -120,164 +109,90 @@ function rebuild() {
     ...doc,
     vec: vector(tf(doc.tokens), IDF_MAP)
   }));
-
-  console.log("✅ VECTOR REBUILD:", VECTORS.length);
 }
 
-/* =========================
-   8. SEARCH
-========================= */
 function search(query) {
 
-  if (!query || !VECTORS.length) {
-    return [];
-  }
+  if (!query) return [];
 
   const qTokens = tokenize(query);
-  const qVec = vector(tf(qTokens), IDF_MAP);
+
+  const qVec = vector(
+    tf(qTokens),
+    IDF_MAP
+  );
 
   return VECTORS
     .map(doc => ({
-      title: doc.title,
-      text: doc.text,
-      description: doc.description || "",
-      url: doc.url,
+      ...doc,
       score: cosine(qVec, doc.vec)
     }))
+    .filter(doc => doc.score > 0.05)
     .sort((a, b) => b.score - a.score)
     .slice(0, 5);
 }
 
 /* =========================
-   9. PDF INDEX
-========================= */
-async function addPDF(filePath, filename) {
-
-  try {
-
-    const buffer = fs.readFileSync(filePath);
-
-    const data = await pdfParse(buffer);
-
-    DOCUMENTS.push({
-      title: "📄 " + filename,
-      text: data.text,
-      description: "업로드된 PDF 자료입니다.",
-      url: "/uploads/" + filename
-    });
-
-    rebuild();
-
-    console.log("✅ PDF INDEX:", filename);
-
-  } catch (err) {
-
-    console.error("❌ PDF ERROR:", err);
-  }
-}
-
-/* =========================
-   10. INITIAL DOCUMENTS
+   DOCUMENTS
 ========================= */
 DOCUMENTS.push(
-
   {
-    title: "📌 헬시키즈 이용 가이드",
-    text:
-      "헬시키즈는 어린이 건강 교육 플랫폼입니다. 위생안전 실외안전 생활건강 질병예방 영상을 제공합니다.",
-    description:
-      "사이트 이용 방법과 교육 콘텐츠 사용법을 확인할 수 있어요.",
-    url: "/notice.html#guide"
+    title:"😷 질병예방",
+    text:"감기 독감 바이러스 기침예절 예방 면역",
+    description:"감기와 독감 예방 교육",
+    url:"/video.html?type=precaution"
   },
 
   {
-    title: "🧼 위생안전",
-    text:
-      "손씻기 마스크착용 기침예절 감기예방 개인위생 교육 영상입니다.",
-    description:
-      "손씻기와 개인위생 방법을 배울 수 있어요.",
-    url: "/video.html?type=hygiene"
+    title:"🧼 위생안전",
+    text:"손씻기 개인위생 마스크 세균 위생",
+    description:"손씻기와 위생 교육",
+    url:"/video.html?type=hygiene"
   },
 
   {
-    title: "🚦 실외안전",
-    text:
-      "횡단보도 교통안전 길건너기 실외 안전수칙 교육입니다.",
-    description:
-      "횡단보도와 교통안전 수칙을 배울 수 있어요.",
-    url: "/video.html?type=crosswalk"
+    title:"🚦 실외안전",
+    text:"횡단보도 교통안전 길건너기",
+    description:"교통안전 교육",
+    url:"/video.html?type=crosswalk"
   },
 
   {
-    title: "🥗 생활건강",
-    text:
-      "올바른 식습관 편식예방 영양관리 건강한 음식 교육입니다.",
-    description:
-      "건강한 식습관과 영양 관리를 배울 수 있어요.",
-    url: "/video.html?type=foodsafety"
-  },
-
-  {
-    title: "😷 질병예방",
-    text:
-      "감기 독감 바이러스 예방 면역 건강관리 교육입니다.",
-    description:
-      "감기와 독감 예방 방법을 학습할 수 있어요.",
-    url: "/video.html?type=precaution"
+    title:"🥗 생활건강",
+    text:"식습관 영양관리 건강 음식",
+    description:"건강한 식습관 교육",
+    url:"/video.html?type=foodsafety"
   }
-
 );
 
 rebuild();
 
 /* =========================
-   11. PDF FOLDER
-========================= */
-const UPLOAD_DIR = path.join(__dirname, "uploads");
-
-if (!fs.existsSync(UPLOAD_DIR)) {
-  fs.mkdirSync(UPLOAD_DIR);
-}
-
-fs.watch(UPLOAD_DIR, (event, file) => {
-
-  if (file && file.endsWith(".pdf")) {
-
-    addPDF(path.join(UPLOAD_DIR, file), file);
-  }
-});
-
-/* =========================
-   12. MIME TYPES
+   SERVER
 ========================= */
 const MIME = {
-  ".html": "text/html",
-  ".css": "text/css",
-  ".js": "text/javascript",
-  ".json": "application/json",
-  ".pdf": "application/pdf",
-  ".png": "image/png",
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".ico": "image/x-icon",
-  ".mp4": "video/mp4"
+  ".html":"text/html",
+  ".css":"text/css",
+  ".js":"text/javascript",
+  ".png":"image/png",
+  ".jpg":"image/jpeg",
+  ".pdf":"application/pdf",
+  ".mp4":"video/mp4"
 };
 
-/* =========================
-   13. SERVER
-========================= */
-const server = http.createServer((req, res) => {
-
-  console.log("REQ:", req.method, req.url);
+const server = http.createServer(async (req, res) => {
 
   const cleanUrl = req.url.split("?")[0];
 
-  /* =========================
-     CORS
-  ========================= */
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader(
+    "Access-Control-Allow-Origin",
+    "*"
+  );
+
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Content-Type"
+  );
 
   if (req.method === "OPTIONS") {
 
@@ -287,34 +202,12 @@ const server = http.createServer((req, res) => {
   }
 
   /* =========================
-     INIT API
+     CHAT API
   ========================= */
-  if (cleanUrl === "/api/init" && req.method === "GET") {
-
-    res.writeHead(200, {
-      "Content-Type": "application/json"
-    });
-
-    return res.end(JSON.stringify({
-
-      messages: [
-        "👋 안녕하세요! 헬시키즈 AI입니다.",
-        "🔎 원하는 건강 교육 내용을 검색해보세요.",
-        "📌 예시: 손씻기 / 감기예방 / 횡단보도 / 식습관"
-      ],
-
-      guide: {
-        title: "📌 헬시키즈 이용 가이드",
-        description: "사이트 사용 방법을 확인할 수 있어요.",
-        url: "/notice.html#guide"
-      }
-    }));
-  }
-
-  /* =========================
-     SEARCH API
-  ========================= */
-  if (cleanUrl === "/api/search" && req.method === "POST") {
+  if (
+    cleanUrl === "/api/chat" &&
+    req.method === "POST"
+  ) {
 
     let body = "";
 
@@ -322,80 +215,92 @@ const server = http.createServer((req, res) => {
       body += chunk;
     });
 
-    req.on("end", () => {
+    req.on("end", async () => {
 
       try {
 
-        const parsed = JSON.parse(body || "{}");
+        const parsed = JSON.parse(body);
 
-        const query = parsed.query || "";
+        const message = parsed.message || "";
 
-        console.log("🔍 SEARCH:", query);
+        const results = search(message);
 
-        const results = search(query);
+        const context = results
+          .map(r => `
+제목:${r.title}
+설명:${r.description}
+내용:${r.text}
+`)
+          .join("\n");
+
+        const response = await fetch(
+          "https://api.openai.com/v1/chat/completions",
+          {
+            method:"POST",
+
+            headers:{
+              "Content-Type":"application/json",
+              "Authorization":
+                `Bearer ${OPENAI_API_KEY}`
+            },
+
+            body: JSON.stringify({
+
+              model:"gpt-4.1-mini",
+
+              messages:[
+                {
+                  role:"system",
+                  content:`
+너는 어린이 건강교육 AI 챗봇이다.
+
+검색 결과를 기반으로
+정확하고 자연스럽게 설명해라.
+`
+                },
+
+                {
+                  role:"user",
+                  content:`
+사용자 질문:
+${message}
+
+검색 자료:
+${context}
+`
+                }
+              ]
+            })
+          }
+        );
+
+        const aiData = await response.json();
+
+        const reply =
+          aiData.choices?.[0]?.message?.content
+          || "답변 생성 실패";
 
         res.writeHead(200, {
-          "Content-Type": "application/json"
+          "Content-Type":"application/json"
         });
 
-        return res.end(JSON.stringify(results));
+        res.end(JSON.stringify({
+          reply,
+          results
+        }));
 
       } catch (err) {
 
-        console.error("❌ SEARCH ERROR:", err);
+        console.error(err);
 
         res.writeHead(500, {
-          "Content-Type": "application/json"
+          "Content-Type":"application/json"
         });
 
-        return res.end(JSON.stringify({
-          error: "SERVER ERROR"
+        res.end(JSON.stringify({
+          error:"SERVER ERROR"
         }));
       }
-    });
-
-    return;
-  }
-
-  /* =========================
-     WRONG METHOD
-  ========================= */
-  if (cleanUrl === "/api/search" && req.method !== "POST") {
-
-    res.writeHead(405, {
-      "Content-Type": "application/json"
-    });
-
-    return res.end(JSON.stringify({
-      error: "POST REQUIRED"
-    }));
-  }
-
-  /* =========================
-     UPLOAD FILE SERVE
-  ========================= */
-  if (cleanUrl.startsWith("/uploads/")) {
-
-    const uploadPath = path.join(__dirname, cleanUrl);
-
-    fs.readFile(uploadPath, (err, data) => {
-
-      if (err) {
-
-        res.writeHead(404, {
-          "Content-Type": "text/plain"
-        });
-
-        return res.end("UPLOAD FILE NOT FOUND");
-      }
-
-      const ext = path.extname(uploadPath);
-
-      res.writeHead(200, {
-        "Content-Type": MIME[ext] || "application/octet-stream"
-      });
-
-      res.end(data);
     });
 
     return;
@@ -407,11 +312,8 @@ const server = http.createServer((req, res) => {
   let filePath;
 
   if (cleanUrl === "/") {
-
     filePath = path.join(__dirname, "index.html");
-
   } else {
-
     filePath = path.join(__dirname, cleanUrl);
   }
 
@@ -419,30 +321,23 @@ const server = http.createServer((req, res) => {
 
     if (err) {
 
-      console.log("❌ FILE NOT FOUND:", filePath);
+      res.writeHead(404);
 
-      res.writeHead(404, {
-        "Content-Type": "text/plain"
-      });
-
-      return res.end("404 NOT FOUND");
+      return res.end("404");
     }
 
     const ext = path.extname(filePath);
 
     res.writeHead(200, {
-      "Content-Type": MIME[ext] || "text/plain"
+      "Content-Type":
+        MIME[ext] || "text/plain"
     });
 
     res.end(data);
   });
 });
 
-/* =========================
-   14. START SERVER
-========================= */
 server.listen(PORT, () => {
 
-  console.log("🚀 SERVER RUNNING");
-  console.log(`🌐 SERVER PORT : ${PORT}`);
+  console.log("SERVER RUNNING");
 });
