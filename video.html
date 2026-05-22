@@ -348,32 +348,36 @@ video { width:100%; height:100%; }
         }
     
         let isEnded = false;
-
-        // 🎬 진짜 끝났을 때만 실행
-        video.addEventListener("ended", () => {
-            if (isEnded) return;
-            isEnded = true;
-            showQuiz();
+        let isReady = false;
+        
+        // 🎬 영상 메타데이터 로딩 완료 확인
+        video.addEventListener("loadedmetadata", () => {
+            isReady = true;
+            isEnded = false;
         });
         
-        // 🔥 안전장치: 실제 시간 기반 종료 체크
+        // 🎬 실제 종료 감지 (진짜 끝 + 준비된 경우만)
         video.addEventListener("timeupdate", () => {
+            if (!isReady) return;
             if (!video.duration || isNaN(video.duration)) return;
         
             const remaining = video.duration - video.currentTime;
         
-            if (remaining <= 0.2 && !isEnded) {
+            // 👉 마지막 0.3초 기준
+            if (remaining <= 0.3 && !isEnded && video.currentTime > 0) {
                 isEnded = true;
                 showQuiz();
             }
         });
         
-        // 🔥 초기화 안전장치
-        video.addEventListener("loadedmetadata", () => {
-            isEnded = false;
+        // 🎬 fallback (진짜 ended)
+        video.addEventListener("ended", () => {
+            if (!isReady) return;
+            if (isEnded) return;
+        
+            isEnded = true;
+            showQuiz();
         });
-    
-    });
 </script>
 
 </body>
