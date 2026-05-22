@@ -127,7 +127,7 @@
         
         .page-container {
             width: 100%;
-            max-width: 1280px;
+            max-width: 1920px;
         
             margin: 0 auto;   /* 핵심 */
             padding: 30px;
@@ -141,12 +141,13 @@
         .video-wrapper,
         .quiz-section {
             width: 100%;
-            max-width: 900px;
+            max-width: 1920px;
+            min-width: 400px;
         }
         
         #video-title {
             width: 100%;
-            max-width: 900px;
+            max-width: 1800px;
         
             color: #2f63c7;
             padding-bottom: 30px;
@@ -314,24 +315,27 @@
     
         const contentDB = {
             hygiene: {
-                title: '손씻기 • 마스크착용',
+                title: '손씻기 • 마스크착용 • 기침예',
                 src: 'https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/%EC%9C%84%EC%83%9D%EC%95%88%EC%A0%84.mp4',
-                kahoot: 'https://kahoot.it/solo?quizId=e21b4892-c67f-4c95-bd1d-6a6e660d7a85'
+                kahoot: [
+                    'https://kahoot.it/solo?quizId=e21b4892-c67f-4c95-bd1d-6a6e660d7a85',
+                    'https://kahoot.it/solo?quizId=001236c4-8caf-45e4-b350-22d887ce5aad'
+    ]
             },
             crosswalk: {
                 title: '횡단보도 안전',
                 src: 'https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/%EC%83%9D%ED%99%9C%EA%B1%B4%EA%B0%95.mp4',
-                kahoot: 'https://kahoot.it/solo?quizId=987654'
+                kahoot: 'https://kahoot.it/solo?quizId=d79af7ac-f9ec-4cab-90b3-9564c22dbf24'
             },
             foodsafety: {
                 title: '올바른 식습관',
                 src: 'https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/food.mp4',
-                kahoot: 'https://kahoot.it/solo?quizId=food123'
+                kahoot: 'https://kahoot.it/solo?quizId=7f16fe3b-0452-415a-a36a-a7da64a422ae'
             },
             precaution: {
                 title: '감기 • 독감 예방',
                 src: 'https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/cold.mp4',
-                kahoot: 'https://kahoot.it/solo?quizId=cold123'
+                kahoot: 'https://kahoot.it/solo?quizId=a68c9d68-4e5f-4318-9b75-e3aba40adf16'
             }
         };
     
