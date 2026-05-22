@@ -1,356 +1,516 @@
-document.addEventListener("DOMContentLoaded", () => {
+let isLoading = false;
+let lastRequestTime = 0;
 
-  const page = location.pathname.split("/").pop();
-
-  const EXCLUDE = ["login.html", "signup.html"];
-
-  if (EXCLUDE.includes(page)) return;
+document.addEventListener("DOMContentLoaded", function () {
 
   /* =========================
-     STYLE
+     스타일
   ========================= */
   const style = document.createElement("style");
 
   style.textContent = `
+  #chatbox{
+    position:fixed;
+    bottom:90px;
+    right:20px;
+    width:360px;
+    height:560px;
+    background:#fff;
+    border-radius:20px;
+    box-shadow:0 12px 35px rgba(0,0,0,0.18);
+    z-index:9999;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+    transition:all 0.3s ease;
+    font-family:'Pretendard',sans-serif;
+  }
 
-    #chat-btn {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      width: 65px;
-      height: 65px;
-      border-radius: 50%;
-      background: #2f63c7;
-      color: white;
-      border: none;
-      font-size: 28px;
-      cursor: pointer;
-      z-index: 99999;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+  .chatbox-hidden{
+    opacity:0;
+    transform:translateY(120%);
+    pointer-events:none;
+  }
+
+  #chat-header{
+    background:#2f63c7;
+    color:white;
+    padding:16px;
+    font-size:17px;
+    font-weight:700;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+
+  #chat-body{
+    flex:1;
+    overflow-y:auto;
+    padding:14px;
+    background:#f6f8fc;
+    display:flex;
+    flex-direction:column;
+  }
+
+  .message{
+    max-width:88%;
+    padding:12px 14px;
+    margin-bottom:14px;
+    border-radius:16px;
+    font-size:14px;
+    line-height:1.6;
+    word-break:keep-all;
+  }
+
+  .user-msg{
+    align-self:flex-end;
+    background:#2f63c7;
+    color:white;
+  }
+
+  .ai-msg{
+    align-self:flex-start;
+    background:white;
+    border:1px solid #e8e8e8;
+  }
+
+  .input-area{
+    display:flex;
+    padding:12px;
+    border-top:1px solid #eee;
+    background:white;
+  }
+
+  #user-input{
+    flex:1;
+    border:1px solid #ddd;
+    border-radius:12px;
+    padding:12px;
+    outline:none;
+    font-size:14px;
+  }
+
+  #send-btn{
+    margin-left:8px;
+    border:none;
+    background:#2f63c7;
+    color:white;
+    border-radius:12px;
+    padding:0 16px;
+    cursor:pointer;
+    font-weight:bold;
+  }
+
+  #send-btn:hover{
+    opacity:0.9;
+  }
+
+  #chat-toggle-button{
+    position:fixed;
+    right:20px;
+    bottom:20px;
+    width:68px;
+    height:68px;
+    border:none;
+    border-radius:50%;
+    background:#2f63c7;
+    color:white;
+    font-size:28px;
+    cursor:pointer;
+    z-index:10000;
+    box-shadow:0 8px 24px rgba(0,0,0,0.2);
+  }
+
+  .related-wrapper{
+    display:flex;
+    flex-wrap:wrap;
+    gap:7px;
+    margin-top:10px;
+  }
+
+  .related-btn{
+    border:none;
+    background:#edf3ff;
+    color:#2f63c7;
+    border-radius:20px;
+    padding:7px 12px;
+    cursor:pointer;
+    font-size:12px;
+    font-weight:600;
+  }
+
+  .related-btn:hover{
+    background:#dbe7ff;
+  }
+
+  .menu-card{
+    margin-top:12px;
+    background:white;
+    border:1px solid #e7e7e7;
+    border-radius:14px;
+    padding:13px;
+  }
+
+  .menu-title{
+    font-size:15px;
+    font-weight:700;
+    margin-bottom:6px;
+    color:#222;
+  }
+
+  .menu-desc{
+    font-size:13px;
+    color:#666;
+    line-height:1.5;
+    margin-bottom:10px;
+  }
+
+  .menu-btn{
+    width:100%;
+    border:none;
+    background:#2f63c7;
+    color:white;
+    border-radius:10px;
+    padding:10px;
+    cursor:pointer;
+    font-weight:600;
+  }
+
+  .menu-btn:hover{
+    opacity:0.92;
+  }
+
+  .loading{
+    display:flex;
+    gap:5px;
+    padding:10px;
+  }
+
+  .loading span{
+    width:7px;
+    height:7px;
+    border-radius:50%;
+    background:#999;
+    animation:loading 1s infinite;
+  }
+
+  .loading span:nth-child(2){
+    animation-delay:0.2s;
+  }
+
+  .loading span:nth-child(3){
+    animation-delay:0.4s;
+  }
+
+  @keyframes loading{
+    0%{
+      opacity:0.3;
+      transform:translateY(0);
     }
-
-    #chat-panel {
-      position: fixed;
-      bottom: 100px;
-      right: 20px;
-      width: 360px;
-      height: 560px;
-      background: white;
-      border-radius: 18px;
-      overflow: hidden;
-      display: none;
-      flex-direction: column;
-      z-index: 99999;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    50%{
+      opacity:1;
+      transform:translateY(-3px);
     }
-
-    #chat-header {
-      background: #2f63c7;
-      color: white;
-      padding: 16px;
-      font-size: 18px;
-      font-weight: bold;
+    100%{
+      opacity:0.3;
+      transform:translateY(0);
     }
-
-    #chat-box {
-      flex: 1;
-      overflow-y: auto;
-      padding: 15px;
-      background: #f5f7fb;
-    }
-
-    #chat-input-area {
-      display: flex;
-      border-top: 1px solid #ddd;
-      background: white;
-    }
-
-    #chat-input {
-      flex: 1;
-      border: none;
-      outline: none;
-      padding: 15px;
-      font-size: 14px;
-    }
-
-    #chat-send {
-      border: none;
-      background: #2f63c7;
-      color: white;
-      padding: 0 18px;
-      cursor: pointer;
-      font-weight: bold;
-    }
-
-    .chat-message {
-      margin-bottom: 12px;
-      line-height: 1.6;
-      font-size: 14px;
-    }
-
-    .bot-message {
-      color: #333;
-    }
-
-    .user-message {
-      text-align: right;
-      color: #2f63c7;
-      font-weight: bold;
-    }
-
-    .result-card {
-      background: white;
-      border-radius: 12px;
-      padding: 14px;
-      margin-bottom: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-      border: 1px solid #eee;
-    }
-
-    .result-title {
-      font-size: 16px;
-      font-weight: bold;
-      margin-bottom: 8px;
-      color: #222;
-    }
-
-    .result-desc {
-      font-size: 13px;
-      color: #666;
-      line-height: 1.5;
-      margin-bottom: 12px;
-    }
-
-    .result-btn {
-      background: #2f63c7;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      padding: 10px 14px;
-      cursor: pointer;
-      font-size: 13px;
-      font-weight: bold;
-    }
-
-    .result-btn:hover {
-      background: #1f4ea5;
-    }
-
+  }
   `;
 
   document.head.appendChild(style);
 
   /* =========================
-     HTML
+     기본 UI 생성
   ========================= */
   document.body.insertAdjacentHTML("beforeend", `
-
-    <button id="chat-btn">💬</button>
-
-    <div id="chat-panel">
+    <div id="chatbox" class="chatbox-hidden">
 
       <div id="chat-header">
-        헬시키즈 AI
+        🩺 헬시키즈 AI
       </div>
 
-      <div id="chat-box"></div>
+      <div id="chat-body"></div>
 
-      <div id="chat-input-area">
+      <div class="input-area">
         <input
-          id="chat-input"
-          placeholder="건강 교육 내용을 검색해보세요"
-        />
-
-        <button id="chat-send">
-          검색
-        </button>
+          id="user-input"
+          type="text"
+          placeholder="궁금한 건강교육 내용을 검색해보세요"
+        >
+        <button id="send-btn">전송</button>
       </div>
 
     </div>
 
+    <button id="chat-toggle-button">💬</button>
   `);
 
-  const btn = document.getElementById("chat-btn");
-  const panel = document.getElementById("chat-panel");
-  const box = document.getElementById("chat-box");
-  const input = document.getElementById("chat-input");
+  const body = document.getElementById("chat-body");
+  const chatbox = document.getElementById("chatbox");
 
   /* =========================
-     TOGGLE
+     메시지 추가
   ========================= */
-  btn.onclick = () => {
+  function appendMessage(sender, text, options = {}) {
 
-    panel.style.display =
-      panel.style.display === "flex"
-        ? "none"
-        : "flex";
-  };
+    const msg = document.createElement("div");
+    msg.className = `message ${sender}-msg`;
 
-  /* =========================
-     MESSAGE
-  ========================= */
-  function addMessage(text, isUser = false) {
+    const textDiv = document.createElement("div");
+    textDiv.innerHTML = text;
 
-    const div = document.createElement("div");
+    msg.appendChild(textDiv);
 
-    div.className =
-      "chat-message " +
-      (isUser ? "user-message" : "bot-message");
+    /* =========================
+       연관 키워드
+    ========================= */
+    if (options.related?.length) {
 
-    div.innerHTML = text.replace(/\n/g, "<br>");
+      const relatedWrap = document.createElement("div");
+      relatedWrap.className = "related-wrapper";
 
-    box.appendChild(div);
+      options.related.forEach(keyword => {
 
-    box.scrollTop = box.scrollHeight;
+        const btn = document.createElement("button");
+
+        btn.className = "related-btn";
+        btn.innerText = keyword;
+
+        btn.onclick = () => {
+
+          document.getElementById("user-input").value = keyword;
+
+          sendMessage();
+        };
+
+        relatedWrap.appendChild(btn);
+      });
+
+      msg.appendChild(relatedWrap);
+    }
+
+    /* =========================
+       메뉴 카드
+    ========================= */
+    if (options.menus?.length) {
+
+      options.menus.forEach(menu => {
+
+        const card = document.createElement("div");
+
+        card.className = "menu-card";
+
+        card.innerHTML = `
+          <div class="menu-title">${menu.title}</div>
+          <div class="menu-desc">${menu.description || ""}</div>
+          <button class="menu-btn">바로가기</button>
+        `;
+
+        card.querySelector("button").onclick = () => {
+          window.location.href = menu.url;
+        };
+
+        msg.appendChild(card);
+      });
+    }
+
+    body.appendChild(msg);
+
+    body.scrollTop = body.scrollHeight;
   }
 
   /* =========================
-     CARD
+     로딩
   ========================= */
-  function addCard(item) {
+  function showLoading() {
 
-    const card = document.createElement("div");
+    const loading = document.createElement("div");
 
-    card.className = "result-card";
+    loading.className = "loading";
+    loading.id = "loading";
 
-    card.innerHTML = `
-
-      <div class="result-title">
-        ${item.title}
-      </div>
-
-      <div class="result-desc">
-        ${item.description || ""}
-      </div>
-
-      <button
-        class="result-btn"
-        onclick="location.href='${item.url}'">
-        바로가기
-      </button>
-
+    loading.innerHTML = `
+      <span></span>
+      <span></span>
+      <span></span>
     `;
 
-    box.appendChild(card);
+    body.appendChild(loading);
 
-    box.scrollTop = box.scrollHeight;
+    body.scrollTop = body.scrollHeight;
+  }
+
+  function removeLoading() {
+    document.getElementById("loading")?.remove();
   }
 
   /* =========================
-     INIT
+     초기 메시지
   ========================= */
-  async function initChat() {
+  async function loadInit() {
 
     try {
 
-      const res = await fetch("/api/init");
+      const response = await fetch("/api/init");
 
-      const data = await res.json();
+      const data = await response.json();
 
-      data.messages.forEach(msg => {
-        addMessage(msg, false);
-      });
+      appendMessage(
+        "ai",
+        `
+        안녕하세요 😊<br><br>
+        헬시키즈 AI 검색 도우미입니다.<br><br>
+        원하는 건강교육 내용을 검색해보세요.<br><br>
+        예시)<br>
+        • 감기 예방<br>
+        • 손씻기 방법<br>
+        • 횡단보도 안전수칙
+        `
+      );
 
       if (data.guide) {
-        addCard(data.guide);
+
+        appendMessage(
+          "ai",
+          "📌 처음 이용한다면 가이드를 먼저 확인해보세요!",
+          {
+            menus: [
+              {
+                title: data.guide.title,
+                description: data.guide.description,
+                url: data.guide.url
+              }
+            ]
+          }
+        );
       }
 
     } catch (err) {
 
       console.error(err);
 
-      addMessage(
-        "❌ AI 초기화 중 오류가 발생했습니다.",
-        false
+      appendMessage(
+        "ai",
+        "초기 데이터를 불러오지 못했어요 😢"
       );
     }
   }
 
   /* =========================
-     SEARCH API
+     메시지 전송
   ========================= */
-  async function ragSearch(query) {
+  async function sendMessage() {
 
-    const res = await fetch("/api/search", {
+    if (isLoading) return;
 
-      method: "POST",
+    const now = Date.now();
 
-      headers: {
-        "Content-Type": "application/json"
-      },
+    if (now - lastRequestTime < 1500) {
 
-      body: JSON.stringify({
-        query
-      })
-    });
+      appendMessage(
+        "ai",
+        "잠시만 기다려주세요 😊"
+      );
 
-    return await res.json();
-  }
+      return;
+    }
 
-  /* =========================
-     SEND
-  ========================= */
-  async function send() {
+    lastRequestTime = now;
 
-    const query = input.value.trim();
+    const input = document.getElementById("user-input");
 
-    if (!query) return;
+    const text = input.value.trim();
 
-    addMessage("👤 " + query, true);
+    if (!text) return;
+
+    appendMessage("user", text);
 
     input.value = "";
 
+    isLoading = true;
+
+    showLoading();
+
     try {
 
-      const results = await ragSearch(query);
+      const response = await fetch("/api/search", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          query: text
+        })
+      });
 
-      if (!results.length) {
+      const data = await response.json();
 
-        addMessage(
-          "검색 결과를 찾지 못했어요 😢",
-          false
+      removeLoading();
+
+      if (!data.reply) {
+
+        appendMessage(
+          "ai",
+          "검색 결과를 찾지 못했어요 😢"
         );
+
+        isLoading = false;
 
         return;
       }
 
-      addMessage(
-        `🔎 "${query}" 검색 결과입니다.`,
-        false
+      appendMessage(
+        "ai",
+        data.reply,
+        {
+          related: data.related || [],
+          menus: data.menus || []
+        }
       );
-
-      results.forEach(item => {
-        addCard(item);
-      });
 
     } catch (err) {
 
       console.error(err);
 
-      addMessage(
-        "❌ 검색 중 오류가 발생했습니다.",
-        false
+      removeLoading();
+
+      appendMessage(
+        "ai",
+        "AI 서버 연결 중 오류가 발생했어요 😢"
       );
+
+    } finally {
+
+      isLoading = false;
     }
   }
 
   /* =========================
-     EVENTS
+     이벤트
   ========================= */
-  document
-    .getElementById("chat-send")
-    .onclick = send;
+  document.getElementById("send-btn").onclick = sendMessage;
 
-  input.addEventListener("keypress", e => {
+  document.getElementById("user-input")
+    .addEventListener("keypress", (e) => {
 
-    if (e.key === "Enter") {
-      send();
-    }
-  });
+      if (e.key === "Enter") {
+
+        e.preventDefault();
+
+        sendMessage();
+      }
+    });
+
+  document.getElementById("chat-toggle-button")
+    .onclick = () => {
+
+      chatbox.classList.toggle("chatbox-hidden");
+    };
 
   /* =========================
-     START
+     초기 로드
   ========================= */
-  initChat();
+  loadInit();
 
 });
