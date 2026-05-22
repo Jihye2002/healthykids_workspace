@@ -9,7 +9,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const style = document.createElement("style");
 
   style.textContent = `
-  
   #chatbox{
     position:fixed;
     bottom:90px;
@@ -23,7 +22,6 @@ document.addEventListener("DOMContentLoaded", () => {
     z-index:9999;
     display:flex;
     flex-direction:column;
-    transition:0.3s;
   }
 
   .chatbox-hidden{
@@ -38,9 +36,6 @@ document.addEventListener("DOMContentLoaded", () => {
     padding:16px;
     font-size:17px;
     font-weight:bold;
-    display:flex;
-    align-items:center;
-    gap:8px;
   }
 
   #chat-body{
@@ -57,8 +52,8 @@ document.addEventListener("DOMContentLoaded", () => {
     padding:12px 14px;
     margin-bottom:12px;
     border-radius:16px;
-    line-height:1.6;
     font-size:14px;
+    line-height:1.6;
     word-break:keep-all;
   }
 
@@ -72,7 +67,6 @@ document.addEventListener("DOMContentLoaded", () => {
     align-self:flex-start;
     background:white;
     border:1px solid #e8e8e8;
-    color:#333;
   }
 
   .input-area{
@@ -88,7 +82,6 @@ document.addEventListener("DOMContentLoaded", () => {
     border-radius:12px;
     padding:12px;
     outline:none;
-    font-size:14px;
   }
 
   #send-btn{
@@ -99,11 +92,6 @@ document.addEventListener("DOMContentLoaded", () => {
     border-radius:12px;
     padding:12px 15px;
     cursor:pointer;
-    font-weight:bold;
-  }
-
-  #send-btn:hover{
-    opacity:0.9;
   }
 
   #chat-toggle-button{
@@ -118,8 +106,6 @@ document.addEventListener("DOMContentLoaded", () => {
     color:white;
     font-size:30px;
     cursor:pointer;
-    z-index:10000;
-    box-shadow:0 8px 25px rgba(0,0,0,0.2);
   }
 
   .result-card{
@@ -132,15 +118,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   .result-title{
     font-weight:bold;
-    font-size:14px;
-    margin-bottom:6px;
     color:#234ea5;
+    margin-bottom:5px;
   }
 
   .result-desc{
     font-size:13px;
     color:#555;
-    line-height:1.5;
     margin-bottom:10px;
   }
 
@@ -148,14 +132,9 @@ document.addEventListener("DOMContentLoaded", () => {
     border:none;
     background:#2f63c7;
     color:white;
-    border-radius:10px;
     padding:8px 12px;
+    border-radius:10px;
     cursor:pointer;
-    font-size:13px;
-  }
-
-  .result-btn:hover{
-    opacity:0.92;
   }
 
   .loading{
@@ -169,34 +148,13 @@ document.addEventListener("DOMContentLoaded", () => {
     height:7px;
     border-radius:50%;
     background:#999;
-    animation:loading 1s infinite;
+    animation:blink 1s infinite;
   }
 
-  .loading span:nth-child(2){
-    animation-delay:0.2s;
+  @keyframes blink{
+    0%,100%{opacity:0.3;}
+    50%{opacity:1;}
   }
-
-  .loading span:nth-child(3){
-    animation-delay:0.4s;
-  }
-
-  @keyframes loading{
-    0%{
-      opacity:0.3;
-      transform:translateY(0);
-    }
-
-    50%{
-      opacity:1;
-      transform:translateY(-4px);
-    }
-
-    100%{
-      opacity:0.3;
-      transform:translateY(0);
-    }
-  }
-
   `;
 
   document.head.appendChild(style);
@@ -205,212 +163,121 @@ document.addEventListener("DOMContentLoaded", () => {
      UI
   ========================= */
   document.body.insertAdjacentHTML("beforeend", `
-
     <div id="chatbox" class="chatbox-hidden">
-
-      <div id="chat-header">
-        🩺 헬시키즈 AI
-      </div>
-
+      <div id="chat-header">🩺 헬시키즈 AI</div>
       <div id="chat-body"></div>
 
       <div class="input-area">
-        <input
-          id="user-input"
-          type="text"
-          placeholder="궁금한 건강교육 내용을 입력하세요"
-        >
-
-        <button id="send-btn">
-          전송
-        </button>
+        <input id="user-input" placeholder="질문 입력">
+        <button id="send-btn">전송</button>
       </div>
-
     </div>
 
-    <button id="chat-toggle-button">
-      💬
-    </button>
-
+    <button id="chat-toggle-button">💬</button>
   `);
 
-  const chatbox = document.getElementById("chatbox");
   const chatBody = document.getElementById("chat-body");
+  const chatbox = document.getElementById("chatbox");
 
   /* =========================
-     INIT MESSAGE
-    ========================= */
-    appendMessage(
-    "ai",
-    `
-    안녕하세요 😊<br><br>
-  
-    저는 헬시키즈 AI 건강교육 도우미예요.<br><br>
-  
-    궁금한 내용을 자연스럽게 질문해보세요!<br><br>
-  
-    예시)<br>
-    • 감기 예방 방법 알려줘<br>
-    • 손씻기 교육 자료 찾아줘<br>
-    • 횡단보도 안전수칙 알려줘
-    `,
+     INIT
+  ========================= */
+  appendMessage("ai",
+    `안녕하세요 😊<br>
+    감기, 위생, 안전 등 무엇이든 물어보세요!`,
     [
       {
         title:"📌 헬시키즈 이용 가이드",
-        description:"사이트 이용 방법을 확인할 수 있어요.",
+        description:"사용 방법 안내",
         url:"/guide.html"
       }
     ]
   );
 
   /* =========================
-     APPEND MESSAGE
+     MESSAGE
   ========================= */
   function appendMessage(sender, text, results = []) {
 
     const msg = document.createElement("div");
-
     msg.className = `message ${sender}-msg`;
 
-    msg.innerHTML = `
-      <div>${text}</div>
-    `;
+    msg.innerHTML = `<div>${text}</div>`;
 
-    /* =========================
-       RESULT CARDS
-    ========================= */
-    if (results.length > 0) {
+    if (results && results.length > 0) {
 
-      results.forEach(result => {
+      results.forEach(r => {
 
         const card = document.createElement("div");
-
         card.className = "result-card";
 
         card.innerHTML = `
-          <div class="result-title">
-            ${result.title}
-          </div>
-
-          <div class="result-desc">
-            ${result.description || ""}
-          </div>
-
-          <button class="result-btn">
-            바로가기
-          </button>
+          <div class="result-title">${r.title}</div>
+          <div class="result-desc">${r.description || ""}</div>
+          <button class="result-btn">바로가기</button>
         `;
 
-        card.querySelector("button")
-          .onclick = () => {
-            window.location.href = result.url;
-          };
+        card.querySelector("button").onclick = () => {
+          window.location.href = r.url;
+        };
 
         msg.appendChild(card);
       });
     }
 
     chatBody.appendChild(msg);
-
     chatBody.scrollTop = chatBody.scrollHeight;
   }
 
-  /* =========================
-     LOADING
-  ========================= */
-  function showLoading() {
-
-    const loading = document.createElement("div");
-
-    loading.className = "loading";
-    loading.id = "loading";
-
-    loading.innerHTML = `
-      <span></span>
-      <span></span>
-      <span></span>
-    `;
-
-    chatBody.appendChild(loading);
-
-    chatBody.scrollTop = chatBody.scrollHeight;
+  function showLoading(){
+    const div = document.createElement("div");
+    div.className = "loading";
+    div.id = "loading";
+    div.innerHTML = "<span></span><span></span><span></span>";
+    chatBody.appendChild(div);
   }
 
-  function removeLoading() {
+  function removeLoading(){
     document.getElementById("loading")?.remove();
   }
 
   /* =========================
-     SEND MESSAGE
+     SEND
   ========================= */
-  async function sendMessage() {
+  async function sendMessage(){
 
-    if (isLoading) return;
+    if(isLoading) return;
 
     const now = Date.now();
-
-    if (now - lastRequestTime < 1500) {
-
-      appendMessage(
-        "ai",
-        "조금만 기다려주세요 😊"
-      );
-
-      return;
-    }
+    if(now - lastRequestTime < 1200) return;
 
     lastRequestTime = now;
 
     const input = document.getElementById("user-input");
-
     const text = input.value.trim();
 
-    if (!text) return;
-
-    if (text.length > 200) {
-
-      appendMessage(
-        "ai",
-        "질문은 200자 이하로 입력해주세요 😊"
-      );
-
-      return;
-    }
+    if(!text) return;
 
     appendMessage("user", text);
-
     input.value = "";
 
     isLoading = true;
-
     showLoading();
 
     try {
 
-      const response = await fetch("/api/chat", {
-
+      const res = await fetch("/api/chat", {
         method:"POST",
-
-        headers:{
-          "Content-Type":"application/json"
-        },
-
-        body: JSON.stringify({
-          message:text
-        })
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ message:text })
       });
 
-      const data = await response.json();
+      const data = await res.json();
 
       removeLoading();
 
-      if (data.error) {
-
-        appendMessage(
-          "ai",
-          "AI 서버 오류가 발생했어요 😢"
-        );
-
+      if(data.error){
+        appendMessage("ai", "서버 오류 😢");
         return;
       }
 
@@ -420,19 +287,12 @@ document.addEventListener("DOMContentLoaded", () => {
         data.results || []
       );
 
-    } catch (err) {
-
-      console.error(err);
+    } catch(e){
 
       removeLoading();
-
-      appendMessage(
-        "ai",
-        "서버 연결 오류가 발생했어요 😢"
-      );
+      appendMessage("ai", "네트워크 오류 😢");
 
     } finally {
-
       isLoading = false;
     }
   }
@@ -440,29 +300,18 @@ document.addEventListener("DOMContentLoaded", () => {
   /* =========================
      EVENTS
   ========================= */
-  document
-    .getElementById("send-btn")
-    .onclick = sendMessage;
+  document.getElementById("send-btn").onclick = sendMessage;
 
-  document
-    .getElementById("user-input")
+  document.getElementById("user-input")
     .addEventListener("keypress", e => {
-
-      if (e.key === "Enter") {
-
-        e.preventDefault();
-
+      if(e.key === "Enter"){
         sendMessage();
       }
     });
 
-  document
-    .getElementById("chat-toggle-button")
+  document.getElementById("chat-toggle-button")
     .onclick = () => {
-
-      chatbox.classList.toggle(
-        "chatbox-hidden"
-      );
+      chatbox.classList.toggle("chatbox-hidden");
     };
 
 });
