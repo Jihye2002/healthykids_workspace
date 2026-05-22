@@ -257,7 +257,6 @@ video { width:100%; height:100%; }
     </div>
 
 </div>
-
 <script>
     document.addEventListener('DOMContentLoaded', () => {
     
@@ -296,34 +295,61 @@ video { width:100%; height:100%; }
         const title = document.getElementById('video-title');
         const quiz = document.getElementById('quiz-section');
         const link = document.getElementById('kahoot-link');
+        const videoWrapper = document.querySelector('.video-wrapper');
     
         if (!data) {
             title.innerText = "데이터를 찾을 수 없습니다.";
             return;
         }
     
+        // 🎬 제목
         title.innerText = data.title;
     
+        // 🎥 영상 세팅
         if (video && data.src) {
             video.src = data.src;
             video.load();
     
-            const playPromise = video.play();
-            if (playPromise !== undefined) {
-                playPromise.catch(() => {});
-            }
+            video.play().catch(() => {});
         }
     
+        // 🔗 카훗 링크
         if (link && data.kahoot) {
             link.href = data.kahoot;
         }
     
-        video.addEventListener("ended", () => {
-            quiz.style.display = "block";
-            quiz.scrollIntoView({ behavior: "smooth" });
-        });
+        // 🎯 영상 끝 → 슬라이드 전환 + UI 개선
+        function showQuiz() {
     
-    }); // ⭐ 여기서 마지막에 닫아야 함
+            quiz.style.display = "block";
+    
+            // 🎬 부드러운 등장
+            quiz.style.opacity = "0";
+            quiz.style.transform = "translateY(40px)";
+    
+            setTimeout(() => {
+                quiz.style.transition = "all 0.6s ease";
+                quiz.style.opacity = "1";
+                quiz.style.transform = "translateY(0)";
+            }, 50);
+    
+            // 🎥 영상 영역 확대 축소 + 숨김
+            if (videoWrapper) {
+                videoWrapper.style.transition = "all 0.6s ease";
+                videoWrapper.style.transform = "scale(0.95)";
+                videoWrapper.style.opacity = "0.3";
+    
+                setTimeout(() => {
+                    videoWrapper.style.display = "none";
+                }, 600);
+            }
+    
+            quiz.scrollIntoView({ behavior: "smooth" });
+        }
+    
+        video.addEventListener("ended", showQuiz);
+    
+    });
 </script>
 
 </body>
