@@ -2,185 +2,142 @@ const express = require("express");
 const cors = require("cors");
 const fs = require("fs");
 const path = require("path");
-const multer = require("multer");
 const pdfParse = require("pdf-parse");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-/* =========================
-   FETCH
-========================= */
 const fetch = global.fetch || require("node-fetch");
 
 /* =========================
    KEYS
 ========================= */
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
 /* =========================
-   MEMORY DB
+   DATA
 ========================= */
 let DOCUMENTS = [];
 let VECTOR_DB = [];
+let CLICK_LOG = [];
 
 /* =========================
    MIDDLEWARE
 ========================= */
 app.use(cors());
-app.use(express.json({ limit: "20mb" }));
+app.use(express.json({ limit: "50mb" }));
 app.use(express.static(__dirname));
 
 /* =========================
-   VERY STRICT NOISE FILTER
-   (핵심 개선)
+   CLEAN / NORMALIZE
 ========================= */
-const NOISE_KEYWORDS = [
-  "로그인","회원가입","회원탈퇴","관리자",
-  "메뉴","nav","header","footer","버튼","공지",
-  "cookie","광고","약관","설정"
-];
-
-function isNoise(text = "") {
-  const t = text.toLowerCase();
-  return NOISE_KEYWORDS.some(n => t.includes(n));
+function normalize(t = "") {
+  return t
+    .toLowerCase()
+    .replace(/[^\w가-힣]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 /* =========================
-   CLEAN HTML (강화)
+   INTENT CLASSIFIER (핵심)
+========================= */
+function classifyIntent(q) {
+  q = q.toLowerCase();
+
+  if (q.includes("손") || q.includes("위생") || q.includes("씻")) return "hygiene";
+  if (q.includes("감기") || q.includes("열") || q.includes("건강")) return "health";
+  if (q.includes("횡단") || q.includes("교통")) return "safety";
+
+  return "general";
+}
+
+/* =========================
+   NOISE FILTER
+========================= */
+const NOISE = ["로그인","회원가입","버튼","nav","footer","메뉴"];
+
+function isNoise(t = "") {
+  return NOISE.some(n => t.toLowerCase().includes(n));
+}
+
+/* =========================
+   HTML CLEAN
 ========================= */
 function stripHtml(html) {
   return html
-    .replace(/<script[\s\S]*?<\/script>/gi, "")
-    .replace(/<style[\s\S]*?<\/style>/gi, "")
-    .replace(/<nav[\s\S]*?<\/nav>/gi, "")
-    .replace(/<header[\s\S]*?<\/header>/gi, "")
-    .replace(/<footer[\s\S]*?<\/footer>/gi, "")
-    .replace(/<button[\s\S]*?<\/button>/gi, "")
-    .replace(/<input[\s\S]*?>/gi, "")
+    .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, "")
     .replace(/<[^>]*>/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
 
 /* =========================
-   NORMALIZE
-========================= */
-function normalize(t = "") {
-  return t
-    .toLowerCase()
-    .replace(/[^\w가-힣\s]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-/* =========================
-   SPLIT (더 정확하게)
+   SPLIT
 ========================= */
 function splitText(text) {
   return text
     .split(/\n\s*\n|(?<=[.!?])\s+/g)
     .map(t => t.trim())
-    .filter(t =>
-      t.length > 60 &&
-      !isNoise(t)
-    );
-}
-
-/* =========================
-   TITLE
-========================= */
-function getTitle(html, file) {
-  const m = html.match(/<title>(.*?)<\/title>/i);
-  return m?.[1] || file;
+    .filter(t => t.length > 40 && !isNoise(t));
 }
 
 /* =========================
    LOAD HTML
 ========================= */
-async function crawlSite() {
+function crawlSite() {
   const files = fs.readdirSync(__dirname).filter(f => f.endsWith(".html"));
 
   for (const file of files) {
     const html = fs.readFileSync(path.join(__dirname, file), "utf-8");
 
     const clean = stripHtml(html);
-    const title = getTitle(html, file);
 
     splitText(clean).forEach(t => {
       DOCUMENTS.push({
-        title,
+        title: file,
         text: t,
-        url: "/" + file,
-        type: "html"
+        url: "/" + file
       });
     });
   }
 }
 
 /* =========================
-   LOAD PDF
-========================= */
-async function loadPdfFiles() {
-  const files = fs.readdirSync(__dirname).filter(f => f.endsWith(".pdf"));
-
-  for (const file of files) {
-    const buffer = fs.readFileSync(path.join(__dirname, file));
-
-    try {
-      const parsed = await pdfParse(buffer);
-
-      splitText(parsed.text).forEach(t => {
-        DOCUMENTS.push({
-          title: file.replace(".pdf",""),
-          text: t,
-          url: "/" + file,
-          type: "pdf"
-        });
-      });
-
-    } catch (e) {
-      console.log("PDF ERROR:", file);
-    }
-  }
-}
-
-/* =========================
-   EMBEDDING SAFE
+   EMBEDDING
 ========================= */
 async function embed(text) {
+
   if (!OPENAI_API_KEY) return [];
 
-  try {
-    const res = await fetch("https://api.openai.com/v1/embeddings", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${OPENAI_API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model: "text-embedding-3-small",
-        input: text
-      })
-    });
+  const res = await fetch("https://api.openai.com/v1/embeddings", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${OPENAI_API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: "text-embedding-3-small",
+      input: text
+    })
+  });
 
-    const data = await res.json();
-    return data?.data?.[0]?.embedding || [];
-
-  } catch {
-    return [];
-  }
+  const data = await res.json();
+  return data?.data?.[0]?.embedding || [];
 }
 
 /* =========================
    VECTOR BUILD
 ========================= */
-async function rebuildVector() {
+async function buildVectors() {
+
   VECTOR_DB = [];
 
   for (const d of DOCUMENTS) {
-    const vector = await embed(d.text);
-    VECTOR_DB.push({ ...d, vector });
+    const v = await embed(d.text);
+    VECTOR_DB.push({ ...d, vector: v });
   }
 
   console.log("VECTOR READY:", VECTOR_DB.length);
@@ -204,134 +161,199 @@ function cosine(a, b) {
 }
 
 /* =========================
-   RETRIEVE (STRICT FILTER)
+   BM25 (light version)
+========================= */
+function bm25(query, doc) {
+  const q = normalize(query).split(" ");
+  const text = normalize(doc.text);
+
+  let score = 0;
+
+  for (const token of q) {
+    if (text.includes(token)) score += 1;
+  }
+
+  return score;
+}
+
+/* =========================
+   RETRIEVE (HYBRID + INTENT FILTER)
 ========================= */
 async function retrieve(query) {
 
+  const intent = classifyIntent(query);
   const qvec = await embed(query);
-  const q = normalize(query);
-  const keys = q.split(" ");
 
-  return VECTOR_DB.map(d => {
+  const filtered = DOCUMENTS.filter(d => {
 
-    let score = 0;
+    // 🚨 HARD FILTER (핵심)
+    if (intent !== "general") {
+      const t = d.text.toLowerCase();
 
-    const text = normalize(d.text);
-    const title = normalize(d.title);
-
-    // embedding similarity
-    if (qvec.length && d.vector?.length) {
-      score += cosine(qvec, d.vector) * 2;
+      if (intent === "hygiene" && !t.includes("손") && !t.includes("씻")) return false;
+      if (intent === "health" && !t.includes("감기") && !t.includes("건강")) return false;
+      if (intent === "safety" && !t.includes("횡단") && !t.includes("도로")) return false;
     }
 
-    // keyword match
-    for (const k of keys) {
-      if (text.includes(k)) score += 0.8;
-      if (title.includes(k)) score += 1.5;
+    return true;
+  });
+
+  const scored = filtered.map(d => {
+
+    const vec = VECTOR_DB.find(v => v.text === d.text)?.vector || [];
+
+    const bm = bm25(query, d);
+    const vecScore = cosine(qvec, vec);
+
+    let score = bm * 1.5 + vecScore * 2;
+
+    // title boost
+    if (normalize(d.title).includes(normalize(query))) {
+      score += 3;
     }
 
-    // HARD FILTER (핵심)
-    if (!text.includes(q) && !title.includes(q) && score < 0.8) {
-      score -= 5; // 거의 제거
-    }
+    return { ...d, score, intent };
+  });
 
-    return { ...d, score };
-  })
-  .filter(d => d.score > 0.7)   // 🔥 중요: 관련 없는 데이터 제거
-  .sort((a, b) => b.score - a.score)
-  .slice(0, 8);
-}
-
-/* =========================
-   RERANK
-========================= */
-function rerank(docs) {
-
-  return docs
-    .map(d => ({
-      ...d,
-      score: d.score
-    }))
+  return scored
     .sort((a, b) => b.score - a.score)
-    .slice(0, 5);
+    .slice(0, 15);
 }
 
 /* =========================
-   GPT ANSWER (SAFE)
+   GROQ RERANK (핵심 추가)
 ========================= */
-async function answer(query, docs) {
+async function groqRerank(query, docs) {
 
-  if (!OPENAI_API_KEY) {
-    return "API 키가 설정되지 않았어요";
-  }
-
-  const context = docs
-    .map(d => `${d.title}: ${d.text}`)
-    .join("\n")
-    .slice(0, 4000);
+  if (!GROQ_API_KEY) return docs;
 
   try {
 
-    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${OPENAI_API_KEY}`,
+        "Authorization": `Bearer ${GROQ_API_KEY}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: "llama-3.1-70b-versatile",
+        temperature: 0,
         messages: [
           {
             role: "system",
-            content:
-              "너는 어린이 건강 교육 AI야. 반드시 5줄 이하로 쉽고 정확하게 설명해."
+            content: "Return JSON array of best document indices only."
           },
           {
             role: "user",
-            content: `질문: ${query}\n\n자료:\n${context}`
+            content: JSON.stringify({
+              query,
+              docs: docs.map((d, i) => ({
+                i,
+                title: d.title,
+                score: d.score
+              }))
+            })
           }
-        ],
-        temperature: 0.2,
-        max_tokens: 250
+        ]
       })
     });
 
     const data = await res.json();
+    const text = data?.choices?.[0]?.message?.content;
 
-    return data?.choices?.[0]?.message?.content ||
-      "관련 내용을 찾지 못했어요 😢";
+    const order = JSON.parse(text);
+
+    return order
+      .map(i => docs[i])
+      .filter(Boolean);
 
   } catch (e) {
-    return "AI 서버 오류 😢";
+    return docs;
   }
 }
 
 /* =========================
-   API
+   RERANK (click boost)
+========================= */
+function rerank(docs, query) {
+
+  return docs.map(d => {
+
+    let score = d.score;
+
+    const clicks = CLICK_LOG.filter(c => c.title === d.title).length;
+    score += clicks * 1.8;
+
+    if (d.intent === classifyIntent(query)) {
+      score += 2;
+    }
+
+    return { ...d, score };
+  })
+  .sort((a, b) => b.score - a.score)
+  .slice(0, 6);
+}
+
+/* =========================
+   ANSWER (OPENAI)
+========================= */
+async function answer(query, docs) {
+
+  const context = docs
+    .map(d => `${d.title}\n${d.text}`)
+    .join("\n\n")
+    .slice(0, 6000);
+
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${OPENAI_API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: "너는 어린이 건강 교육 AI야. 5줄 이하로 쉽게 설명해."
+        },
+        {
+          role: "user",
+          content: `질문:${query}\n\n자료:\n${context}`
+        }
+      ],
+      temperature: 0.3,
+      max_tokens: 250
+    })
+  });
+
+  const data = await res.json();
+
+  return data?.choices?.[0]?.message?.content
+    || "관련 내용을 찾지 못했어요 😢";
+}
+
+/* =========================
+   CHAT API
 ========================= */
 app.post("/api/chat", async (req, res) => {
 
   const message = req.body.message || "";
 
-  const retrieved = await retrieve(message);
+  let docs = await retrieve(message);
 
-  if (!retrieved.length) {
-    return res.json({
-      reply: "관련된 내용을 찾지 못했어요 😢",
-      results: []
-    });
-  }
+  docs = await groqRerank(message, docs);
 
-  const ranked = rerank(retrieved);
-  const reply = await answer(message, ranked);
+  docs = rerank(docs, message);
+
+  const reply = await answer(message, docs);
 
   res.json({
     reply,
-    results: ranked.map(r => ({
-      title: r.title,
-      summary: r.text.slice(0, 100),
-      url: r.url,
-      type: r.type
+    results: docs.map(d => ({
+      title: d.title,
+      summary: d.text.slice(0, 120),
+      url: d.url
     }))
   });
 });
@@ -341,14 +363,13 @@ app.post("/api/chat", async (req, res) => {
 ========================= */
 (async () => {
   DOCUMENTS = [];
-  await crawlSite();
-  await loadPdfFiles();
-  await rebuildVector();
+  crawlSite();
+  await buildVectors();
 })();
 
 /* =========================
    START
 ========================= */
 app.listen(PORT, () => {
-  console.log("🚀 FINAL SEARCH SERVER V12 RUNNING:", PORT);
+  console.log("🚀 V3.5 SEARCH ENGINE RUNNING:", PORT);
 });
