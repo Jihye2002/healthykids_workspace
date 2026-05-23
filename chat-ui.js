@@ -171,7 +171,7 @@ document.addEventListener("DOMContentLoaded", () => {
   <div id="chatApp">
 
     <div id="chatHeader">
-      🤖 헬시키즈 AI
+      헬시키즈 AI
       <span id="closeBtn" style="cursor:pointer;">✕</span>
     </div>
 
