@@ -239,7 +239,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         <textarea
           id="text"
-          placeholder="궁금한 걸 물어보세요 😊&#10;Shift + Enter : 줄바꿈&#10;Enter : 검색"
+          placeholder="궁금한 걸 물어보세요 😊
         ></textarea>
 
         <button id="send">검색</button>
