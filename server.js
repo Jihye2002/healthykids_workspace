@@ -8,19 +8,13 @@ const PORT = process.env.PORT || 3000;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
-/* =========================
-   MEMORY
-========================= */
 let DOCUMENTS = [];
 let VECTOR_DB = [];
 
-/* =========================
-   RULE
-========================= */
 const UPLOAD_THRESHOLD = 0.72;
 
 /* =========================
-   TEXT CLEAN
+   UTIL
 ========================= */
 function stripHtml(html) {
   return html
@@ -31,9 +25,6 @@ function stripHtml(html) {
     .trim();
 }
 
-/* =========================
-   SPLIT (개선)
-========================= */
 function splitParagraphs(text) {
   return text
     .split(/\n\s*\n|(?<=[.!?])\s+/g)
@@ -42,65 +33,23 @@ function splitParagraphs(text) {
 }
 
 /* =========================
-   LOAD SITE (구조 개선)
+   LOAD SITE
 ========================= */
 async function loadSite() {
   DOCUMENTS = [];
 
-  const indexHtml = fs.readFileSync("index.html", "utf-8");
+  const html = fs.readFileSync("index.html", "utf-8");
 
-  const sections = splitParagraphs(stripHtml(indexHtml));
-
-  sections.forEach((p, i) => {
+  splitParagraphs(stripHtml(html)).forEach((p, i) => {
     DOCUMENTS.push({
-      title: `홈페이지 콘텐츠 ${i + 1}`,
+      title: `홈페이지 ${i + 1}`,
       text: p,
       url: "/index.html",
       type: "html"
     });
   });
 
-  console.log("📄 HTML LOADED:", DOCUMENTS.length);
-}
-
-/* =========================
-   PDF LOAD
-========================= */
-async function loadPdfsFromUpload() {
-  const dir = path.join(__dirname, "files");
-  if (!fs.existsSync(dir)) return;
-
-  const files = fs.readdirSync(dir);
-
-  for (const file of files) {
-    if (!file.endsWith(".pdf")) continue;
-
-    const buffer = fs.readFileSync(path.join(dir, file));
-    const parsed = await pdfParse(buffer);
-
-    splitParagraphs(parsed.text).forEach((p, i) => {
-      DOCUMENTS.push({
-        title: `${file} - 섹션 ${i + 1}`,
-        text: p,
-        url: `/files/${file}`,
-        type: "pdf"
-      });
-    });
-  }
-
-  console.log("📄 PDF LOADED:", files.length);
-}
-
-/* =========================
-   VIDEO LOAD (NEW)
-========================= */
-function addVideoFile(file) {
-  DOCUMENTS.push({
-    title: file.name.replace(".mp4", ""),
-    text: `이 영상은 "${file.name}"에 대한 학습 영상입니다. 내용은 해당 주제 설명 영상입니다.`,
-    url: `/files/${file.name}`,
-    type: "video"
-  });
+  console.log("HTML LOADED");
 }
 
 /* =========================
@@ -128,7 +77,7 @@ async function embed(text) {
 }
 
 /* =========================
-   VECTOR BUILD
+   VECTOR
 ========================= */
 async function rebuildVector() {
   VECTOR_DB = [];
@@ -140,7 +89,7 @@ async function rebuildVector() {
     VECTOR_DB.push({ ...d, vector: v });
   }
 
-  console.log("🧠 VECTOR READY:", VECTOR_DB.length);
+  console.log("VECTOR READY:", VECTOR_DB.length);
 }
 
 /* =========================
@@ -175,11 +124,28 @@ async function search(query) {
     }))
     .sort((a, b) => b.score - a.score)
     .slice(0, 5)
-    .map(({ score, ...rest }) => rest); // ⭐ score 제거
+    .map(({ score, ...rest }) => rest);
 }
 
 /* =========================
-   AI SUMMARY (자유형)
+   SAFE JSON PARSE
+========================= */
+function safeJSON(text, fallback) {
+  try {
+    return JSON.parse(text);
+  } catch {
+    const match = text.match(/\{[\s\S]*\}/);
+    if (!match) return fallback;
+    try {
+      return JSON.parse(match[0]);
+    } catch {
+      return fallback;
+    }
+  }
+}
+
+/* =========================
+   SUMMARY
 ========================= */
 async function summarize(query, results) {
 
@@ -190,57 +156,45 @@ async function summarize(query, results) {
 URL: ${r.url}
 `).join("\n");
 
-  try {
-    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${GROQ_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: "llama-3.1-70b-versatile",
-        messages: [
-          {
-            role: "system",
-            content: `
-너는 어린이 학습 AI이다.
-
-- 자유롭게 설명
-- 4~6줄 정도
-- 형식 강제 없음
-- 쉽게 설명
-- JSON 출력
+  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${GROQ_API_KEY}`
+    },
+    body: JSON.stringify({
+      model: "llama-3.1-70b-versatile",
+      messages: [
+        {
+          role: "system",
+          content: `
+너는 어린이 AI이다.
+- 4~6줄 설명
+- JSON만 출력
 
 형식:
 {
  "reply": "",
  "results": [
-   {
-     "title": "",
-     "summary": "",
-     "url": ""
-   }
+   { "title": "", "summary": "", "url": "", "type": "" }
  ]
 }
-            `
-          },
-          {
-            role: "user",
-            content: `질문: ${query}\n\n${context}`
-          }
-        ]
-      })
-    });
+`
+        },
+        {
+          role: "user",
+          content: `질문: ${query}\n\n${context}`
+        }
+      ]
+    })
+  });
 
-    const data = await res.json();
-    return JSON.parse(data.choices[0].message.content);
+  const data = await res.json();
 
-  } catch {
-    return {
-      reply: "검색 결과를 쉽게 정리했어요!",
-      results
-    };
-  }
+  return safeJSON(data?.choices?.[0]?.message?.content, {
+    reply: "검색 결과",
+    results
+  });
 }
 
 /* =========================
@@ -252,40 +206,17 @@ async function pipeline(msg) {
 }
 
 /* =========================
-   FILE UPLOAD
+   VIDEO SUPPORT (진짜 파일 서빙)
 ========================= */
-async function addFile(file) {
-  try {
-
-    if (file.name.endsWith(".pdf")) {
-      const buffer = Buffer.from(file.content, "base64");
-      const parsed = await pdfParse(buffer);
-
-      splitParagraphs(parsed.text).forEach((p, i) => {
-        DOCUMENTS.push({
-          title: `${file.name} - ${i + 1}`,
-          text: p,
-          url: `/files/${file.name}`,
-          type: "pdf"
-        });
-      });
-
-    } else if (file.name.endsWith(".mp4")) {
-      addVideoFile(file);
-    } else {
-      return { error: "PDF / MP4만 업로드 가능" };
+function serveFile(req, res, filePath) {
+  fs.readFile(filePath, (err, data) => {
+    if (err) {
+      res.writeHead(404);
+      return res.end("404");
     }
-
-    await rebuildVector();
-
-    return {
-      ok: true,
-      message: "업로드 완료"
-    };
-
-  } catch (e) {
-    return { error: "업로드 실패" };
-  }
+    res.writeHead(200);
+    res.end(data);
+  });
 }
 
 /* =========================
@@ -304,9 +235,9 @@ const server = http.createServer(async (req, res) => {
     return res.end();
   }
 
+  /* CHAT */
   if (url === "/api/chat") {
     let body = "";
-
     req.on("data", c => body += c);
 
     req.on("end", async () => {
@@ -316,37 +247,56 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify(result));
     });
-
     return;
   }
 
+  /* UPLOAD (PDF/VIDEO 구분) */
   if (url === "/api/upload") {
     let body = "";
-
     req.on("data", c => body += c);
 
     req.on("end", async () => {
       const file = JSON.parse(body);
-      const result = await addFile(file);
+
+      if (file.name.endsWith(".pdf")) {
+        const buffer = Buffer.from(file.content, "base64");
+        const parsed = await pdfParse(buffer);
+
+        splitParagraphs(parsed.text).forEach((p, i) => {
+          DOCUMENTS.push({
+            title: `${file.name}-${i}`,
+            text: p,
+            url: `/files/${file.name}`,
+            type: "pdf"
+          });
+        });
+
+      } else if (file.name.endsWith(".mp4")) {
+        DOCUMENTS.push({
+          title: file.name,
+          text: `영상: ${file.name}`,
+          url: `/files/${file.name}`,
+          type: "video"
+        });
+      }
+
+      await rebuildVector();
 
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify(result));
+      res.end(JSON.stringify({ ok: true }));
     });
 
     return;
   }
 
+  /* FILE SERVER (핵심!) */
+  if (url.startsWith("/files/")) {
+    return serveFile(req, res, path.join(__dirname, url));
+  }
+
+  /* STATIC */
   const filePath = url === "/" ? "index.html" : path.join(__dirname, url);
-
-  fs.readFile(filePath, (err, data) => {
-    if (err) {
-      res.writeHead(404);
-      return res.end("404");
-    }
-
-    res.writeHead(200);
-    res.end(data);
-  });
+  serveFile(req, res, filePath);
 });
 
 /* =========================
@@ -354,10 +304,9 @@ const server = http.createServer(async (req, res) => {
 ========================= */
 (async () => {
   await loadSite();
-  await loadPdfsFromUpload();
   await rebuildVector();
 })();
 
 server.listen(PORT, () => {
-  console.log("🚀 SERVER RUNNING:", PORT);
+  console.log("RUN:", PORT);
 });
