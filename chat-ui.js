@@ -44,7 +44,6 @@ document.addEventListener("DOMContentLoaded", () => {
       background:#f7f9ff;
     }
 
-    /* GUIDE */
     .guideBox{
       background:#fff;
       border-radius:14px;
@@ -67,17 +66,7 @@ document.addEventListener("DOMContentLoaded", () => {
       padding-left:10px;
     }
 
-    .star{
-      color:#f5c542;
-      margin-right:6px;
-    }
-
-    .quote{
-      color:#2f63c7;
-      font-weight:600;
-      display:block;
-      margin:6px 0 6px 10px;
-    }
+    .star{ color:#f5c542; margin-right:6px; }
 
     .guideBtn{
       display:inline-block;
@@ -89,16 +78,13 @@ document.addEventListener("DOMContentLoaded", () => {
       text-decoration:none;
     }
 
-    /* MESSAGE */
     .msg{
       display:flex;
       gap:10px;
       align-items:flex-start;
     }
 
-    .user{
-      justify-content:flex-end;
-    }
+    .user{ justify-content:flex-end; }
 
     .bubble{
       padding:12px 14px;
@@ -120,9 +106,6 @@ document.addEventListener("DOMContentLoaded", () => {
       border:1px solid #e3e3e3;
     }
 
-    /* =========================
-       🔵 진짜 챗봇 로봇 아이콘 (핵심 수정)
-    ========================= */
     .robotIcon{
       width:38px;
       height:38px;
@@ -141,10 +124,8 @@ document.addEventListener("DOMContentLoaded", () => {
       fill:#fff;
     }
 
-    /* INPUT */
     #inputBox{
       display:flex;
-      align-items:center;
       gap:8px;
       padding:10px;
       background:#fff;
@@ -159,13 +140,6 @@ document.addEventListener("DOMContentLoaded", () => {
       padding:0 12px;
       font-size:14px;
       outline:none;
-      resize:none;
-      line-height:54px;   /* 세로 가운데 핵심 */
-    }
-
-    #text::placeholder{
-      color:#999;
-      line-height:54px;
     }
 
     #send{
@@ -177,12 +151,8 @@ document.addEventListener("DOMContentLoaded", () => {
       border-radius:10px;
       font-weight:bold;
       cursor:pointer;
-      display:flex;
-      align-items:center;
-      justify-content:center;
     }
 
-    /* TOGGLE BUTTON */
     #toggleBtn{
       position:fixed;
       right:25px;
@@ -222,25 +192,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     </div>
 
-    <button id="toggleBtn">
-      <svg viewBox="0 0 24 24">
-        <rect x="4" y="6" width="16" height="14" rx="3"></rect>
-        <circle cx="9" cy="12" r="1.2"></circle>
-        <circle cx="15" cy="12" r="1.2"></circle>
-        <path d="M9 16c1 .8 5 .8 6 0" stroke="white" stroke-width="1.5" fill="none"/>
-      </svg>
-    </button>
+    <button id="toggleBtn">🤖</button>
   `);
 
   const chatApp = document.getElementById("chatApp");
   const body = document.getElementById("chatBody");
   const input = document.getElementById("text");
 
-  let loadingNode = null;
-
-  /* =========================
-     ROBOT ICON (AI 메시지용)
-  ========================= */
   const robotSVG = `
     <svg viewBox="0 0 24 24">
       <rect x="4" y="5" width="16" height="14" rx="3"></rect>
@@ -250,14 +208,7 @@ document.addEventListener("DOMContentLoaded", () => {
     </svg>
   `;
 
-  /* =========================
-     RESET
-  ========================= */
-  function resetChat(){
-    body.innerHTML = "";
-    input.value = "";
-    showGuide();
-  }
+  let loadingNode = null;
 
   /* =========================
      GUIDE
@@ -266,7 +217,6 @@ document.addEventListener("DOMContentLoaded", () => {
     body.innerHTML = `
       <div class="guideBox">
         <div class="guideTitle">💡 사용 예시</div>
-
         <div class="guideItem"><span class="star">⭐</span> 손 씻기 어떻게 해요</div>
         <div class="guideItem"><span class="star">⭐</span> 감기 안 걸리는 방법</div>
         <div class="guideItem"><span class="star">⭐</span> 횡단보도 안전하게 건너기</div>
@@ -274,26 +224,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
       <div class="guideBox">
         <div class="guideTitle">📘 이용 가이드</div>
-
-        <div class="guideItem">
-          "헬시키즈에서 AI를 어떻게 사용하는지 알려줘요"
-        </div>
-
-        <div class="guideItem">
-          "메뉴는 어디에 있어요"
-        </div>
-
-        <div class="guideItem">
-          "영상은 어디서 봐요"
-        </div>
-
-        <div class="guideItem">
-          "공부는 어떻게 해요"
-        </div>
-
+        <div class="guideItem">영상은 어떻게 보나요</div>
+        <div class="guideItem">공부는 어떻게 하나요</div>
         <a class="guideBtn" href="guide.html" target="_blank">가이드 보기</a>
       </div>
     `;
+  }
+
+  function resetChat(){
+    body.innerHTML = "";
+    input.value = "";
+    showGuide();
   }
 
   /* =========================
@@ -322,80 +263,80 @@ document.addEventListener("DOMContentLoaded", () => {
   ========================= */
   async function send(){
 
-  const text = input.value.trim();
-  if(!text) return;
+    const text = input.value.trim();
+    if(!text) return;
 
-  addMessage("user", text);
-  input.value = "";
+    addMessage("user", text);
+    input.value = "";
 
-  loadingNode = document.createElement("div");
-  loadingNode.className = "msg ai";
-  loadingNode.innerHTML = `
-    <div class="robotIcon">${robotSVG}</div>
-    <div class="bubble">찾고 있어요 😊</div>
-  `;
-  body.appendChild(loadingNode);
-
-  try{
-
-    const res = await fetch(`${API_BASE}/api/chat`, {
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify({ message: text })
-    });
-
-    const data = await res.json();
-
-    loadingNode?.remove();
-    loadingNode = null;
-
-    const answer = data.answer || data.reply || "찾았어요 😊";
-    const buttons = data.buttons || [];
-
-    const buttonsHTML = buttons.length
-      ? `
-        <div style="margin-top:10px; display:flex; flex-wrap:wrap;">
-          ${buttons.map(b => `
-            <a href="${b.url}" target="_blank"
-              style="
-                display:inline-block;
-                margin:6px 6px 0 0;
-                padding:8px 10px;
-                background:#2f63c7;
-                color:#fff;
-                border-radius:8px;
-                text-decoration:none;
-                font-size:13px;
-              ">
-              ${b.label}
-            </a>
-          `).join("")}
-        </div>
-      `
-      : "";
-
-    const wrap = document.createElement("div");
-    wrap.className = "msg ai";
-
-    wrap.innerHTML = `
+    loadingNode = document.createElement("div");
+    loadingNode.className = "msg ai";
+    loadingNode.innerHTML = `
       <div class="robotIcon">${robotSVG}</div>
-      <div class="bubble">
-        ${answer}
-        ${buttonsHTML}
-      </div>
+      <div class="bubble">찾고 있어요 😊</div>
     `;
+    body.appendChild(loadingNode);
 
-    body.appendChild(wrap);
-    body.scrollTop = body.scrollHeight;
+    try{
 
-  } catch(e){
+      const res = await fetch(`${API_BASE}/api/chat`, {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ message: text })
+      });
 
-    loadingNode?.remove();
-    loadingNode = null;
+      const data = await res.json();
 
-    addMessage("ai", "서버 오류가 발생했어요 😢");
+      loadingNode?.remove();
+      loadingNode = null;
+
+      const answer = data?.answer || "찾았어요 😊";
+      const buttons = Array.isArray(data?.buttons) ? data.buttons : [];
+
+      const buttonsHTML = buttons.length
+        ? `
+          <div style="margin-top:10px; display:flex; flex-wrap:wrap;">
+            ${buttons.map(b => `
+              <a href="${b.url || '#'}" target="_blank"
+                style="
+                  display:inline-block;
+                  margin:6px 6px 0 0;
+                  padding:8px 10px;
+                  background:#2f63c7;
+                  color:#fff;
+                  border-radius:8px;
+                  text-decoration:none;
+                  font-size:13px;
+                ">
+                ${b.label || '보기'}
+              </a>
+            `).join("")}
+          </div>
+        `
+        : "";
+
+      const wrap = document.createElement("div");
+      wrap.className = "msg ai";
+
+      wrap.innerHTML = `
+        <div class="robotIcon">${robotSVG}</div>
+        <div class="bubble">
+          ${answer}
+          ${buttonsHTML}
+        </div>
+      `;
+
+      body.appendChild(wrap);
+      body.scrollTop = body.scrollHeight;
+
+    } catch(e){
+
+      loadingNode?.remove();
+      loadingNode = null;
+
+      addMessage("ai", "서버 오류가 발생했어요 😢");
+    }
   }
-}
 
   /* =========================
      EVENTS
@@ -418,5 +359,8 @@ document.addEventListener("DOMContentLoaded", () => {
     chatApp.style.display = "flex";
     resetChat();
   };
+
+  /* init */
+  showGuide();
 
 });
