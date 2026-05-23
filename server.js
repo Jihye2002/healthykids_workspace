@@ -2,9 +2,6 @@ const http = require("http");
 const fs = require("fs");
 const path = require("path");
 
-/* =========================
-   ENV
-========================= */
 const PORT = process.env.PORT || 3000;
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -20,7 +17,7 @@ const DOCUMENTS = [
 ];
 
 /* =========================
-   EMBEDDING (OPENAI SAFE)
+   EMBEDDING
 ========================= */
 async function embed(text) {
   try {
@@ -39,27 +36,23 @@ async function embed(text) {
     const data = await res.json();
 
     if (!data?.data?.[0]?.embedding) {
-      console.log("❌ EMBED FAIL:", data);
       return new Array(1536).fill(0);
     }
 
     return data.data[0].embedding;
 
-  } catch (err) {
-    console.log("❌ EMBED ERROR:", err);
+  } catch {
     return new Array(1536).fill(0);
   }
 }
 
 /* =========================
-   COSINE SIMILARITY
+   COSINE
 ========================= */
 function cosine(a, b) {
-  if (!a || !b || a.length !== b.length) return 0;
+  if (!a || !b) return 0;
 
-  let dot = 0;
-  let ma = 0;
-  let mb = 0;
+  let dot = 0, ma = 0, mb = 0;
 
   for (let i = 0; i < a.length; i++) {
     dot += a[i] * b[i];
@@ -76,89 +69,17 @@ function cosine(a, b) {
 let VECTOR_DB = [];
 
 async function buildDB() {
-  try {
-    VECTOR_DB = [];
+  VECTOR_DB = [];
 
-    for (let doc of DOCUMENTS) {
-      const vec = await embed(doc.title + " " + doc.text);
-
-      VECTOR_DB.push({
-        ...doc,
-        vector: vec
-      });
-    }
-
-    console.log("✅ VECTOR DB READY:", VECTOR_DB.length);
-
-  } catch (err) {
-    console.log("❌ buildDB ERROR:", err);
+  for (let doc of DOCUMENTS) {
+    const vec = await embed(doc.title + " " + doc.text);
+    VECTOR_DB.push({ ...doc, vector: vec });
   }
+
+  console.log("✅ VECTOR DB READY");
 }
 
-/* =========================
-   INTENT ANALYSIS (GROQ)
-========================= */
-async function analyzeIntent(query) {
-  try {
-    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${GROQ_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: "llama-3.1-70b-versatile",
-        messages: [
-          {
-            role: "system",
-            content: `너는 검색 의도 분석기다. JSON만 출력:
-{"keywords":[""],"category":""}`
-          },
-          { role: "user", content: query }
-        ]
-      })
-    });
-
-    const data = await res.json();
-    const content = data?.choices?.[0]?.message?.content;
-
-    if (!content) throw new Error("no intent");
-
-    return JSON.parse(content);
-
-  } catch (err) {
-    return {
-      keywords: query.split(" "),
-      category: "general"
-    };
-  }
-}
-
-/* =========================
-   SEARCH ENGINE
-========================= */
-async function search(query, keywords) {
-  const qVec = await embed(query);
-
-  const scored = VECTOR_DB.map(doc => {
-    const vectorScore = cosine(qVec, doc.vector);
-
-    const keywordScore = keywords.reduce((acc, k) => {
-      return acc +
-        (doc.text.includes(k) ? 2 : 0) +
-        (doc.title.includes(k) ? 4 : 0);
-    }, 0);
-
-    const popularityScore = doc.popularity / 10;
-
-    return {
-      ...doc,
-      score: vectorScore * 0.7 + keywordScore * 0.2 + popularityScore * 0.1
-    };
-  });
-
-  return scored.sort((a, b) => b.score - a.score).slice(0, 5);
-}
+buildDB();
 
 /* =========================
    GROQ ANSWER
@@ -182,11 +103,11 @@ URL: ${r.url}
         messages: [
           {
             role: "system",
-            content: "너는 검색 결과 기반 AI다. JSON으로 답변해라."
+            content: "반드시 JSON으로만 답변: {reply:'', results:[]}"
           },
           {
             role: "user",
-            content: `질문:${query}\n\n결과:\n${context}`
+            content: `질문:${query}\n\n${context}`
           }
         ]
       })
@@ -195,27 +116,37 @@ URL: ${r.url}
     const data = await res.json();
     const content = data?.choices?.[0]?.message?.content;
 
-    if (!content) {
-      return { reply: "검색 결과를 찾았습니다", results };
-    }
-
     try {
       return JSON.parse(content);
     } catch {
-      return { reply: content, results };
+      return { reply: content || "검색 완료", results };
     }
 
-  } catch (err) {
+  } catch {
     return { reply: "서버 오류", results: [] };
   }
+}
+
+/* =========================
+   SEARCH
+========================= */
+async function search(query) {
+  const qVec = await embed(query);
+
+  return VECTOR_DB
+    .map(doc => ({
+      ...doc,
+      score: cosine(qVec, doc.vector)
+    }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5);
 }
 
 /* =========================
    PIPELINE
 ========================= */
 async function pipeline(message) {
-  const intent = await analyzeIntent(message);
-  const results = await search(message, intent.keywords);
+  const results = await search(message);
   return await generateAnswer(message, results);
 }
 
@@ -237,20 +168,32 @@ const server = http.createServer(async (req, res) => {
   if (url === "/api/chat" && req.method === "POST") {
 
     let body = "";
-    req.on("data", chunk => body += chunk);
+
+    req.on("data", c => body += c);
 
     req.on("end", async () => {
-      const { message } = JSON.parse(body);
+      try {
+        const { message } = JSON.parse(body || "{}");
 
-      const result = await pipeline(message);
+        const result = await pipeline(message);
 
-      res.end(JSON.stringify(result));
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(result));
+
+      } catch {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({
+          error: true,
+          reply: "서버 오류 발생 😢",
+          results: []
+        }));
+      }
     });
 
     return;
   }
 
-  /* STATIC FILES */
+  // STATIC
   let filePath = url === "/" ? "index.html" : path.join(__dirname, url);
 
   fs.readFile(filePath, (err, data) => {
@@ -264,13 +207,6 @@ const server = http.createServer(async (req, res) => {
   });
 });
 
-/* =========================
-   START (SAFE)
-========================= */
-server.listen(PORT, async () => {
-  console.log("🚀 SERVER STARTING...");
-
-  await buildDB();
-
-  console.log("🚀 READY ON PORT", PORT);
+server.listen(PORT, () => {
+  console.log("🚀 SERVER RUNNING ON", PORT);
 });
