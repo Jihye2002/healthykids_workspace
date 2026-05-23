@@ -9,6 +9,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const style = document.createElement("style");
 
   style.textContent = `
+
   #chatbox{
     position:fixed;
     bottom:90px;
@@ -207,9 +208,6 @@ document.addEventListener("DOMContentLoaded", () => {
     textDiv.innerHTML = text;
     msg.appendChild(textDiv);
 
-    /* =========================
-       RESULTS (AI 추천 카드)
-    ========================= */
     if (Array.isArray(results) && results.length > 0) {
 
       results.forEach(result => {
@@ -224,7 +222,6 @@ document.addEventListener("DOMContentLoaded", () => {
         `;
 
         card.querySelector("button").onclick = () => {
-
           if (result.url) {
             window.open(result.url, "_blank");
           }
@@ -254,7 +251,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* =========================
-     SEND MESSAGE
+     SEND MESSAGE (FIXED)
   ========================= */
   async function sendMessage() {
 
@@ -284,20 +281,26 @@ document.addEventListener("DOMContentLoaded", () => {
         body: JSON.stringify({ message: text })
       });
 
-      const data = await res.json();
+      const contentType = res.headers.get("content-type");
+
+      let data;
+
+      if (contentType && contentType.includes("application/json")) {
+        data = await res.json();
+      } else {
+        const textData = await res.text();
+        console.log("NON-JSON RESPONSE:", textData);
+        throw new Error("Server returned HTML instead of JSON");
+      }
 
       removeLoading();
 
       if (!data || data.error) {
-        appendMessage("ai", "서버 오류가 발생했어요 😢");
+        appendMessage("ai", data?.reply || "서버 오류가 발생했어요 😢");
         return;
       }
 
-      appendMessage(
-        "ai",
-        data.reply || "응답 없음",
-        data.results || []
-      );
+      appendMessage("ai", data.reply || "응답 없음", data.results || []);
 
     } catch (err) {
 
@@ -305,10 +308,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       removeLoading();
 
-      appendMessage(
-        "ai",
-        "네트워크 오류가 발생했어요 😢"
-      );
+      appendMessage("ai", "네트워크 또는 서버 오류가 발생했어요 😢");
 
     } finally {
       isLoading = false;
