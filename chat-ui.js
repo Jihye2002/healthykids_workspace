@@ -129,14 +129,31 @@ document.addEventListener("DOMContentLoaded", () => {
     cursor:pointer;
   }
 
+  /* REC BUTTON */
   #voiceBtn{
     width:42px;
     height:42px;
     border-radius:50%;
-    background:#ffcc00;
+    background:#444;
     border:none;
     cursor:pointer;
+    color:#fff;
+    font-size:11px;
     font-weight:bold;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+
+  #voiceBtn.recording{
+    background:#ff3b3b;
+    animation:pulse 1s infinite;
+  }
+
+  @keyframes pulse{
+    0%{transform:scale(1);}
+    50%{transform:scale(1.1);}
+    100%{transform:scale(1);}
   }
 
   #toggleBtn{
@@ -174,7 +191,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         <textarea id="text" placeholder="궁금한 내용을 물어보세요"></textarea>
 
-        <button id="voiceBtn">🎤</button>
+        <button id="voiceBtn">REC</button>
         <button id="send">검색</button>
       </div>
     </div>
@@ -184,36 +201,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const body = document.getElementById("chatBody");
   const input = document.getElementById("text");
-
-  /* =========================
-     GUIDE
-  ========================= */
-  function resetChat() {
-    body.innerHTML = "";
-
-    const box1 = document.createElement("div");
-    box1.className = "guideBox";
-    box1.innerHTML = `
-      🔎 <b>헬시키즈 챗봇 사용 방법</b><br><br>
-      - 궁금한 내용을 입력하면 쉽게 설명해줘요<br>
-      - 건강·안전 정보를 알려줘요<br>
-      - 홈페이지 자료를 함께 찾아요
-    `;
-
-    const box2 = document.createElement("div");
-    box2.className = "guideBox2";
-    box2.innerHTML = `
-      📘 <b>헬시키즈 전체 가이드</b><br><br>
-      헬시키즈는 아이들이 건강하고 안전하게 생활할 수 있도록 도와주는 서비스예요.<br>
-      손씻기, 위생, 안전, 생활 습관을 쉽게 배울 수 있어요.<br><br>
-
-      아래 버튼을 누르면 전체 가이드로 이동해요.<br>
-      <a class="guideBtn" href="guide.html">헬시키즈 가이드 보기</a>
-    `;
-
-    body.appendChild(box1);
-    body.appendChild(box2);
-  }
 
   /* =========================
      MESSAGE
@@ -226,7 +213,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* =========================
-     CARD
+     CARD (결과)
   ========================= */
   function addCard(r){
     const div = document.createElement("div");
@@ -282,7 +269,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   /* =========================
-     VOICE (FIXED GPT STYLE)
+     VOICE (REC STYLE)
   ========================= */
   let recognition = null;
   let isListening = false;
@@ -298,47 +285,54 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const voiceBtn = document.getElementById("voiceBtn");
 
-  voiceBtn.onclick = () => {
+  function startRecord(){
     if(!recognition) return;
 
-    if(isListening){
-      recognition.stop();
-      return;
-    }
+    recognition.start();
+    isListening = true;
 
-    try{
-      recognition.start();
-      isListening = true;
-      voiceBtn.innerText = "🎤 듣는 중...";
-      voiceBtn.style.background = "#ff4d4d";
-    }catch(e){
-      console.log(e);
-    }
-  };
+    voiceBtn.classList.add("recording");
+    voiceBtn.innerText = "REC";
+  }
 
-  recognition.onresult = (e)=>{
-    let text = "";
-    for(let i=e.resultIndex;i<e.results.length;i++){
-      text += e.results[i][0].transcript;
-    }
-    input.value = text;
-  };
+  function stopRecord(){
+    if(!recognition) return;
 
-  recognition.onend = ()=>{
+    recognition.stop();
     isListening = false;
-    voiceBtn.innerText = "🎤";
-    voiceBtn.style.background = "#ffcc00";
 
-    if(input.value.trim().length>0){
-      send(); // 자동 검색
-    }
+    voiceBtn.classList.remove("recording");
+    voiceBtn.innerText = "REC";
+  }
+
+  voiceBtn.onclick = () => {
+    if(isListening) stopRecord();
+    else startRecord();
   };
 
-  recognition.onerror = ()=>{
-    isListening = false;
-    voiceBtn.innerText = "🎤";
-    voiceBtn.style.background = "#ffcc00";
-  };
+  if(recognition){
+    recognition.onresult = (e)=>{
+      let text = "";
+      for(let i=e.resultIndex;i<e.results.length;i++){
+        text += e.results[i][0].transcript;
+      }
+      input.value = text;
+    };
+
+    recognition.onend = ()=>{
+      isListening = false;
+      voiceBtn.classList.remove("recording");
+
+      if(input.value.trim().length > 0){
+        send();
+      }
+    };
+
+    recognition.onerror = ()=>{
+      isListening = false;
+      voiceBtn.classList.remove("recording");
+    };
+  }
 
   /* =========================
      FILE UPLOAD
@@ -372,7 +366,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.getElementById("toggleBtn").onclick = ()=>{
     document.getElementById("chatApp").style.display="flex";
-    resetChat();
   };
 
   document.getElementById("closeBtn").onclick = ()=>{
