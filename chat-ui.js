@@ -1,102 +1,187 @@
 document.addEventListener("DOMContentLoaded", () => {
 
+  /* =========================
+     STYLE (GPT / GEMINI UI)
+  ========================= */
   const style = document.createElement("style");
 
   style.textContent = `
-  #chat{
+  #chatApp{
     position:fixed;
     bottom:90px;
     right:20px;
     width:380px;
     height:600px;
-    background:#fff;
-    border-radius:15px;
-    box-shadow:0 10px 30px rgba(0,0,0,0.2);
-    display:flex;
+    background:#0f172a;
+    border-radius:18px;
+    box-shadow:0 20px 50px rgba(0,0,0,0.4);
+    display:none;
     flex-direction:column;
     overflow:hidden;
     z-index:9999;
+    font-family:Arial;
   }
 
-  #body{
+  #chatHeader{
+    background:#111827;
+    color:white;
+    padding:14px;
+    font-weight:bold;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+  }
+
+  #chatBody{
     flex:1;
-    padding:10px;
+    padding:14px;
     overflow-y:auto;
-    background:#f6f7fb;
+    background:#0b1220;
   }
 
   .msg{
-    padding:10px;
-    margin:6px;
-    border-radius:10px;
+    max-width:85%;
+    padding:10px 12px;
+    margin:8px 0;
+    border-radius:12px;
+    font-size:14px;
+    line-height:1.4;
+    white-space:pre-wrap;
   }
 
-  .user{background:#2f63c7;color:#fff;margin-left:auto;}
-  .ai{background:#fff;border:1px solid #ddd;}
+  .user{
+    background:#2563eb;
+    color:white;
+    margin-left:auto;
+  }
 
-  #input{
+  .ai{
+    background:#1f2937;
+    color:#e5e7eb;
+    border:1px solid #374151;
+  }
+
+  #inputBox{
     display:flex;
+    gap:6px;
     padding:10px;
-    border-top:1px solid #ddd;
+    background:#111827;
+    border-top:1px solid #1f2937;
   }
 
-  input{flex:1;padding:10px;}
-  button{margin-left:5px;}
+  #text{
+    flex:1;
+    padding:10px;
+    border-radius:10px;
+    border:none;
+    outline:none;
+    background:#0b1220;
+    color:white;
+  }
 
-  #toggle{
+  #send{
+    padding:10px 14px;
+    border:none;
+    border-radius:10px;
+    background:#2563eb;
+    color:white;
+    cursor:pointer;
+  }
+
+  #file{
+    display:none;
+  }
+
+  #uploadBtn{
+    padding:10px 12px;
+    border-radius:10px;
+    background:#374151;
+    color:white;
+    cursor:pointer;
+  }
+
+  #toggleBtn{
     position:fixed;
     bottom:20px;
     right:20px;
     width:60px;
     height:60px;
     border-radius:50%;
-    background:#2f63c7;
-    color:white;
     border:none;
+    background:#2563eb;
+    color:white;
+    font-size:22px;
+    cursor:pointer;
   }
 
-  .guide{
+  .guideBox{
     padding:10px;
-    background:#eef3ff;
-    margin:8px;
+    margin-bottom:10px;
+    background:#111827;
     border-radius:10px;
+    color:#cbd5e1;
+    font-size:13px;
+  }
+
+  .hidden{
+    display:none !important;
+  }
+
+  .typing{
+    opacity:0.7;
+    font-style:italic;
   }
   `;
 
   document.head.appendChild(style);
 
-  document.body.innerHTML += `
-    <div id="chat">
-      <div id="body"></div>
+  /* =========================
+     UI CREATE
+  ========================= */
+  document.body.insertAdjacentHTML("beforeend", `
+    <div id="chatApp">
+      <div id="chatHeader">
+        🧠 AI Search Assistant
+        <span id="closeBtn" style="cursor:pointer;">✕</span>
+      </div>
 
-      <div id="input">
-        <input id="text" placeholder="검색 입력 / 파일 업로드">
+      <div id="chatBody"></div>
+
+      <div id="inputBox">
+        <input id="text" placeholder="검색 / 질문 / 파일 업로드">
         <button id="send">전송</button>
+        <label id="uploadBtn" for="file">📁</label>
         <input type="file" id="file">
       </div>
     </div>
 
-    <button id="toggle">💬</button>
-  `;
+    <button id="toggleBtn">💬</button>
+  `);
 
-  const body = document.getElementById("body");
+  const chatApp = document.getElementById("chatApp");
+  const body = document.getElementById("chatBody");
+  const input = document.getElementById("text");
 
-  /* GUIDE */
-  body.innerHTML += `
-    <div class="guide">
-      🔎 검색 방법<br>
-      1. 질문 입력<br>
-      2. 파일 업로드 가능<br>
-      3. 자동 의미 검색
-    </div>
+  /* =========================
+     STATE RESET FUNCTION
+  ========================= */
+  function resetChat() {
+    body.innerHTML = "";
 
-    <div class="guide">
-      📌 가이드
-      <button onclick="window.open('/guide.html')">이동</button>
-    </div>
-  `;
+    addMessage("ai",
+`👋 안녕하세요!
+검색 방법:
+- 질문 입력
+- 파일 업로드 가능
+- 자동 의미 검색 실행`);
 
-  function add(text, type) {
+    addMessage("ai", "📌 가이드: /guide.html 에서 확인 가능");
+  }
+
+  /* =========================
+     MESSAGE ADD
+  ========================= */
+  function addMessage(type, text) {
     const div = document.createElement("div");
     div.className = `msg ${type}`;
     div.innerText = text;
@@ -104,48 +189,99 @@ document.addEventListener("DOMContentLoaded", () => {
     body.scrollTop = body.scrollHeight;
   }
 
-  /* CHAT */
-  async function send() {
-    const text = document.getElementById("text").value;
-
-    add(text, "user");
-
-    const res = await fetch("/api/chat", {
-      method: "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({ message: text })
-    });
-
-    const data = await res.json();
-
-    add(data.reply, "ai");
+  /* =========================
+     TYPING EFFECT (OPTION)
+  ========================= */
+  function showTyping() {
+    const div = document.createElement("div");
+    div.className = "msg ai typing";
+    div.innerText = "AI가 검색 중...";
+    div.id = "typing";
+    body.appendChild(div);
   }
 
-  /* UPLOAD (REALTIME) */
+  function hideTyping() {
+    document.getElementById("typing")?.remove();
+  }
+
+  /* =========================
+     SEND MESSAGE
+  ========================= */
+  async function send() {
+    const text = input.value.trim();
+    if (!text) return;
+
+    addMessage("user", text);
+    input.value = "";
+
+    showTyping();
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text })
+      });
+
+      const data = await res.json();
+
+      hideTyping();
+
+      addMessage("ai", data.reply || "결과 없음");
+
+      if (data.results?.length) {
+        data.results.forEach(r => {
+          addMessage("ai", `📌 ${r.title}\n${r.text}`);
+        });
+      }
+
+    } catch (e) {
+      hideTyping();
+      addMessage("ai", "서버 오류 발생");
+    }
+  }
+
+  /* =========================
+     FILE UPLOAD
+  ========================= */
   document.getElementById("file").addEventListener("change", async (e) => {
     const file = e.target.files[0];
+    if (!file) return;
 
     const reader = new FileReader();
 
     reader.onload = async () => {
+
+      addMessage("user", "📁 파일 업로드");
+
       await fetch("/api/upload", {
         method: "POST",
-        headers: {"Content-Type":"application/json"},
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: file.name,
           content: reader.result.split(",")[1]
         })
       });
 
-      add("📁 파일 업로드 완료 + 즉시 반영됨", "ai");
+      addMessage("ai", "📁 파일 업로드 완료 (즉시 검색 반영됨)");
     };
 
     reader.readAsDataURL(file);
   });
 
+  /* =========================
+     EVENTS
+  ========================= */
   document.getElementById("send").onclick = send;
 
-  document.getElementById("toggle").onclick = () => {
-    document.getElementById("chat").classList.toggle("hidden");
+  document.getElementById("toggleBtn").onclick = () => {
+    chatApp.style.display = "flex";
+    resetChat();   // 🔥 열릴 때 초기화 + 가이드 표시
   };
+
+  document.getElementById("closeBtn").onclick = () => {
+    chatApp.style.display = "none";
+    body.innerHTML = ""; // 🔥 닫으면 완전 초기화
+  };
+
 });
