@@ -18,7 +18,23 @@ const DOCUMENTS = [
 ];
 
 /* =========================
-   OPENAI QUERY PARSER (핵심)
+   SAFE JSON PARSER (핵심)
+========================= */
+function safeJSONParse(str, fallback = {}) {
+  try {
+    if (!str) return fallback;
+
+    // ```json 제거
+    str = str.replace(/```json|```/g, "").trim();
+
+    return JSON.parse(str);
+  } catch (e) {
+    return fallback;
+  }
+}
+
+/* =========================
+   OPENAI QUERY REFINER
 ========================= */
 async function refineQuery(query) {
   try {
@@ -35,10 +51,9 @@ async function refineQuery(query) {
             role: "system",
             content: `
 너는 검색 쿼리 변환기다.
-사용자 문장을 검색 최적 키워드 3개로 변환해라.
-JSON으로만 출력:
-{"keywords":[""]}
-            `
+반드시 JSON만 출력:
+{"keywords":["단어1","단어2","단어3"]}
+`
           },
           { role: "user", content: query }
         ]
@@ -46,7 +61,10 @@ JSON으로만 출력:
     });
 
     const data = await res.json();
-    return JSON.parse(data.choices[0].message.content);
+    const content = data?.choices?.[0]?.message?.content;
+
+    return safeJSONParse(content, { keywords: [query] });
+
   } catch {
     return { keywords: [query] };
   }
@@ -55,24 +73,26 @@ JSON으로만 출력:
 /* =========================
    RAG SEARCH
 ========================= */
-function search(keywords) {
-  return DOCUMENTS.map(doc => {
-    let score = 0;
+function search(keywords = []) {
+  return DOCUMENTS
+    .map(doc => {
+      let score = 0;
 
-    keywords.forEach(k => {
-      if (doc.text.includes(k)) score += 3;
-      if (doc.title.includes(k)) score += 5;
-    });
+      keywords.forEach(k => {
+        if (!k) return;
+        if (doc.text.includes(k)) score += 3;
+        if (doc.title.includes(k)) score += 5;
+      });
 
-    return { ...doc, score };
-  })
-  .filter(d => d.score > 0)
-  .sort((a, b) => b.score - a.score)
-  .slice(0, 6);
+      return { ...doc, score };
+    })
+    .filter(d => d.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 6);
 }
 
 /* =========================
-   GROQ FINAL RESPONSE
+   GROQ FINAL ANSWER
 ========================= */
 async function generateAnswer(query, results) {
   try {
@@ -93,13 +113,18 @@ async function generateAnswer(query, results) {
             role: "system",
             content: `
 너는 교육용 검색 AI다.
-반드시 JSON으로만 출력:
+
+반드시 JSON만 출력:
 {
- "reply":"",
- "summary":"",
- "results":[]
+  "reply": "짧은 설명",
+  "results": []
 }
-            `
+
+rules:
+- 절대 마크다운 금지
+- 절대 설명 문장 금지
+- JSON만 출력
+`
           },
           {
             role: "user",
@@ -110,12 +135,17 @@ async function generateAnswer(query, results) {
     });
 
     const data = await res.json();
-    return JSON.parse(data.choices[0].message.content);
+    const content = data?.choices?.[0]?.message?.content;
+
+    return safeJSONParse(content, {
+      reply: "검색 결과를 찾았습니다",
+      results
+    });
 
   } catch {
     return {
-      reply: "검색 완료",
-      results
+      reply: "서버 오류가 발생했어요",
+      results: []
     };
   }
 }
@@ -136,22 +166,29 @@ const server = http.createServer(async (req, res) => {
 
   const url = req.url.split("?")[0];
 
+  // CORS
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Content-Type", "application/json");
+  res.setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
   if (req.method === "OPTIONS") {
     res.writeHead(204);
     return res.end();
   }
 
+  /* =========================
+     API
+  ========================= */
   if (url === "/api/chat") {
+
     if (req.method !== "POST") {
-      res.writeHead(405);
+      res.writeHead(405, { "Content-Type": "application/json" });
       return res.end(JSON.stringify({ error: "method not allowed" }));
     }
 
     let body = "";
-    req.on("data", c => body += c);
+
+    req.on("data", chunk => body += chunk);
 
     req.on("end", async () => {
       try {
@@ -159,27 +196,48 @@ const server = http.createServer(async (req, res) => {
 
         const result = await pipeline(message);
 
-        res.writeHead(200);
-        res.end(JSON.stringify(result));
+        res.writeHead(200, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify(result));
 
-      } catch (e) {
-        res.writeHead(500);
-        res.end(JSON.stringify({ error: true }));
+      } catch (err) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({
+          error: true,
+          reply: "서버 처리 오류"
+        }));
       }
     });
 
     return;
   }
 
+  /* =========================
+     STATIC FILES
+  ========================= */
   let filePath = url === "/" ? "index.html" : path.join(__dirname, url);
 
   fs.readFile(filePath, (err, data) => {
     if (err) {
-      res.writeHead(404);
-      return res.end("404");
+      res.writeHead(404, { "Content-Type": "text/plain" });
+      return res.end("404 NOT FOUND");
     }
 
-    res.writeHead(200);
+    const ext = path.extname(filePath);
+
+    const types = {
+      ".html": "text/html",
+      ".js": "application/javascript",
+      ".css": "text/css",
+      ".png": "image/png",
+      ".jpg": "image/jpeg",
+      ".mp4": "video/mp4",
+      ".pdf": "application/pdf"
+    };
+
+    res.writeHead(200, {
+      "Content-Type": types[ext] || "application/octet-stream"
+    });
+
     res.end(data);
   });
 });
