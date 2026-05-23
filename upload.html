@@ -1,26 +1,140 @@
 <!DOCTYPE html>
-<html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>PDF 업로드</title>
+
+<style>
+
+body{
+    font-family: "Malgun Gothic", sans-serif;
+    background:#f5f7fb;
+    padding:40px;
+}
+
+.upload-box{
+    max-width:500px;
+    margin:auto;
+    background:white;
+    padding:30px;
+    border-radius:20px;
+    box-shadow:0 5px 20px rgba(0,0,0,0.08);
+}
+
+h2{
+    margin-bottom:20px;
+}
+
+input[type=file]{
+    width:100%;
+    padding:12px;
+    border:1px solid #ddd;
+    border-radius:10px;
+    margin-bottom:20px;
+}
+
+button{
+    width:100%;
+    padding:14px;
+    border:none;
+    border-radius:12px;
+    background:#4a90e2;
+    color:white;
+    font-size:16px;
+    cursor:pointer;
+}
+
+button:hover{
+    background:#3578d6;
+}
+
+#status{
+    margin-top:20px;
+    font-size:15px;
+}
+
+</style>
+</head>
 <body>
 
-<h2>PDF 업로드</h2>
+<div class="upload-box">
 
-<input type="file" id="file">
-<button onclick="upload()">업로드</button>
+    <h2>자료 업로드</h2>
+
+    <input type="file" id="file">
+
+    <button onclick="uploadFile()">
+        업로드
+    </button>
+
+    <div id="status"></div>
+
+</div>
 
 <script>
-async function upload() {
-  const file = document.getElementById("file").files[0];
 
-  const formData = new FormData();
-  formData.append("file", file);
+async function uploadFile(){
 
-  await fetch("/upload", {
-    method: "POST",
-    body: file
-  });
+    const fileInput =
+        document.getElementById("file");
 
-  alert("업로드 완료");
+    const file =
+        fileInput.files[0];
+
+    const status =
+        document.getElementById("status");
+
+    if(!file){
+
+        status.innerText =
+            "파일을 선택해주세요 😊";
+
+        return;
+    }
+
+    const formData =
+        new FormData();
+
+    formData.append("file", file);
+
+    status.innerText =
+        "업로드 중...";
+
+    try{
+
+        const response =
+            await fetch("/upload",{
+
+                method:"POST",
+
+                body:formData
+            });
+
+        const result =
+            await response.json();
+
+        if(result.success){
+
+            status.innerText =
+                "업로드 완료 😊\nAI 검색 데이터도 자동 업데이트됐어요!";
+
+        }else{
+
+            status.innerText =
+                "업로드 실패 😢";
+        }
+
+    }catch(e){
+
+        console.log(e);
+
+        status.innerText =
+            "서버 연결 실패 😢";
+    }
 }
+
 </script>
 
 </body>
