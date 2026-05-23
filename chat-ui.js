@@ -1,6 +1,7 @@
 document.addEventListener("DOMContentLoaded", () => {
 
-  const API_BASE = "https://healthykids-workspace.onrender.com";
+  const API_BASE =
+    "https://healthykids-workspace.onrender.com";
 
   /* =========================
      STYLE
@@ -32,6 +33,7 @@ document.addEventListener("DOMContentLoaded", () => {
       justify-content:space-between;
       align-items:center;
       font-weight:bold;
+      font-size:16px;
     }
 
     #chatBody{
@@ -56,18 +58,19 @@ document.addEventListener("DOMContentLoaded", () => {
     .guideTitle{
       font-weight:bold;
       color:#2f63c7;
-      margin-bottom:8px;
+      margin-bottom:10px;
+      font-size:15px;
     }
 
     .guideBtn{
-      margin-top:10px;
       display:inline-block;
-      padding:6px 10px;
+      margin-top:12px;
+      padding:8px 12px;
       background:#2f63c7;
       color:#fff;
       border-radius:8px;
-      font-size:13px;
       text-decoration:none;
+      font-size:13px;
     }
 
     /* =========================
@@ -76,32 +79,36 @@ document.addEventListener("DOMContentLoaded", () => {
     .msg{
       display:flex;
       gap:10px;
-      font-size:14px;
-      line-height:1.5;
+      align-items:flex-start;
     }
 
     .user{
       justify-content:flex-end;
     }
 
+    .bubble{
+      padding:12px 14px;
+      border-radius:14px;
+      line-height:1.6;
+      font-size:14px;
+      word-break:keep-all;
+      white-space:pre-wrap;
+    }
+
     .user .bubble{
       background:#2f63c7;
       color:#fff;
-      padding:10px 14px;
-      border-radius:14px;
-      max-width:70%;
+      max-width:75%;
     }
 
     .ai .bubble{
       background:#fff;
       border:1px solid #ddd;
-      padding:10px 14px;
-      border-radius:14px;
-      max-width:70%;
+      max-width:78%;
     }
 
     /* =========================
-       ROBOT ICON (SVG)
+       ROBOT ICON
     ========================= */
     .robotIcon{
       width:34px;
@@ -113,6 +120,47 @@ document.addEventListener("DOMContentLoaded", () => {
       align-items:center;
       justify-content:center;
       box-shadow:0 4px 10px rgba(0,0,0,0.15);
+    }
+
+    /* =========================
+       RESULT CARD
+    ========================= */
+    .resultCard{
+      background:#fff;
+      border:1px solid #ddd;
+      border-radius:14px;
+      padding:14px;
+      margin-top:8px;
+    }
+
+    .resultTitle{
+      font-weight:bold;
+      color:#2f63c7;
+      margin-bottom:8px;
+      font-size:15px;
+    }
+
+    .resultSummary{
+      line-height:1.6;
+      color:#333;
+      font-size:14px;
+    }
+
+    .resultBtn{
+      display:inline-block;
+      margin-top:12px;
+      padding:8px 12px;
+      background:#2f63c7;
+      color:#fff;
+      border-radius:8px;
+      text-decoration:none;
+      font-size:13px;
+    }
+
+    .videoThumb{
+      width:100%;
+      border-radius:10px;
+      margin-bottom:10px;
     }
 
     /* =========================
@@ -128,37 +176,46 @@ document.addEventListener("DOMContentLoaded", () => {
 
     #text{
       flex:1;
-      height:42px;
-      border-radius:10px;
+      min-height:44px;
+      max-height:120px;
+      resize:none;
       border:1px solid #ddd;
+      border-radius:10px;
       padding:10px;
+      font-size:14px;
+      outline:none;
+      font-family:Arial;
+      overflow-y:auto;
     }
 
     #send{
-      width:70px;
-      background:#2f63c7;
-      color:#fff;
+      width:75px;
       border:none;
       border-radius:10px;
+      background:#2f63c7;
+      color:#fff;
+      cursor:pointer;
+      font-weight:bold;
     }
 
     /* =========================
-       TOGGLE BUTTON (ROBOT)
+       TOGGLE BUTTON
     ========================= */
     #toggleBtn{
       position:fixed;
-      bottom:25px;
       right:25px;
+      bottom:25px;
       width:70px;
       height:70px;
+      border:none;
       border-radius:50%;
       background:#2f63c7;
       display:flex;
       align-items:center;
       justify-content:center;
-      border:none;
       cursor:pointer;
       box-shadow:0 12px 30px rgba(0,0,0,0.25);
+      z-index:9999;
     }
 
   </style>
@@ -168,79 +225,190 @@ document.addEventListener("DOMContentLoaded", () => {
      UI
   ========================= */
   document.body.insertAdjacentHTML("beforeend", `
-  <div id="chatApp">
 
-    <div id="chatHeader">
-      헬시키즈 AI
-      <span id="closeBtn" style="cursor:pointer;">✕</span>
+    <div id="chatApp">
+
+      <div id="chatHeader">
+        헬시키즈 AI
+        <span id="closeBtn" style="cursor:pointer;">✕</span>
+      </div>
+
+      <div id="chatBody"></div>
+
+      <div id="inputBox">
+
+        <textarea
+          id="text"
+          placeholder="궁금한 걸 물어보세요 😊&#10;Shift + Enter : 줄바꿈&#10;Enter : 검색"
+        ></textarea>
+
+        <button id="send">검색</button>
+
+      </div>
+
     </div>
 
-    <div id="chatBody"></div>
+    <button id="toggleBtn">
 
-    <div id="inputBox">
-      <input id="text" placeholder="궁금한 걸 물어보세요 😊" />
-      <button id="send">검색</button>
-    </div>
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="white">
+        <path d="M12 2a2 2 0 00-2 2v1H7a3 3 0 00-3 3v9a3 3 0 003 3h10a3 3 0 003-3V8a3 3 0 00-3-3h-3V4a2 2 0 00-2-2zm-4 9h2v2H8v-2zm6 0h2v2h-2v-2z"/>
+      </svg>
 
-  </div>
+    </button>
 
-  <!-- ROBOT BUTTON (SVG) -->
-  <button id="toggleBtn">
-    <svg width="30" height="30" viewBox="0 0 24 24" fill="white">
-      <path d="M12 2a2 2 0 00-2 2v1H7a3 3 0 00-3 3v9a3 3 0 003 3h10a3 3 0 003-3V8a3 3 0 00-3-3h-3V4a2 2 0 00-2-2zm-4 9h2v2H8v-2zm6 0h2v2h-2v-2z"/>
-    </svg>
-  </button>
   `);
 
-  const body = document.getElementById("chatBody");
-  const input = document.getElementById("text");
+  const body =
+    document.getElementById("chatBody");
+
+  const input =
+    document.getElementById("text");
 
   /* =========================
-     GUIDE (2 BOX)
+     GUIDE
   ========================= */
   function showGuide(){
 
-    body.innerHTML = "";
-
     body.innerHTML = `
+
       <div class="guideBox">
-        <div class="guideTitle">💡 AI 사용 예시</div>
+
+        <div class="guideTitle">
+          💡 AI 사용 예시
+        </div>
+
         <div>⭐ 손 씻는 방법 알려줘</div>
         <div>⭐ 감기 예방 방법</div>
         <div>⭐ 횡단보도 안전하게 건너기</div>
+
       </div>
 
       <div class="guideBox">
-        <div class="guideTitle">📘 헬시키즈 이용 가이드</div>
-        <div>홈페이지의 영상, 자료, 안전수칙을 쉽게 배울 수 있어요.</div>
-        <a class="guideBtn" href="guide.html">가이드 보기</a>
+
+        <div class="guideTitle">
+          📘 헬시키즈 이용 가이드
+        </div>
+
+        <div>
+          홈페이지의 영상, 놀이자료,
+          안전수칙 자료를 쉽게 찾아볼 수 있어요.
+        </div>
+
+        <a
+          class="guideBtn"
+          href="guide.html"
+          target="_blank"
+        >
+          가이드 보기
+        </a>
+
       </div>
+
     `;
   }
 
   /* =========================
      MESSAGE
   ========================= */
-  function addMsg(type, text){
+  function addMessage(type, text){
 
-    const wrap = document.createElement("div");
+    const wrap =
+      document.createElement("div");
+
     wrap.className = `msg ${type}`;
 
     if(type === "ai"){
+
       wrap.innerHTML = `
+
         <div class="robotIcon">
+
           <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
             <path d="M12 2a2 2 0 00-2 2v1H7a3 3 0 00-3 3v9a3 3 0 003 3h10a3 3 0 003-3V8a3 3 0 00-3-3h-3V4a2 2 0 00-2-2z"/>
           </svg>
+
         </div>
+
+        <div class="bubble">${text}</div>
+
+      `;
+
+    }else{
+
+      wrap.innerHTML = `
         <div class="bubble">${text}</div>
       `;
-    } else {
-      wrap.innerHTML = `<div class="bubble">${text}</div>`;
     }
 
     body.appendChild(wrap);
-    body.scrollTop = body.scrollHeight;
+
+    body.scrollTop =
+      body.scrollHeight;
+  }
+
+  /* =========================
+     RESULT CARD
+  ========================= */
+  function addResultCard(r){
+
+    const wrap =
+      document.createElement("div");
+
+    wrap.className = "msg ai";
+
+    let thumb = "";
+
+    if(
+      r.type === "video" &&
+      r.thumbnail
+    ){
+
+      thumb = `
+        <img
+          src="${r.thumbnail}"
+          class="videoThumb"
+        >
+      `;
+    }
+
+    wrap.innerHTML = `
+
+      <div class="robotIcon">
+
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
+          <path d="M12 2a2 2 0 00-2 2v1H7a3 3 0 00-3 3v9a3 3 0 003 3h10a3 3 0 003-3V8a3 3 0 00-3-3h-3V4a2 2 0 00-2-2z"/>
+        </svg>
+
+      </div>
+
+      <div class="resultCard">
+
+        ${thumb}
+
+        <div class="resultTitle">
+          ${r.title}
+        </div>
+
+        <div class="resultSummary">
+          ${r.summary}
+        </div>
+
+        <a
+          class="resultBtn"
+          href="${r.url}"
+          target="_blank"
+        >
+          👉 보러가기
+        </a>
+
+      </div>
+
+    `;
+
+    body.appendChild(wrap);
+
+    body.scrollTop =
+      body.scrollHeight;
   }
 
   /* =========================
@@ -248,68 +416,131 @@ document.addEventListener("DOMContentLoaded", () => {
   ========================= */
   async function send(){
 
-    const text = input.value.trim();
+    const text =
+      input.value.trim();
+
     if(!text) return;
 
-    addMsg("user", text);
+    addMessage("user", text);
+
     input.value = "";
 
-    addMsg("ai", "조금만 기다려주세요 😊");
+    addMessage(
+      "ai",
+      "자료를 찾고 있어요 😊"
+    );
 
     try{
 
-      const res = await fetch(`${API_BASE}/api/chat`, {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({ message:text })
-      });
+      const res = await fetch(
+        `${API_BASE}/api/chat`,
+        {
+          method:"POST",
 
-      const data = await res.json();
+          headers:{
+            "Content-Type":
+              "application/json"
+          },
+
+          body:JSON.stringify({
+            message:text
+          })
+        }
+      );
+
+      const data =
+        await res.json();
 
       body.lastChild.remove();
 
-      addMsg("ai", data.reply || "찾은 내용이 없어요 😢");
+      addMessage(
+        "ai",
+        data.reply ||
+        "자료를 찾았어요 😊"
+      );
 
-      if(!data.results || data.results.length === 0){
-        addMsg("ai", "이 내용은 아직 자료에 없어요.");
+      if(
+        !data.results ||
+        data.results.length === 0
+      ){
+
+        addMessage(
+          "ai",
+          "관련 자료가 아직 없어요 😢"
+        );
+
         return;
       }
 
       data.results.forEach(r=>{
-        const d = document.createElement("div");
-        d.className = "msg ai";
-        d.innerHTML = `
-          <div class="robotIcon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
-              <path d="M12 2a2 2 0 00-2 2v1H7a3 3 0 00-3 3v9a3 3 0 003 3h10a3 3 0 003-3V8a3 3 0 00-3-3h-3V4a2 2 0 00-2-2z"/>
-            </svg>
-          </div>
-          <div class="bubble">
-            <b>${r.title}</b><br>
-            ${r.summary}<br><br>
-            <a href="${r.url}" target="_blank">👉 보러가기</a>
-          </div>
-        `;
-        body.appendChild(d);
+
+        addResultCard(r);
+
       });
 
     }catch(e){
+
       body.lastChild.remove();
-      addMsg("ai", "서버 연결이 안 돼요 😢");
+
+      addMessage(
+        "ai",
+        "서버 연결에 문제가 있어요 😢"
+      );
     }
   }
 
-  /* EVENTS */
-  document.getElementById("send").onclick = send;
+  /* =========================
+     ENTER / SHIFT+ENTER
+  ========================= */
+  input.addEventListener(
+    "keydown",
+    (e)=>{
 
-  document.getElementById("toggleBtn").onclick = ()=>{
-    document.getElementById("chatApp").style.display = "flex";
-    showGuide();
-  };
+      if(
+        e.key === "Enter" &&
+        !e.shiftKey
+      ){
 
-  document.getElementById("closeBtn").onclick = ()=>{
-    document.getElementById("chatApp").style.display = "none";
-    body.innerHTML = "";
-  };
+        e.preventDefault();
+
+        send();
+      }
+    }
+  );
+
+  /* =========================
+     SEND BUTTON
+  ========================= */
+  document
+    .getElementById("send")
+    .onclick = send;
+
+  /* =========================
+     OPEN CHAT
+  ========================= */
+  document
+    .getElementById("toggleBtn")
+    .onclick = ()=>{
+
+      document
+        .getElementById("chatApp")
+        .style.display = "flex";
+
+      showGuide();
+    };
+
+  /* =========================
+     CLOSE CHAT
+  ========================= */
+  document
+    .getElementById("closeBtn")
+    .onclick = ()=>{
+
+      document
+        .getElementById("chatApp")
+        .style.display = "none";
+
+      body.innerHTML = "";
+    };
 
 });
