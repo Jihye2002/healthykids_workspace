@@ -205,9 +205,9 @@ document.addEventListener("DOMContentLoaded", () => {
     body.innerHTML = `
       <div class="guideBox">
         <div class="guideTitle">💡 AI 사용 예시</div>
-        <div>• 손 씻는 방법 알려줘</div>
-        <div>• 감기 예방 방법</div>
-        <div>• 횡단보도 안전하게 건너기</div>
+        <div>⭐ 손 씻는 방법 알려줘</div>
+        <div>⭐ 감기 예방 방법</div>
+        <div>⭐ 횡단보도 안전하게 건너기</div>
       </div>
 
       <div class="guideBox">
