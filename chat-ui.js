@@ -172,7 +172,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <input type="file" id="file">
         </label>
 
-        <textarea id="text" placeholder="질문 입력 (Enter 전송 / Shift+Enter 줄바꿈)"></textarea>
+        <textarea id="text" placeholder="궁금한 내용을 물어보세요"></textarea>
 
         <button id="voiceBtn">🎤</button>
         <button id="send">검색</button>
