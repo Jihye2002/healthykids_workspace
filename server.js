@@ -4,6 +4,7 @@ const fs = require("fs");
 const path = require("path");
 const pdfParse = require("pdf-parse");
 const Tesseract = require("tesseract.js");
+const { exec } = require("child_process");
 
 const fetch = global.fetch || require("node-fetch");
 
@@ -15,7 +16,6 @@ const PORT = process.env.PORT || 3000;
 ========================= */
 let DOCS = [];
 let VECTORS = [];
-let CLICK_LOG = [];
 let CACHE = new Map();
 
 /* =========================
@@ -29,14 +29,15 @@ app.use(express.static(__dirname));
    NORMALIZE
 ========================= */
 function normalize(t = "") {
-  return t.toLowerCase()
+  return t
+    .toLowerCase()
     .replace(/[^\w가-힣]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
 
 /* =========================
-   SPLIT (CHUNK ENGINE)
+   SPLIT TEXT
 ========================= */
 function splitText(text) {
   return text
@@ -58,18 +59,36 @@ function stripHtml(html) {
 }
 
 /* =========================
-   INTENT
+   VIDEO → TEXT (Whisper)
 ========================= */
-function intent(q) {
-  q = q.toLowerCase();
-  if (q.includes("손") || q.includes("씻")) return "hygiene";
-  if (q.includes("감기") || q.includes("열")) return "health";
-  if (q.includes("횡단")) return "safety";
-  return "general";
+async function videoToText(videoPath) {
+  const audioPath = videoPath + ".mp3";
+
+  await new Promise((resolve, reject) => {
+    exec(
+      `ffmpeg -i "${videoPath}" -vn -acodec mp3 "${audioPath}"`,
+      (err) => (err ? reject(err) : resolve())
+    );
+  });
+
+  const formData = new FormData();
+  formData.append("file", fs.createReadStream(audioPath));
+  formData.append("model", "whisper-1");
+
+  const res = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
+    },
+    body: formData
+  });
+
+  const data = await res.json();
+  return data.text || "";
 }
 
 /* =========================
-   LOAD FILES (V13 INDEXER)
+   LOAD FILES (MULTIMODAL INDEX)
 ========================= */
 async function loadFiles() {
   DOCS = [];
@@ -88,7 +107,6 @@ async function loadFiles() {
         DOCS.push({
           title: file,
           type: "html",
-          section: `s${i}`,
           text: t,
           url: `/${file}#s${i}`
         });
@@ -104,14 +122,13 @@ async function loadFiles() {
         DOCS.push({
           title: file,
           type: "pdf",
-          section: `p${i}`,
           text: t,
           url: `/${file}#p${i}`
         });
       });
     }
 
-    /* IMAGE OCR */
+    /* IMAGE */
     if (file.match(/\.(png|jpg|jpeg)$/)) {
       const ocr = await Tesseract.recognize(full, "kor+eng");
 
@@ -119,25 +136,45 @@ async function loadFiles() {
         DOCS.push({
           title: file,
           type: "image",
-          section: `i${i}`,
           text: t,
           url: `/${file}#i${i}`
         });
       });
     }
+
+    /* VIDEO */
+    if (file.endsWith(".mp4")) {
+      try {
+        const text = await videoToText(full);
+
+        splitText(text).forEach((t, i) => {
+          DOCS.push({
+            title: file,
+            type: "video",
+            text: t,
+            url: `/${file}#t${i}`
+          });
+        });
+
+        console.log("🎥 VIDEO INDEXED:", file);
+
+      } catch (e) {
+        console.log("VIDEO ERROR:", file, e.message);
+      }
+    }
   }
 
-  console.log("📦 INDEXED CHUNKS:", DOCS.length);
+  console.log("📦 TOTAL DOCS:", DOCS.length);
 }
 
 /* =========================
-   EMBEDDING (semantic search)
+   EMBEDDING
 ========================= */
 async function embed(text) {
   const res = await fetch("https://api.openai.com/v1/embeddings", {
     method: "POST",
     headers: {
-      "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
@@ -165,7 +202,7 @@ async function buildVectors() {
 }
 
 /* =========================
-   COSINE
+   COSINE SIM
 ========================= */
 function cosine(a, b) {
   let dot = 0, ma = 0, mb = 0;
@@ -180,43 +217,26 @@ function cosine(a, b) {
 }
 
 /* =========================
-   SEARCH ENGINE V13
+   SEARCH ENGINE (V14 CORE)
 ========================= */
 async function search(query) {
-
   if (CACHE.has(query)) return CACHE.get(query);
 
   const qvec = await embed(query);
-  const it = intent(query);
 
   let results = [];
 
   for (const d of VECTORS) {
-
-    // intent boost filter
-    if (it !== "general") {
-      if (it === "hygiene" && !d.text.includes("손") && !d.text.includes("씻")) continue;
-      if (it === "health" && !d.text.includes("감기") && !d.text.includes("열")) continue;
-      if (it === "safety" && !d.text.includes("횡단")) continue;
-    }
-
-    const sim = cosine(qvec, d.vector);
-
-    let score = sim * 3;
-
-    // title boost
-    if (normalize(d.title).includes(normalize(query))) {
-      score += 2;
-    }
+    const score =
+      cosine(qvec, d.vector) * 3 +
+      (normalize(d.text).includes(normalize(query)) ? 2 : 0);
 
     results.push({ ...d, score });
   }
 
   results.sort((a, b) => b.score - a.score);
 
-  /* =========================
-     DEDUP (URL 기준)
-  ========================= */
+  /* DEDUP (URL 기반) */
   const seen = new Set();
   const final = [];
 
@@ -234,30 +254,20 @@ async function search(query) {
 }
 
 /* =========================
-   CLICK LEARNING (랭킹 강화)
-========================= */
-app.post("/api/click", (req, res) => {
-  const { url } = req.body;
-  CLICK_LOG.push(url);
-  res.json({ ok: true });
-});
-
-/* =========================
-   CHAT API
+   API
 ========================= */
 app.post("/api/chat", async (req, res) => {
-
   const q = req.body.message || "";
 
   const docs = await search(q);
 
   res.json({
-    reply: "검색 완료",
+    reply: "검색 완료 (V14)",
     results: docs.map(d => ({
       title: d.title,
-      url: d.url,
       type: d.type,
-      summary: d.text.slice(0, 120)
+      url: d.url,
+      summary: d.text.slice(0, 140)
     }))
   });
 });
@@ -266,7 +276,7 @@ app.post("/api/chat", async (req, res) => {
    AUTO REINDEX
 ========================= */
 fs.watch(__dirname, async () => {
-  console.log("🔄 REINDEX");
+  console.log("🔄 REINDEXING...");
   await loadFiles();
   await buildVectors();
 });
@@ -283,5 +293,5 @@ fs.watch(__dirname, async () => {
    START
 ========================= */
 app.listen(PORT, () => {
-  console.log("🚀 V13 GOOGLE URL SEARCH RUNNING:", PORT);
+  console.log("🚀 V14 MULTIMODAL GOOGLE RUNNING:", PORT);
 });
