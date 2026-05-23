@@ -8,13 +8,13 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
 /* =========================
-   DATA STORE
+   PARAGRAPH STORE (핵심 변경)
 ========================= */
 let DOCUMENTS = [];
 let VECTOR_DB = [];
 
 /* =========================
-   HTML CLEANER
+   TEXT CLEANER
 ========================= */
 function stripHtml(html) {
   return html
@@ -44,7 +44,17 @@ function extractLinks(html) {
 }
 
 /* =========================
-   LOAD SITE AUTO INDEX
+   PARAGRAPH SPLITTER (🔥 핵심)
+========================= */
+function splitParagraphs(text) {
+  return text
+    .split(/\n|\.\s|\。\s/)
+    .map(t => t.trim())
+    .filter(t => t.length > 20);
+}
+
+/* =========================
+   LOAD SITE (HTML → PARAGRAPHS)
 ========================= */
 async function loadSite() {
   DOCUMENTS = [];
@@ -52,10 +62,24 @@ async function loadSite() {
   const indexHtml = fs.readFileSync(path.join(__dirname, "index.html"), "utf-8");
   const links = extractLinks(indexHtml);
 
+  const indexText = stripHtml(indexHtml);
+  const indexParas = splitParagraphs(indexText);
+
   DOCUMENTS.push({
     title: "홈",
-    text: stripHtml(indexHtml),
-    url: "/"
+    text: indexText,
+    url: "/",
+    type: "page"
+  });
+
+  indexParas.forEach((p, i) => {
+    DOCUMENTS.push({
+      title: "홈",
+      text: p,
+      url: "/",
+      type: "paragraph",
+      pid: `home-${i}`
+    });
   });
 
   for (const link of links) {
@@ -63,19 +87,70 @@ async function loadSite() {
     if (!fs.existsSync(filePath)) continue;
 
     const html = fs.readFileSync(filePath, "utf-8");
+    const text = stripHtml(html);
+    const paras = splitParagraphs(text);
 
     DOCUMENTS.push({
       title: link,
-      text: stripHtml(html),
-      url: "/" + link
+      text,
+      url: "/" + link,
+      type: "page"
+    });
+
+    paras.forEach((p, i) => {
+      DOCUMENTS.push({
+        title: link,
+        text: p,
+        url: "/" + link,
+        type: "paragraph",
+        pid: `${link}-${i}`
+      });
     });
   }
 
-  console.log("📦 DOCS:", DOCUMENTS.length);
+  console.log("📦 PARAGRAPHS:", DOCUMENTS.length);
 }
 
 /* =========================
-   OPENAI EMBEDDING
+   PDF LOADER (문단 단위)
+========================= */
+async function loadPdfs() {
+  const pdfDir = path.join(__dirname, "files");
+  if (!fs.existsSync(pdfDir)) return;
+
+  const files = fs.readdirSync(pdfDir);
+
+  for (const file of files) {
+    if (!file.endsWith(".pdf")) continue;
+
+    const buffer = fs.readFileSync(path.join(pdfDir, file));
+    const parsed = await pdfParse(buffer);
+
+    const paras = splitParagraphs(parsed.text);
+
+    DOCUMENTS.push({
+      title: file,
+      text: parsed.text,
+      url: "/files/" + file,
+      type: "page"
+    });
+
+    paras.forEach((p, i) => {
+      DOCUMENTS.push({
+        title: file,
+        text: p,
+        url: "/files/" + file,
+        type: "paragraph",
+        pid: `${file}-${i}`
+      });
+    });
+  }
+
+  console.log("📄 PDF PARAGRAPHS LOADED");
+}
+
+/* =========================
+   EMBEDDING
 ========================= */
 async function embed(text) {
   const res = await fetch("https://api.openai.com/v1/embeddings", {
@@ -95,21 +170,25 @@ async function embed(text) {
 }
 
 /* =========================
-   VECTOR BUILD
+   VECTOR BUILD (paragraph level)
 ========================= */
 async function rebuildVector() {
   VECTOR_DB = [];
 
   for (const doc of DOCUMENTS) {
-    const vector = await embed(doc.title + " " + doc.text);
-    VECTOR_DB.push({ ...doc, vector });
+    const vector = await embed(doc.text);
+
+    VECTOR_DB.push({
+      ...doc,
+      vector
+    });
   }
 
-  console.log("🧠 VECTOR READY");
+  console.log("🧠 VECTOR READY:", VECTOR_DB.length);
 }
 
 /* =========================
-   COSINE SIM
+   COSINE
 ========================= */
 function cosine(a, b) {
   let dot = 0, ma = 0, mb = 0;
@@ -124,7 +203,7 @@ function cosine(a, b) {
 }
 
 /* =========================
-   SEARCH
+   SEARCH (PARAGRAPH LEVEL)
 ========================= */
 async function search(query) {
   const qVec = await embed(query);
@@ -135,7 +214,7 @@ async function search(query) {
       score: cosine(qVec, d.vector)
     }))
     .sort((a, b) => b.score - a.score)
-    .slice(0, 5);
+    .slice(0, 8);
 }
 
 /* =========================
@@ -143,9 +222,10 @@ async function search(query) {
 ========================= */
 async function askAI(query, results) {
   const context = results.map(r =>
-`제목:${r.title}
-내용:${r.text.slice(0, 250)}
-URL:${r.url}`
+`[문단]
+제목: ${r.title}
+내용: ${r.text}
+URL: ${r.url}`
   ).join("\n\n");
 
   const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -160,7 +240,8 @@ URL:${r.url}`
         {
           role: "system",
           content: `
-너는 웹 검색 AI다.
+너는 문단 기반 검색 AI다.
+
 반드시 JSON만 출력:
 
 {
@@ -174,12 +255,13 @@ URL:${r.url}`
   ]
 }
 
-URL은 반드시 제공된 것만 사용
+- results는 "문단 단위" 기반
+- url은 반드시 제공된 것만 사용
           `
         },
         {
           role: "user",
-          content: `질문:${query}\n\n문서:\n${context}`
+          content: `질문: ${query}\n\n문단:\n${context}`
         }
       ]
     })
@@ -206,7 +288,7 @@ async function pipeline(msg) {
 }
 
 /* =========================
-   FILE UPLOAD
+   UPLOAD
 ========================= */
 async function addFile(file) {
   const buffer = Buffer.from(file.content, "base64");
@@ -220,21 +302,30 @@ async function addFile(file) {
     text = buffer.toString("utf-8");
   }
 
-  DOCUMENTS.push({
-    title: file.name,
-    text,
-    url: "/uploaded"
+  const paras = splitParagraphs(text);
+
+  paras.forEach((p, i) => {
+    DOCUMENTS.push({
+      title: file.name,
+      text: p,
+      url: "/uploaded",
+      type: "paragraph",
+      pid: `${file.name}-${i}`
+    });
   });
 
   await rebuildVector();
 }
 
 /* =========================
-   AUTO RELOAD WATCHER (핵심)
+   AUTO REINDEX
 ========================= */
-fs.watch(__dirname, async () => {
-  console.log("🔄 FILE CHANGED → REINDEX");
+fs.watch(__dirname, async (_, file) => {
+  if (!file) return;
+  console.log("🔄 REINDEX");
+
   await loadSite();
+  await loadPdfs();
   await rebuildVector();
 });
 
@@ -243,6 +334,7 @@ fs.watch(__dirname, async () => {
 ========================= */
 (async () => {
   await loadSite();
+  await loadPdfs();
   await rebuildVector();
 })();
 
@@ -264,7 +356,6 @@ const server = http.createServer(async (req, res) => {
 
   if (url === "/api/chat" && req.method === "POST") {
     let body = "";
-
     req.on("data", c => body += c);
 
     req.on("end", async () => {
@@ -280,14 +371,13 @@ const server = http.createServer(async (req, res) => {
 
   if (url === "/api/upload" && req.method === "POST") {
     let body = "";
-
     req.on("data", c => body += c);
 
     req.on("end", async () => {
       const file = JSON.parse(body);
       await addFile(file);
 
-      res.writeHead(200, { "Content-Type": "application/json" });
+      res.writeHead(200);
       res.end(JSON.stringify({ ok: true }));
     });
 
