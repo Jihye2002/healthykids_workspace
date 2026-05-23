@@ -7,13 +7,17 @@ document.addEventListener("DOMContentLoaded", () => {
   ========================= */
   document.head.insertAdjacentHTML("beforeend", `
   <style>
+
+    /* =========================
+       CHAT WINDOW
+    ========================= */
     #chatApp{
       position:fixed;
-      bottom:90px;
+      bottom:110px;
       right:20px;
       width:420px;
       height:650px;
-      background:#fff;
+      background:#f6f7fb;
       border-radius:18px;
       box-shadow:0 20px 50px rgba(0,0,0,0.2);
       display:none;
@@ -23,6 +27,7 @@ document.addEventListener("DOMContentLoaded", () => {
       font-family:Arial;
     }
 
+    /* HEADER */
     #chatHeader{
       background:#2f63c7;
       color:#fff;
@@ -30,51 +35,92 @@ document.addEventListener("DOMContentLoaded", () => {
       font-weight:bold;
       display:flex;
       justify-content:space-between;
+      align-items:center;
     }
 
+    /* BODY */
     #chatBody{
       flex:1;
       padding:14px;
       overflow-y:auto;
-      background:#f6f7fb;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
     }
 
+    /* =========================
+       MESSAGE RESET (말풍선 제거)
+    ========================= */
     .msg{
-      max-width:92%;
-      padding:10px;
-      margin:8px 0;
-      border-radius:14px;
+      max-width:100%;
+      display:flex;
+      align-items:flex-start;
+      gap:10px;
       font-size:14px;
-      line-height:1.4;
-      word-break:break-word;
+      line-height:1.5;
     }
 
+    /* USER */
     .user{
+      justify-content:flex-end;
+      text-align:right;
+      color:#333;
+    }
+
+    .user .bubble{
       background:#2f63c7;
       color:#fff;
-      margin-left:auto;
-      border-bottom-right-radius:4px;
+      padding:10px 14px;
+      border-radius:14px;
+      max-width:75%;
     }
 
+    /* AI (로봇 스타일) */
     .ai{
+      justify-content:flex-start;
+    }
+
+    /* 로봇 아이콘 */
+    .robot{
+      width:36px;
+      height:36px;
+      min-width:36px;
+      border-radius:50%;
+      background:#2f63c7;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:#fff;
+      font-size:18px;
+      box-shadow:0 4px 10px rgba(0,0,0,0.15);
+    }
+
+    /* AI 말 */
+    .ai .bubble{
       background:#fff;
       border:1px solid #ddd;
-      border-bottom-left-radius:4px;
+      padding:10px 14px;
+      border-radius:14px;
+      max-width:75%;
     }
 
+    /* GUIDE */
     .guide{
       background:#eef5ff;
       padding:12px;
       border-radius:12px;
-      margin-bottom:10px;
       font-size:13px;
       line-height:1.5;
     }
 
+    /* =========================
+       INPUT
+    ========================= */
     #inputBox{
       display:flex;
       gap:8px;
       padding:10px;
+      background:#fff;
       border-top:1px solid #ddd;
     }
 
@@ -111,42 +157,32 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     /* =========================
-       🔥 카톡 스타일 말풍선 버튼
+       🔵 완전 원형 챗봇 버튼
     ========================= */
     #toggleBtn{
       position:fixed;
-      bottom:30px;
-      right:20px;
+      bottom:25px;
+      right:25px;
+      width:70px;
+      height:70px;
+      border-radius:50%;
       background:#2f63c7;
       color:#fff;
       border:none;
-      padding:14px 18px;
-      border-radius:25px;
-      font-size:16px;
-      font-weight:bold;
+      font-size:28px;
       cursor:pointer;
       z-index:10000;
-      box-shadow:0 10px 25px rgba(0,0,0,0.25);
+      box-shadow:0 12px 30px rgba(0,0,0,0.25);
       display:flex;
       align-items:center;
-      gap:6px;
-    }
-
-    #toggleBtn::after{
-      content:"";
-      position:absolute;
-      right:10px;
-      bottom:-6px;
-      width:12px;
-      height:12px;
-      background:#2f63c7;
-      transform:rotate(45deg);
+      justify-content:center;
     }
 
     #toggleBtn:hover{
-      transform:translateY(-2px);
+      transform:scale(1.05);
       transition:0.2s;
     }
+
   </style>
   `);
 
@@ -155,8 +191,10 @@ document.addEventListener("DOMContentLoaded", () => {
   ========================= */
   document.body.insertAdjacentHTML("beforeend", `
   <div id="chatApp">
+
     <div id="chatHeader">
-      헬시키즈 AI <span id="closeBtn" style="cursor:pointer;">✕</span>
+      🤖 헬시키즈 AI
+      <span id="closeBtn" style="cursor:pointer;">✕</span>
     </div>
 
     <div id="chatBody"></div>
@@ -168,8 +206,8 @@ document.addEventListener("DOMContentLoaded", () => {
     </div>
   </div>
 
-  <!-- 🔥 카톡 느낌 버튼 -->
-  <button id="toggleBtn">💬 헬시키즈</button>
+  <!-- 🔵 원형 버튼 -->
+  <button id="toggleBtn">🤖</button>
   `);
 
   const body = document.getElementById("chatBody");
@@ -181,35 +219,42 @@ document.addEventListener("DOMContentLoaded", () => {
   function showGuide(){
     body.innerHTML = "";
 
-    const g1 = document.createElement("div");
-    g1.className = "guide";
-    g1.innerHTML = `
-      🌼 <b>헬시키즈 사용 방법</b><br><br>
-      ★ 건강, 안전, 생활습관을 쉽게 배울 수 있어요<br>
-      ★ 영상과 자료도 함께 볼 수 있어요 😊
-    `;
+    body.innerHTML = `
+      <div class="guide">
+        🌼 <b>헬시키즈 사용 방법</b><br><br>
+        ★ 안전, 건강, 생활습관을 쉽게 알려줘요<br>
+        ★ 영상과 자료도 함께 볼 수 있어요 😊
+      </div>
 
-    const g2 = document.createElement("div");
-    g2.className = "guide";
-    g2.innerHTML = `
-      💡 <b>이렇게 물어보면 좋아요</b><br>
-      “손 씻는 방법 알려줘”<br>
-      “감기 안 걸리는 방법”<br>
-      “횡단보도 안전하게 건너기”
+      <div class="guide">
+        💡 <b>이렇게 물어보면 좋아요</b><br>
+        “손 씻는 방법 알려줘”<br>
+        “감기 안 걸리는 방법”<br>
+        “횡단보도 안전하게 건너기”
+      </div>
     `;
-
-    body.appendChild(g1);
-    body.appendChild(g2);
   }
 
   /* =========================
      MESSAGE
   ========================= */
   function addMsg(type, text){
-    const d = document.createElement("div");
-    d.className = `msg ${type}`;
-    d.innerText = text;
-    body.appendChild(d);
+
+    const wrap = document.createElement("div");
+    wrap.className = `msg ${type}`;
+
+    if(type === "ai"){
+      wrap.innerHTML = `
+        <div class="robot">🤖</div>
+        <div class="bubble">${text}</div>
+      `;
+    } else {
+      wrap.innerHTML = `
+        <div class="bubble">${text}</div>
+      `;
+    }
+
+    body.appendChild(wrap);
     body.scrollTop = body.scrollHeight;
   }
 
@@ -221,12 +266,15 @@ document.addEventListener("DOMContentLoaded", () => {
     d.className = "msg ai";
 
     d.innerHTML = `
-      <b>${r.title || "결과"}</b><br>
-      ${r.summary || ""}<br><br>
-      <a href="${r.url}" target="_blank"
-        style="padding:6px 10px;background:#2f63c7;color:#fff;border-radius:8px;text-decoration:none;">
-        👉 보러가기
-      </a>
+      <div class="robot">🤖</div>
+      <div class="bubble">
+        <b>${r.title}</b><br>
+        ${r.summary || ""}<br><br>
+        <a href="${r.url}" target="_blank"
+          style="padding:6px 10px;background:#2f63c7;color:#fff;border-radius:8px;text-decoration:none;">
+          👉 보러가기
+        </a>
+      </div>
     `;
 
     body.appendChild(d);
@@ -236,13 +284,14 @@ document.addEventListener("DOMContentLoaded", () => {
      SEND
   ========================= */
   async function send(){
+
     const text = input.value.trim();
     if(!text) return;
 
     addMsg("user", text);
     input.value = "";
 
-    addMsg("ai", "🔍 검색 중...");
+    addMsg("ai", "검색 중... 🤖");
 
     try{
       const res = await fetch(`${API_BASE}/api/chat`, {
@@ -255,13 +304,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
       body.lastChild.remove();
 
-      addMsg("ai", data.reply || "검색 결과를 찾았어요 😊");
+      addMsg("ai", data.reply || "결과를 찾았어요 😊");
 
       (data.results || []).forEach(addCard);
 
     }catch(e){
       body.lastChild.remove();
-      addMsg("ai", "서버 연결에 문제가 있어요 😢");
+      addMsg("ai", "서버 연결 문제가 있어요 😢");
     }
   }
 
@@ -294,7 +343,6 @@ document.addEventListener("DOMContentLoaded", () => {
     rec.onend = ()=>{
       listening = false;
       document.getElementById("voiceBtn").classList.remove("recording");
-
       if(input.value.trim()) send();
     };
   }
