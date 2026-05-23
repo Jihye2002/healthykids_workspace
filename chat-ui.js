@@ -1,6 +1,6 @@
 document.addEventListener("DOMContentLoaded", () => {
 
-  const API_BASE = "https://YOUR-RENDER-URL.onrender.com";
+  const API_BASE = "https://healthykids-workspace.onrender.com";
 
   /* =========================
      STYLE (GPT STYLE)
