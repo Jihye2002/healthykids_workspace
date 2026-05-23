@@ -43,20 +43,23 @@ document.addEventListener("DOMContentLoaded", () => {
       max-width:92%;
       padding:10px;
       margin:8px 0;
-      border-radius:12px;
+      border-radius:14px;
       font-size:14px;
       line-height:1.4;
+      word-break:break-word;
     }
 
     .user{
       background:#2f63c7;
       color:#fff;
       margin-left:auto;
+      border-bottom-right-radius:4px;
     }
 
     .ai{
       background:#fff;
       border:1px solid #ddd;
+      border-bottom-left-radius:4px;
     }
 
     .guide{
@@ -92,7 +95,6 @@ document.addEventListener("DOMContentLoaded", () => {
       color:#fff;
       border:none;
       cursor:pointer;
-      font-size:16px;
     }
 
     #voiceBtn.recording{
@@ -108,21 +110,42 @@ document.addEventListener("DOMContentLoaded", () => {
       cursor:pointer;
     }
 
-    /* ⭐ 챗봇 버튼 (핵심 추가) */
+    /* =========================
+       🔥 카톡 스타일 말풍선 버튼
+    ========================= */
     #toggleBtn{
       position:fixed;
-      bottom:20px;
+      bottom:30px;
       right:20px;
-      width:60px;
-      height:60px;
-      border-radius:50%;
       background:#2f63c7;
       color:#fff;
       border:none;
-      font-size:24px;
+      padding:14px 18px;
+      border-radius:25px;
+      font-size:16px;
+      font-weight:bold;
       cursor:pointer;
       z-index:10000;
-      box-shadow:0 10px 25px rgba(0,0,0,0.2);
+      box-shadow:0 10px 25px rgba(0,0,0,0.25);
+      display:flex;
+      align-items:center;
+      gap:6px;
+    }
+
+    #toggleBtn::after{
+      content:"";
+      position:absolute;
+      right:10px;
+      bottom:-6px;
+      width:12px;
+      height:12px;
+      background:#2f63c7;
+      transform:rotate(45deg);
+    }
+
+    #toggleBtn:hover{
+      transform:translateY(-2px);
+      transition:0.2s;
     }
   </style>
   `);
@@ -145,7 +168,8 @@ document.addEventListener("DOMContentLoaded", () => {
     </div>
   </div>
 
-  <button id="toggleBtn">💬</button>
+  <!-- 🔥 카톡 느낌 버튼 -->
+  <button id="toggleBtn">💬 헬시키즈</button>
   `);
 
   const body = document.getElementById("chatBody");
@@ -161,7 +185,7 @@ document.addEventListener("DOMContentLoaded", () => {
     g1.className = "guide";
     g1.innerHTML = `
       🌼 <b>헬시키즈 사용 방법</b><br><br>
-      ★ 건강, 안전, 생활습관 정보를 배울 수 있어요<br>
+      ★ 건강, 안전, 생활습관을 쉽게 배울 수 있어요<br>
       ★ 영상과 자료도 함께 볼 수 있어요 😊
     `;
 
@@ -247,7 +271,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("send").onclick = send;
 
   /* =========================
-     VOICE (안정 버전)
+     VOICE
   ========================= */
   let rec;
   let listening = false;
