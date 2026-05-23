@@ -1,7 +1,9 @@
 document.addEventListener("DOMContentLoaded", () => {
 
+  const API_BASE = "https://YOUR-RENDER-URL.onrender.com";
+
   /* =========================
-     STYLE
+     STYLE (GPT STYLE)
   ========================= */
   const style = document.createElement("style");
 
@@ -10,16 +12,16 @@ document.addEventListener("DOMContentLoaded", () => {
     position:fixed;
     bottom:90px;
     right:20px;
-    width:380px;
-    height:600px;
+    width:420px;
+    height:650px;
     background:#ffffff;
     border-radius:18px;
     box-shadow:0 20px 50px rgba(0,0,0,0.2);
     display:none;
     flex-direction:column;
     overflow:hidden;
-    z-index:9999;
     font-family:Arial;
+    z-index:9999;
   }
 
   #chatHeader{
@@ -55,68 +57,24 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   .ai{
-    background:#ffffff;
+    background:#fff;
     border:1px solid #ddd;
   }
 
-  .card{
-    background:#fff;
-    border:1px solid #e5e5e5;
-    padding:10px;
-    border-radius:12px;
-    margin-top:8px;
-  }
-
-  .card-title{
-    font-weight:bold;
-    margin-bottom:6px;
-  }
-
-  .card-summary{
-    font-size:13px;
-    color:#555;
-    margin-bottom:8px;
-  }
-
-  .card-btn{
-    display:inline-block;
-    padding:6px 10px;
-    background:#2f63c7;
-    color:white;
-    border-radius:8px;
-    text-decoration:none;
-    font-size:12px;
-  }
-
+  /* ================= GPT INPUT BAR ================= */
   #inputBox{
     display:flex;
-    gap:6px;
+    align-items:center;
+    gap:8px;
     padding:10px;
     border-top:1px solid #ddd;
     background:#fff;
   }
 
-  #text{
-    flex:1;
-    padding:10px;
-    border-radius:10px;
-    border:1px solid #ddd;
-    outline:none;
-  }
-
-  #send{
-    padding:10px 14px;
-    border:none;
-    border-radius:10px;
-    background:#2f63c7;
-    color:white;
-    cursor:pointer;
-  }
-
   #uploadBtn{
-    width:38px;
-    height:38px;
-    border-radius:50%;
+    width:40px;
+    height:40px;
+    border-radius:10px;
     background:#2f63c7;
     color:white;
     display:flex;
@@ -126,8 +84,27 @@ document.addEventListener("DOMContentLoaded", () => {
     font-size:18px;
   }
 
-  #file{
-    display:none;
+  #file{ display:none; }
+
+  #text{
+    flex:1;
+    height:40px;
+    resize:none;
+    padding:10px;
+    border-radius:10px;
+    border:1px solid #ddd;
+    outline:none;
+    font-size:14px;
+  }
+
+  #send{
+    width:70px;
+    height:40px;
+    border:none;
+    border-radius:10px;
+    background:#2f63c7;
+    color:white;
+    cursor:pointer;
   }
 
   #toggleBtn{
@@ -144,7 +121,24 @@ document.addEventListener("DOMContentLoaded", () => {
     cursor:pointer;
   }
 
-  .hidden{ display:none !important; }
+  .guideBox{
+    background:#eef3ff;
+    padding:10px;
+    border-radius:10px;
+    margin-bottom:10px;
+    font-size:13px;
+  }
+
+  .guideBtn{
+    display:inline-block;
+    margin-top:6px;
+    padding:6px 10px;
+    background:#2f63c7;
+    color:white;
+    border-radius:8px;
+    text-decoration:none;
+    font-size:12px;
+  }
   `;
 
   document.head.appendChild(style);
@@ -162,9 +156,11 @@ document.addEventListener("DOMContentLoaded", () => {
       <div id="chatBody"></div>
 
       <div id="inputBox">
-        <input id="text" placeholder="질문을 입력하세요 (의미 기반 검색)">
         <label id="uploadBtn" for="file">＋</label>
         <input type="file" id="file">
+
+        <textarea id="text" placeholder="검색어 입력 (Enter=전송 / Shift+Enter=줄바꿈)"></textarea>
+
         <button id="send">검색</button>
       </div>
     </div>
@@ -177,17 +173,30 @@ document.addEventListener("DOMContentLoaded", () => {
   const input = document.getElementById("text");
 
   /* =========================
-     RESET
+     RESET + GUIDE
   ========================= */
   function resetChat() {
     body.innerHTML = "";
 
-    addMessage("ai",
-🔎 AI 챗봇 사용방법
+    const guide = document.createElement("div");
+    guide.className = "guideBox";
+    guide.innerHTML = `
+      🔎 AI 검색 사용법<br><br>
+      1. 질문 입력 → 의미 기반 검색<br>
+      2. 파일 업로드 → 자동 반영<br>
+      3. 결과 클릭 → 원본 페이지 이동<br><br>
 
-    예시) 감기에 걸리면 어떡하지?
-          손씻기 자료 좀 찾아줘
-          몸이 튼튼해지는 음식은 뭐가 있을까?
+      💡 예시:<br>
+      - 감기 예방 방법 알려줘<br>
+      - 손씻기 관련 자료 찾아줘<br>
+      - 건강한 음식 추천해줘<br><br>
+
+      📌 가이드를 더 자세히 보려면 아래 버튼 클릭
+      <br>
+      <a class="guideBtn" href="guide.html">가이드 보기</a>
+    `;
+
+    body.appendChild(guide);
   }
 
   /* =========================
@@ -202,22 +211,27 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* =========================
-     RESULT CARD (핵심)
+     CARD
   ========================= */
   function addCard(r) {
     const div = document.createElement("div");
-    div.className = "card";
+    div.className = "msg ai";
 
     div.innerHTML = `
-      <div class="card-title">${r.title || "결과"}</div>
-      <div class="card-summary">${r.summary || r.text || ""}</div>
-      <a class="card-btn" href="${r.url}" target="_blank">
-        이동
-      </a>
+      <b>${r.title || "결과"}</b><br>
+      ${r.summary || ""}<br><br>
+      <a href="${r.url}" target="_blank" style="
+        display:inline-block;
+        padding:6px 10px;
+        background:#2f63c7;
+        color:#fff;
+        border-radius:8px;
+        text-decoration:none;
+        font-size:12px;
+      ">이동</a>
     `;
 
     body.appendChild(div);
-    body.scrollTop = body.scrollHeight;
   }
 
   /* =========================
@@ -233,7 +247,7 @@ document.addEventListener("DOMContentLoaded", () => {
     addMessage("ai", "🔍 검색 중...");
 
     try {
-      const res = await fetch("/api/chat", {
+      const res = await fetch(`${API_BASE}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: text })
@@ -241,18 +255,29 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const data = await res.json();
 
-      body.lastChild.remove(); // "검색 중..." 제거
+      body.lastChild.remove();
 
       addMessage("ai", data.reply || "결과 없음");
 
-      if (data.results?.length) {
+      if (Array.isArray(data.results)) {
         data.results.forEach(addCard);
       }
 
     } catch (e) {
-      addMessage("ai", "서버 오류");
+      body.lastChild?.remove();
+      addMessage("ai", "❌ 서버 연결 실패");
     }
   }
+
+  /* =========================
+     ENTER / SHIFT+ENTER
+  ========================= */
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      send();
+    }
+  });
 
   /* =========================
      FILE UPLOAD
@@ -266,7 +291,7 @@ document.addEventListener("DOMContentLoaded", () => {
     reader.onload = async () => {
       addMessage("user", "📁 파일 업로드");
 
-      await fetch("/api/upload", {
+      await fetch(`${API_BASE}/api/upload`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -275,7 +300,7 @@ document.addEventListener("DOMContentLoaded", () => {
         })
       });
 
-      addMessage("ai", "📄 파일이 즉시 검색에 반영되었습니다");
+      addMessage("ai", "📄 즉시 검색 반영 완료");
     };
 
     reader.readAsDataURL(file);
