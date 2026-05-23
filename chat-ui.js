@@ -322,43 +322,80 @@ document.addEventListener("DOMContentLoaded", () => {
   ========================= */
   async function send(){
 
-    const text = input.value.trim();
-    if(!text) return;
+  const text = input.value.trim();
+  if(!text) return;
 
-    addMessage("user", text);
-    input.value = "";
+  addMessage("user", text);
+  input.value = "";
 
-    loadingNode = document.createElement("div");
-    loadingNode.className = "msg ai";
-    loadingNode.innerHTML = `
+  loadingNode = document.createElement("div");
+  loadingNode.className = "msg ai";
+  loadingNode.innerHTML = `
+    <div class="robotIcon">${robotSVG}</div>
+    <div class="bubble">찾고 있어요 😊</div>
+  `;
+  body.appendChild(loadingNode);
+
+  try{
+
+    const res = await fetch(`${API_BASE}/api/chat`, {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ message: text })
+    });
+
+    const data = await res.json();
+
+    loadingNode?.remove();
+    loadingNode = null;
+
+    const answer = data.answer || data.reply || "찾았어요 😊";
+    const buttons = data.buttons || [];
+
+    const buttonsHTML = buttons.length
+      ? `
+        <div style="margin-top:10px; display:flex; flex-wrap:wrap;">
+          ${buttons.map(b => `
+            <a href="${b.url}" target="_blank"
+              style="
+                display:inline-block;
+                margin:6px 6px 0 0;
+                padding:8px 10px;
+                background:#2f63c7;
+                color:#fff;
+                border-radius:8px;
+                text-decoration:none;
+                font-size:13px;
+              ">
+              ${b.label}
+            </a>
+          `).join("")}
+        </div>
+      `
+      : "";
+
+    const wrap = document.createElement("div");
+    wrap.className = "msg ai";
+
+    wrap.innerHTML = `
       <div class="robotIcon">${robotSVG}</div>
-      <div class="bubble">찾고 있어요 😊</div>
+      <div class="bubble">
+        ${answer}
+        ${buttonsHTML}
+      </div>
     `;
-    body.appendChild(loadingNode);
 
-    try{
+    body.appendChild(wrap);
+    body.scrollTop = body.scrollHeight;
 
-      const res = await fetch(`${API_BASE}/api/chat`, {
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({ message: text })
-      });
+  } catch(e){
 
-      const data = await res.json();
+    loadingNode?.remove();
+    loadingNode = null;
 
-      loadingNode?.remove();
-      loadingNode = null;
-
-      addMessage("ai", data.reply || "찾았어요 😊");
-
-    } catch(e){
-
-      loadingNode?.remove();
-      loadingNode = null;
-
-      addMessage("ai", "서버 오류가 발생했어요 😢");
-    }
+    addMessage("ai", "서버 오류가 발생했어요 😢");
   }
+}
 
   /* =========================
      EVENTS
