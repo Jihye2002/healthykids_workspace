@@ -8,11 +8,19 @@ const PORT = process.env.PORT || 3000;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
+/* =========================
+   MEMORY
+========================= */
 let DOCUMENTS = [];
 let VECTOR_DB = [];
 
 /* =========================
-   CLEAN TEXT
+   UPLOAD RULE
+========================= */
+const UPLOAD_THRESHOLD = 0.75;
+
+/* =========================
+   TEXT CLEAN
 ========================= */
 function stripHtml(html) {
   return html
@@ -30,7 +38,7 @@ function splitParagraphs(text) {
   return text
     .split(/\n\s*\n|(?<=[.!?])\s+/g)
     .map(t => t.trim())
-    .filter(t => t.length > 20);
+    .filter(t => t.length > 40);
 }
 
 /* =========================
@@ -41,7 +49,7 @@ async function loadSite() {
 
   const indexHtml = fs.readFileSync("index.html", "utf-8");
 
-  splitParagraphs(stripHtml(indexHtml)).forEach((p, i) => {
+  splitParagraphs(stripHtml(indexHtml)).forEach((p) => {
     DOCUMENTS.push({
       title: "홈페이지",
       text: p,
@@ -54,7 +62,7 @@ async function loadSite() {
 }
 
 /* =========================
-   PDF LOAD (UPLOAD ONLY)
+   LOAD PDF (existing files)
 ========================= */
 async function loadPdfsFromUpload() {
   const dir = path.join(__dirname, "files");
@@ -70,7 +78,7 @@ async function loadPdfsFromUpload() {
 
     const paragraphs = splitParagraphs(parsed.text);
 
-    paragraphs.forEach((p, i) => {
+    paragraphs.forEach((p) => {
       DOCUMENTS.push({
         title: file,
         text: p,
@@ -80,7 +88,7 @@ async function loadPdfsFromUpload() {
     });
   }
 
-  console.log("📄 PDF UPLOAD LOADED");
+  console.log("📄 PDF LOADED");
 }
 
 /* =========================
@@ -104,6 +112,21 @@ async function embed(text) {
 }
 
 /* =========================
+   COSINE SIMILARITY
+========================= */
+function cosine(a, b) {
+  let dot = 0, ma = 0, mb = 0;
+
+  for (let i = 0; i < a.length; i++) {
+    dot += a[i] * b[i];
+    ma += a[i] ** 2;
+    mb += b[i] ** 2;
+  }
+
+  return dot / (Math.sqrt(ma) * Math.sqrt(mb) + 1e-9);
+}
+
+/* =========================
    VECTOR BUILD
 ========================= */
 async function rebuildVector() {
@@ -118,18 +141,20 @@ async function rebuildVector() {
 }
 
 /* =========================
-   COSINE
+   SITE SIMILARITY CHECK
 ========================= */
-function cosine(a, b) {
-  let dot = 0, ma = 0, mb = 0;
+function averageSimilarityToSite(uploadVector) {
+  const htmlDocs = VECTOR_DB.filter(d => d.type === "html");
 
-  for (let i = 0; i < a.length; i++) {
-    dot += a[i] * b[i];
-    ma += a[i] ** 2;
-    mb += b[i] ** 2;
+  let total = 0;
+  let count = 0;
+
+  for (const doc of htmlDocs) {
+    total += cosine(uploadVector, doc.vector);
+    count++;
   }
 
-  return dot / (Math.sqrt(ma) * Math.sqrt(mb) + 1e-9);
+  return count ? total / count : 0;
 }
 
 /* =========================
@@ -148,7 +173,7 @@ async function search(query) {
 }
 
 /* =========================
-   AI SUMMARY (아동용 쉬운 요약)
+   AI SUMMARY (KIDS)
 ========================= */
 async function summarize(query, results) {
 
@@ -171,13 +196,13 @@ URL: ${r.url}
         {
           role: "system",
           content: `
-너는 5~7세 어린이를 위한 AI다.
+너는 5~7세 어린이 AI이다.
 
 규칙:
-- 매우 쉬운 말로 설명
-- 2~3줄 요약
+- 4~6줄로 아주 쉽게 설명
+- 예시 포함 가능
 - 반드시 JSON 출력
-- URL은 반드시 그대로 사용
+- URL 그대로 사용
 
 형식:
 {
@@ -221,28 +246,55 @@ async function pipeline(msg) {
 }
 
 /* =========================
-   FILE UPLOAD (PDF ONLY)
+   FILE UPLOAD (PDF ONLY + VALIDATION)
 ========================= */
 async function addFile(file) {
-  if (!file.name.endsWith(".pdf")) {
-    return { error: "PDF만 허용됩니다" };
-  }
+  try {
+    if (!file.name.endsWith(".pdf")) {
+      return { error: "PDF만 업로드 가능해요" };
+    }
 
-  const buffer = Buffer.from(file.content, "base64");
-  const parsed = await pdfParse(buffer);
+    const buffer = Buffer.from(file.content, "base64");
+    const parsed = await pdfParse(buffer);
 
-  const paragraphs = splitParagraphs(parsed.text);
+    const text = parsed.text;
 
-  paragraphs.forEach((p) => {
-    DOCUMENTS.push({
-      title: file.name,
-      text: p,
-      url: `/files/${file.name}`,
-      type: "pdf"
+    // 1. upload vector
+    const fileVector = await embed(text);
+
+    // 2. similarity check
+    const score = averageSimilarityToSite(fileVector);
+
+    console.log("📊 업로드 유사도:", score);
+
+    if (score < UPLOAD_THRESHOLD) {
+      return {
+        error: "이 자료는 홈페이지 내용과 관련이 적어서 업로드할 수 없어요"
+      };
+    }
+
+    // 3. accept file
+    const paragraphs = splitParagraphs(text);
+
+    paragraphs.forEach((p) => {
+      DOCUMENTS.push({
+        title: file.name,
+        text: p,
+        url: `/files/${file.name}`,
+        type: "pdf"
+      });
     });
-  });
 
-  await rebuildVector();
+    await rebuildVector();
+
+    return {
+      ok: true,
+      message: "관련 자료로 확인되어 추가되었어요"
+    };
+
+  } catch (e) {
+    return { error: "파일 처리 중 오류 발생" };
+  }
 }
 
 /* =========================
@@ -289,13 +341,13 @@ const server = http.createServer(async (req, res) => {
       const result = await addFile(file);
 
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify(result || { ok: true }));
+      res.end(JSON.stringify(result));
     });
 
     return;
   }
 
-  /* STATIC */
+  /* STATIC FILES */
   const filePath = url === "/" ? "index.html" : path.join(__dirname, url);
 
   fs.readFile(filePath, (err, data) => {
