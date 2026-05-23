@@ -3,13 +3,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const style = document.createElement("style");
 
   style.textContent = `
-  #box{
+  #chat{
     position:fixed;
     bottom:90px;
     right:20px;
     width:380px;
     height:600px;
-    background:white;
+    background:#fff;
     border-radius:15px;
     box-shadow:0 10px 30px rgba(0,0,0,0.2);
     display:flex;
@@ -31,8 +31,8 @@ document.addEventListener("DOMContentLoaded", () => {
     border-radius:10px;
   }
 
-  .user{background:#2f63c7;color:white;margin-left:auto;}
-  .ai{background:white;border:1px solid #ddd;}
+  .user{background:#2f63c7;color:#fff;margin-left:auto;}
+  .ai{background:#fff;border:1px solid #ddd;}
 
   #input{
     display:flex;
@@ -56,8 +56,8 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   .guide{
-    background:#eef3ff;
     padding:10px;
+    background:#eef3ff;
     margin:8px;
     border-radius:10px;
   }
@@ -66,17 +66,17 @@ document.addEventListener("DOMContentLoaded", () => {
   document.head.appendChild(style);
 
   document.body.innerHTML += `
-  <div id="box">
-    <div id="body"></div>
+    <div id="chat">
+      <div id="body"></div>
 
-    <div id="input">
-      <input id="text" placeholder="검색 / 파일 업로드 가능">
-      <button id="send">전송</button>
-      <input type="file" id="file">
+      <div id="input">
+        <input id="text" placeholder="검색 입력 / 파일 업로드">
+        <button id="send">전송</button>
+        <input type="file" id="file">
+      </div>
     </div>
-  </div>
 
-  <button id="toggle">💬</button>
+    <button id="toggle">💬</button>
   `;
 
   const body = document.getElementById("body");
@@ -84,14 +84,14 @@ document.addEventListener("DOMContentLoaded", () => {
   /* GUIDE */
   body.innerHTML += `
     <div class="guide">
-      🔎 AI 검색 방법<br>
-      - 질문 입력<br>
-      - 파일 업로드 가능<br>
-      - 의미 기반 자동 검색
+      🔎 검색 방법<br>
+      1. 질문 입력<br>
+      2. 파일 업로드 가능<br>
+      3. 자동 의미 검색
     </div>
 
     <div class="guide">
-      📌 가이드 보기
+      📌 가이드
       <button onclick="window.open('/guide.html')">이동</button>
     </div>
   `;
@@ -121,15 +121,14 @@ document.addEventListener("DOMContentLoaded", () => {
     add(data.reply, "ai");
   }
 
-  /* FILE UPLOAD REALTIME */
+  /* UPLOAD (REALTIME) */
   document.getElementById("file").addEventListener("change", async (e) => {
     const file = e.target.files[0];
 
     const reader = new FileReader();
 
     reader.onload = async () => {
-
-      const res = await fetch("/api/upload", {
+      await fetch("/api/upload", {
         method: "POST",
         headers: {"Content-Type":"application/json"},
         body: JSON.stringify({
@@ -138,9 +137,7 @@ document.addEventListener("DOMContentLoaded", () => {
         })
       });
 
-      const data = await res.json();
-
-      add("📁 파일 업로드 + 즉시 반영 완료", "ai");
+      add("📁 파일 업로드 완료 + 즉시 반영됨", "ai");
     };
 
     reader.readAsDataURL(file);
@@ -149,6 +146,6 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("send").onclick = send;
 
   document.getElementById("toggle").onclick = () => {
-    document.getElementById("box").classList.toggle("hidden");
+    document.getElementById("chat").classList.toggle("hidden");
   };
 });
