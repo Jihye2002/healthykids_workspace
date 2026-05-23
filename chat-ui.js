@@ -3,7 +3,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const API_BASE = "https://healthykids-workspace.onrender.com";
 
   /* =========================
-     STYLE (soft blue + light UI)
+     STYLE
   ========================= */
   document.head.insertAdjacentHTML("beforeend", `
   <style>
@@ -14,7 +14,7 @@ document.addEventListener("DOMContentLoaded", () => {
       right:25px;
       width:420px;
       height:650px;
-      background:#ffffff;
+      background:#fff;
       border-radius:18px;
       box-shadow:0 20px 50px rgba(0,0,0,0.12);
       display:none;
@@ -50,6 +50,7 @@ document.addEventListener("DOMContentLoaded", () => {
       border-radius:14px;
       padding:14px;
       border:1px solid #e5e5e5;
+      line-height:1.5;
     }
 
     .guideTitle{
@@ -61,15 +62,18 @@ document.addEventListener("DOMContentLoaded", () => {
     .guideItem{
       display:flex;
       align-items:center;
-      gap:6px;
+      gap:8px;
       margin:6px 0;
       font-size:14px;
-      color:#333;
     }
 
     .star{
-      color:#ffd66b;
-      font-size:14px;
+      color:#f5c542;
+    }
+
+    .quote{
+      color:#2f63c7;
+      font-weight:600;
     }
 
     .guideBtn{
@@ -86,6 +90,7 @@ document.addEventListener("DOMContentLoaded", () => {
     .msg{
       display:flex;
       gap:10px;
+      align-items:flex-start;
     }
 
     .user{
@@ -98,32 +103,31 @@ document.addEventListener("DOMContentLoaded", () => {
       font-size:14px;
       white-space:pre-wrap;
       word-break:break-word;
+      line-height:1.4;
+      max-width:78%;
     }
 
     .user .bubble{
       background:#2f63c7;
       color:#fff;
-      max-width:75%;
     }
 
     .ai .bubble{
       background:#fff;
       border:1px solid #e3e3e3;
-      max-width:78%;
     }
 
-    /* ROBOT (연한 느낌 + 눈 추가) */
+    /* ROBOT ICON (soft + eyes) */
     .robotIcon{
-      width:36px;
-      height:36px;
+      width:38px;
+      height:38px;
       border-radius:50%;
-      background:#4f7de6;
+      background:rgba(47,99,199,0.85);
       display:flex;
       align-items:center;
       justify-content:center;
       flex-shrink:0;
-      opacity:0.9;
-      box-shadow:0 3px 8px rgba(0,0,0,0.08);
+      box-shadow:0 4px 10px rgba(0,0,0,0.08);
     }
 
     .robotIcon svg{
@@ -169,6 +173,7 @@ document.addEventListener("DOMContentLoaded", () => {
       cursor:pointer;
     }
 
+    /* TOGGLE */
     #toggleBtn{
       position:fixed;
       right:25px;
@@ -208,7 +213,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     </div>
 
-    <button id="toggleBtn">🤖</button>
+    <button id="toggleBtn">
+      <svg viewBox="0 0 24 24" width="32" height="32">
+        <circle cx="9" cy="11" r="1.5"/>
+        <circle cx="15" cy="11" r="1.5"/>
+        <path d="M12 2a2 2 0 00-2 2v1H8a3 3 0 00-3 3v9a3 3 0 003 3h8a3 3 0 003-3V8a3 3 0 00-3-3h-2V4a2 2 0 00-2-2z"/>
+      </svg>
+    </button>
   `);
 
   const chatApp = document.getElementById("chatApp");
@@ -217,7 +228,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let loadingNode = null;
 
-  /* ROBOT SVG (눈 있는 버전) */
+  /* ROBOT ICON */
   const robotSVG = `
     <svg viewBox="0 0 24 24">
       <circle cx="9" cy="11" r="1.5"></circle>
@@ -240,18 +251,28 @@ document.addEventListener("DOMContentLoaded", () => {
         <div class="guideTitle">💡 사용 예시</div>
 
         <div class="guideItem"><span class="star">⭐</span> 손 씻기 어떻게 해요</div>
-        <div class="guideItem"><span class="star">⭐</span> 감기 안 걸리려면 어떻게 해요</div>
+        <div class="guideItem"><span class="star">⭐</span> 감기 안 걸리는 방법</div>
         <div class="guideItem"><span class="star">⭐</span> 횡단보도 안전하게 건너기</div>
       </div>
 
       <div class="guideBox">
         <div class="guideTitle">📘 이용 가이드</div>
 
-        헬시키즈에서 AI랑 메뉴를 어떻게 쓰는지 알려줘요<br>
-        영상은 어디에서 보는지 알려줘요<br>
-        공부할 내용은 어떻게 보는지 알려줘요
+        <div class="guideItem">
+          <span class="quote">"헬시키즈에서 AI를 어떻게 사용하는지 알려줘요"</span>
+        </div>
+        <div class="guideItem">
+          <span class="quote">"메뉴를 어디서 누르는지 알려줘요"</span>
+        </div>
+        <div class="guideItem">
+          <span class="quote">"영상은 어디에서 보는지 알려줘요"</span>
+        </div>
+        <div class="guideItem">
+          <span class="quote">"공부할 내용은 어떻게 보는지 알려줘요"</span>
+        </div>
 
-        <br><br>
+        <br>
+
         <a class="guideBtn" href="guide.html" target="_blank">가이드 보기</a>
       </div>
     `;
@@ -308,21 +329,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
       addMessage("ai", data.reply || "찾았어요 😊");
 
-      if(!data.results?.length){
-        addMessage("ai", "아직 찾을 내용이 없어요 😢");
-        return;
-      }
-
     } catch(e){
 
       loadingNode?.remove();
       loadingNode = null;
 
-      addMessage("ai", "서버에 문제가 있어요 😢");
+      addMessage("ai", "서버 오류가 발생했어요 😢");
     }
   }
 
   /* EVENTS */
+
   document.getElementById("send").onclick = send;
 
   input.addEventListener("keydown", (e)=>{
@@ -330,13 +347,16 @@ document.addEventListener("DOMContentLoaded", () => {
       e.preventDefault();
       send();
     }
+    // Shift+Enter = 기본 줄바꿈 유지
   });
 
+  /* OPEN = RESET */
   document.getElementById("toggleBtn").onclick = () => {
     chatApp.style.display = "flex";
     resetChat();
   };
 
+  /* CLOSE = RESET */
   document.getElementById("closeBtn").onclick = () => {
     chatApp.style.display = "none";
     resetChat();
