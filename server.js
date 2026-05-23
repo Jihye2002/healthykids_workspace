@@ -4,18 +4,17 @@ const path = require("path");
 const pdfParse = require("pdf-parse");
 
 const PORT = process.env.PORT || 3000;
-
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
 /* =========================
-   AUTO DOCUMENT STORE
+   DATA STORE
 ========================= */
 let DOCUMENTS = [];
 let VECTOR_DB = [];
 
 /* =========================
-   HTML TEXT CLEANER
+   HTML CLEANER
 ========================= */
 function stripHtml(html) {
   return html
@@ -27,8 +26,7 @@ function stripHtml(html) {
 }
 
 /* =========================
-   AUTO SITE CRAWL (NO MANUAL URL MAP)
-   - index.html 기반 자동 링크 수집
+   LINK EXTRACTOR
 ========================= */
 function extractLinks(html) {
   const regex = /href="([^"#]+)"/g;
@@ -46,41 +44,34 @@ function extractLinks(html) {
 }
 
 /* =========================
-   LOAD ALL SITE DOCUMENTS
+   LOAD SITE AUTO INDEX
 ========================= */
 async function loadSite() {
   DOCUMENTS = [];
 
-  const indexPath = path.join(__dirname, "index.html");
-  const indexHtml = fs.readFileSync(indexPath, "utf-8");
-
+  const indexHtml = fs.readFileSync(path.join(__dirname, "index.html"), "utf-8");
   const links = extractLinks(indexHtml);
 
-  // index 자체도 포함
   DOCUMENTS.push({
-    title: "홈페이지",
+    title: "홈",
     text: stripHtml(indexHtml),
     url: "/"
   });
 
   for (const link of links) {
-    try {
-      const filePath = path.join(__dirname, link);
+    const filePath = path.join(__dirname, link);
+    if (!fs.existsSync(filePath)) continue;
 
-      if (!fs.existsSync(filePath)) continue;
+    const html = fs.readFileSync(filePath, "utf-8");
 
-      const html = fs.readFileSync(filePath, "utf-8");
-
-      DOCUMENTS.push({
-        title: link,
-        text: stripHtml(html),
-        url: "/" + link
-      });
-
-    } catch (e) {}
+    DOCUMENTS.push({
+      title: link,
+      text: stripHtml(html),
+      url: "/" + link
+    });
   }
 
-  console.log("✅ AUTO DOCS LOADED:", DOCUMENTS.length);
+  console.log("📦 DOCS:", DOCUMENTS.length);
 }
 
 /* =========================
@@ -114,11 +105,11 @@ async function rebuildVector() {
     VECTOR_DB.push({ ...doc, vector });
   }
 
-  console.log("✅ VECTOR READY");
+  console.log("🧠 VECTOR READY");
 }
 
 /* =========================
-   COSINE SIMILARITY
+   COSINE SIM
 ========================= */
 function cosine(a, b) {
   let dot = 0, ma = 0, mb = 0;
@@ -133,7 +124,7 @@ function cosine(a, b) {
 }
 
 /* =========================
-   SEARCH (FULL SEMANTIC)
+   SEARCH
 ========================= */
 async function search(query) {
   const qVec = await embed(query);
@@ -148,13 +139,13 @@ async function search(query) {
 }
 
 /* =========================
-   GROQ RESPONSE (AUTO JSON)
+   AI RESPONSE
 ========================= */
 async function askAI(query, results) {
   const context = results.map(r =>
-`제목: ${r.title}
-내용: ${r.text.slice(0, 300)}
-URL: ${r.url}`
+`제목:${r.title}
+내용:${r.text.slice(0, 250)}
+URL:${r.url}`
   ).join("\n\n");
 
   const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -171,16 +162,18 @@ URL: ${r.url}`
           content: `
 너는 웹 검색 AI다.
 반드시 JSON만 출력:
+
 {
- "reply": "요약",
- "results": [
-   {
-     "title": "",
-     "summary": "",
-     "url": ""
-   }
- ]
+  "reply": "",
+  "results": [
+    {
+      "title": "",
+      "summary": "",
+      "url": ""
+    }
+  ]
 }
+
 URL은 반드시 제공된 것만 사용
           `
         },
@@ -213,7 +206,7 @@ async function pipeline(msg) {
 }
 
 /* =========================
-   FILE UPLOAD (REALTIME INDEX)
+   FILE UPLOAD
 ========================= */
 async function addFile(file) {
   const buffer = Buffer.from(file.content, "base64");
@@ -235,6 +228,15 @@ async function addFile(file) {
 
   await rebuildVector();
 }
+
+/* =========================
+   AUTO RELOAD WATCHER (핵심)
+========================= */
+fs.watch(__dirname, async () => {
+  console.log("🔄 FILE CHANGED → REINDEX");
+  await loadSite();
+  await rebuildVector();
+});
 
 /* =========================
    INIT
@@ -260,7 +262,6 @@ const server = http.createServer(async (req, res) => {
     return res.end();
   }
 
-  /* CHAT */
   if (url === "/api/chat" && req.method === "POST") {
     let body = "";
 
@@ -268,7 +269,6 @@ const server = http.createServer(async (req, res) => {
 
     req.on("end", async () => {
       const { message } = JSON.parse(body || "{}");
-
       const result = await pipeline(message);
 
       res.writeHead(200, { "Content-Type": "application/json" });
@@ -278,7 +278,6 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  /* UPLOAD */
   if (url === "/api/upload" && req.method === "POST") {
     let body = "";
 
@@ -295,7 +294,6 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  /* STATIC */
   const filePath = url === "/" ? "index.html" : path.join(__dirname, url);
 
   fs.readFile(filePath, (err, data) => {
