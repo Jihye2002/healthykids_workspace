@@ -17,10 +17,12 @@ const DOCUMENTS = [
 ];
 
 /* =========================
-   EMBEDDING
+   EMBEDDING (OPENAI)
 ========================= */
 async function embed(text) {
   try {
+    if (!OPENAI_API_KEY) return new Array(1536).fill(0);
+
     const res = await fetch("https://api.openai.com/v1/embeddings", {
       method: "POST",
       headers: {
@@ -35,11 +37,7 @@ async function embed(text) {
 
     const data = await res.json();
 
-    if (!data?.data?.[0]?.embedding) {
-      return new Array(1536).fill(0);
-    }
-
-    return data.data[0].embedding;
+    return data?.data?.[0]?.embedding || new Array(1536).fill(0);
 
   } catch {
     return new Array(1536).fill(0);
@@ -79,7 +77,20 @@ async function buildDB() {
   console.log("✅ VECTOR DB READY");
 }
 
-buildDB();
+/* =========================
+   SEARCH
+========================= */
+async function search(query) {
+  const qVec = await embed(query);
+
+  return VECTOR_DB
+    .map(doc => ({
+      ...doc,
+      score: cosine(qVec, doc.vector)
+    }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5);
+}
 
 /* =========================
    GROQ ANSWER
@@ -103,7 +114,7 @@ URL: ${r.url}
         messages: [
           {
             role: "system",
-            content: "반드시 JSON으로만 답변: {reply:'', results:[]}"
+            content: "반드시 JSON으로만 답변: {\"reply\":\"\",\"results\":[]}"
           },
           {
             role: "user",
@@ -123,23 +134,8 @@ URL: ${r.url}
     }
 
   } catch {
-    return { reply: "서버 오류", results: [] };
+    return { reply: "서버 오류 발생", results: [] };
   }
-}
-
-/* =========================
-   SEARCH
-========================= */
-async function search(query) {
-  const qVec = await embed(query);
-
-  return VECTOR_DB
-    .map(doc => ({
-      ...doc,
-      score: cosine(qVec, doc.vector)
-    }))
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 5);
 }
 
 /* =========================
@@ -158,14 +154,21 @@ const server = http.createServer(async (req, res) => {
   const url = req.url.split("?")[0];
 
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Content-Type", "application/json");
 
   if (req.method === "OPTIONS") {
     res.writeHead(204);
     return res.end();
   }
 
-  if (url === "/api/chat" && req.method === "POST") {
+  /* =========================
+     API
+  ========================= */
+  if (url === "/api/chat") {
+
+    if (req.method !== "POST") {
+      res.writeHead(405, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "method not allowed" }));
+    }
 
     let body = "";
 
@@ -180,7 +183,7 @@ const server = http.createServer(async (req, res) => {
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(JSON.stringify(result));
 
-      } catch {
+      } catch (err) {
         res.writeHead(500, { "Content-Type": "application/json" });
         res.end(JSON.stringify({
           error: true,
@@ -193,20 +196,39 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // STATIC
+  /* =========================
+     STATIC FILES
+  ========================= */
   let filePath = url === "/" ? "index.html" : path.join(__dirname, url);
 
   fs.readFile(filePath, (err, data) => {
     if (err) {
-      res.writeHead(404);
+      res.writeHead(404, { "Content-Type": "text/plain" });
       return res.end("404");
     }
 
-    res.writeHead(200);
+    const ext = path.extname(filePath);
+
+    const mime = {
+      ".html": "text/html",
+      ".js": "text/javascript",
+      ".css": "text/css",
+      ".png": "image/png",
+      ".jpg": "image/jpeg"
+    };
+
+    res.writeHead(200, {
+      "Content-Type": mime[ext] || "text/plain"
+    });
+
     res.end(data);
   });
 });
 
-server.listen(PORT, () => {
+/* =========================
+   START
+========================= */
+server.listen(PORT, async () => {
   console.log("🚀 SERVER RUNNING ON", PORT);
+  await buildDB();
 });
