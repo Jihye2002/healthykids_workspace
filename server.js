@@ -8,53 +8,70 @@ const PORT = process.env.PORT || 3000;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
+/* =========================
+   MEMORY DB
+========================= */
 let DOCUMENTS = [];
 let VECTOR_DB = [];
 
 /* =========================
-   TEXT CLEAN
+   CLEAN TEXT
 ========================= */
-function stripHtml(html) {
+function cleanText(html){
   return html
     .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "")
     .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, "")
-    .replace(/<[^>]*>/g, " ")
+    .replace(/<[^>]+>/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
 
-function splitParagraphs(text) {
+function split(text){
   return text
-    .split(/\n\s*\n|(?<=[.!?])\s+/g)
-    .map(t => t.trim())
-    .filter(t => t.length > 20);
+    .split(/(?<=[.!?])\s+/)
+    .filter(t => t.length > 25);
 }
 
 /* =========================
-   LOAD SITE
+   ADD DOCUMENT (핵심)
 ========================= */
-function loadSite() {
+function addDocument(doc){
+  DOCUMENTS.push(doc);
+}
+
+/* =========================
+   LOAD ALL HTML FILES
+========================= */
+function loadSite(){
+
   DOCUMENTS = [];
 
-  const html = fs.readFileSync("index.html", "utf-8");
+  const files = fs.readdirSync(__dirname)
+    .filter(f => f.endsWith(".html"));
 
-  splitParagraphs(stripHtml(html)).forEach((p, i) => {
-    DOCUMENTS.push({
-      title: `헬시키즈 메인 홈페이지 ${i + 1}`,
-      text: p,
-      url: "/index.html",
-      type: "html"
+  files.forEach(file => {
+
+    const html = fs.readFileSync(file, "utf-8");
+
+    split(cleanText(html)).forEach((t, i) => {
+      addDocument({
+        title: `${file} ${i}`,
+        text: t,
+        url: `/${file}`,
+        type: "html"
+      });
     });
   });
 
-  console.log("사이트 로딩 완료:", DOCUMENTS.length);
+  console.log("📦 사이트 로딩 완료:", DOCUMENTS.length);
 }
 
 /* =========================
    EMBEDDING
 ========================= */
-async function embed(text) {
-  try {
+async function embed(text){
+
+  try{
     const res = await fetch("https://api.openai.com/v1/embeddings", {
       method: "POST",
       headers: {
@@ -69,94 +86,92 @@ async function embed(text) {
 
     const data = await res.json();
     return data?.data?.[0]?.embedding || [];
-  } catch {
+  }catch{
     return [];
   }
 }
 
 /* =========================
-   VECTOR BUILD
+   VECTOR BUILD (실시간)
 ========================= */
-async function rebuildVector() {
+async function rebuildVector(){
+
   VECTOR_DB = [];
 
-  for (const d of DOCUMENTS) {
+  for(const d of DOCUMENTS){
+
     const v = await embed(d.text);
-    VECTOR_DB.push({ ...d, vector: v || [] });
+
+    VECTOR_DB.push({
+      ...d,
+      vector: v
+    });
   }
 
-  console.log("벡터 준비 완료:", VECTOR_DB.length);
+  console.log("🧠 Vector DB 업데이트:", VECTOR_DB.length);
 }
 
 /* =========================
-   COSINE
+   COSINE SIMILARITY
 ========================= */
-function cosine(a, b) {
-  if (!a.length || !b.length) return 0;
+function cosine(a,b){
 
-  let dot = 0, ma = 0, mb = 0;
+  if(!a.length || !b.length) return 0;
 
-  for (let i = 0; i < a.length; i++) {
-    dot += a[i] * b[i];
-    ma += a[i] ** 2;
-    mb += b[i] ** 2;
+  let dot=0, ma=0, mb=0;
+
+  for(let i=0;i<a.length;i++){
+    dot += a[i]*b[i];
+    ma += a[i]*a[i];
+    mb += b[i]*b[i];
   }
 
-  return dot / (Math.sqrt(ma) * Math.sqrt(mb) + 1e-9);
+  return dot / (Math.sqrt(ma)*Math.sqrt(mb) + 1e-9);
 }
 
 /* =========================
-   SEARCH (안정 + 키워드 보강)
+   SEARCH (핵심 개선)
 ========================= */
-async function search(query) {
+async function search(query){
+
   const q = await embed(query);
 
   return DOCUMENTS.map(d => {
+
     let score = 0;
 
-    if (q.length && d.vector.length) {
+    if(q.length && d.vector.length){
       score = cosine(q, d.vector);
     }
 
-    if (d.text.includes(query)) score += 0.3;
+    if(d.text.includes(query)) score += 0.25;
 
     return { ...d, score };
   })
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 6)
-    .map(({ score, ...r }) => r);
+  .filter(x => x.score > 0.5)
+  .sort((a,b)=>b.score-a.score)
+  .slice(0,5);
 }
 
 /* =========================
-   SAFE JSON
+   AI SUMMARY (핵심 안전모드)
 ========================= */
-function safeJSON(text, fallback) {
-  try {
-    return JSON.parse(text);
-  } catch {
-    const m = text.match(/\{[\s\S]*\}/);
-    if (!m) return fallback;
-    try {
-      return JSON.parse(m[0]);
-    } catch {
-      return fallback;
-    }
+async function summarize(query, results){
+
+  if(results.length === 0){
+    return {
+      reply: "이 내용은 현재 헬시키즈 자료에 없어요 😊",
+      results: []
+    };
   }
-}
-
-/* =========================
-   CHILD FRIENDLY SUMMARY (핵심 수정)
-========================= */
-async function summarize(query, results) {
 
   const context = results.map(r => `
-[자료]
 제목: ${r.title}
 내용: ${r.text}
 링크: ${r.url}
-`).join("\n");
+`).join("\n\n");
 
-  try {
+  try{
     const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -169,25 +184,22 @@ async function summarize(query, results) {
           {
             role: "system",
             content: `
-너는 5~7세 아이들과 선생님을 위한 아주 친절한 교육 AI야.
+너는 유치원/초등 교육 AI이다.
 
-반드시 아래 규칙을 지켜:
+절대 규칙:
+- 반드시 제공된 자료만 사용
+- 없는 내용은 만들지 말 것
+- 3~4줄 쉬운 설명
+- 부드럽고 친절한 말투
+- JSON만 출력
 
-1. 말투는 아주 부드럽고 따뜻하게
-2. 설명은 5~7줄 정도로 조금 자세하게
-3. 어려운 단어는 쉽게 풀어서 설명
-4. 친근한 예시를 포함
-5. JSON만 출력
-
-출력 형식:
 {
- "reply": "",
- "results": [
+ "reply":"",
+ "results":[
    {
-     "title": "",
-     "summary": "",
-     "url": "",
-     "type": ""
+     "title":"",
+     "summary":"",
+     "url":""
    }
  ]
 }
@@ -195,7 +207,7 @@ async function summarize(query, results) {
           },
           {
             role: "user",
-            content: `질문: ${query}\n\n${context}`
+            content: `${query}\n\n${context}`
           }
         ]
       })
@@ -203,14 +215,18 @@ async function summarize(query, results) {
 
     const data = await res.json();
 
-    return safeJSON(data?.choices?.[0]?.message?.content, {
-      reply: "잠깐만 기다려주세요 😊",
-      results
-    });
+    try{
+      return JSON.parse(data.choices[0].message.content);
+    }catch{
+      return {
+        reply: "내용을 정리했어요 😊",
+        results
+      };
+    }
 
-  } catch {
+  }catch{
     return {
-      reply: "내용을 정리했어요 😊",
+      reply: "AI 서버 연결에 문제가 있어요 😢",
       results
     };
   }
@@ -219,108 +235,113 @@ async function summarize(query, results) {
 /* =========================
    PIPELINE
 ========================= */
-async function pipeline(msg) {
+async function pipeline(msg){
+
   const results = await search(msg);
+
   return await summarize(msg, results);
 }
 
 /* =========================
-   FILE UPLOAD
+   FILE UPLOAD (실시간 반영)
 ========================= */
-async function addFile(file) {
+async function addFile(file){
 
-  if (file.name.endsWith(".pdf")) {
+  if(file.name.endsWith(".pdf")){
+
     const buffer = Buffer.from(file.content, "base64");
     const parsed = await pdfParse(buffer);
 
-    splitParagraphs(parsed.text).forEach((p, i) => {
-      DOCUMENTS.push({
-        title: `📄 ${file.name} ${i + 1}`,
-        text: p,
-        url: "/files/" + file.name,
-        type: "pdf"
+    split(parsed.text).forEach((t,i)=>{
+      addDocument({
+        title:`📄 ${file.name} ${i}`,
+        text:t,
+        url:`/files/${file.name}`,
+        type:"pdf"
       });
     });
   }
 
-  if (file.name.endsWith(".mp4")) {
-    DOCUMENTS.push({
-      title: `🎬 ${file.name}`,
-      text: "이 영상은 쉽고 재미있는 학습 영상이에요",
-      url: "/files/" + file.name,
-      type: "video"
-    });
-  }
-
   await rebuildVector();
-  return { ok: true };
+
+  return { ok:true };
 }
 
 /* =========================
    SERVER
 ========================= */
-const server = http.createServer(async (req, res) => {
+const server = http.createServer(async (req,res)=>{
 
-  const url = req.url.split("?")[0];
+  res.setHeader("Access-Control-Allow-Origin","*");
+  res.setHeader("Access-Control-Allow-Headers","Content-Type");
+  res.setHeader("Access-Control-Allow-Methods","GET,POST,OPTIONS");
 
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-  res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
-
-  if (req.method === "OPTIONS") {
+  if(req.method === "OPTIONS"){
     res.writeHead(204);
     return res.end();
   }
 
-  if (url === "/api/chat") {
-    let body = "";
+  /* CHAT */
+  if(req.url === "/api/chat"){
 
-    req.on("data", c => body += c);
+    let body="";
+    req.on("data",c=>body+=c);
 
-    req.on("end", async () => {
-      const { message } = JSON.parse(body || "{}");
+    req.on("end",async()=>{
+
+      const {message} = JSON.parse(body || "{}");
+
       const result = await pipeline(message);
 
-      res.writeHead(200, { "Content-Type": "application/json" });
+      res.writeHead(200,{"Content-Type":"application/json"});
       res.end(JSON.stringify(result));
     });
 
     return;
   }
 
-  if (url === "/api/upload") {
-    let body = "";
+  /* UPLOAD */
+  if(req.url === "/api/upload"){
 
-    req.on("data", c => body += c);
+    let body="";
+    req.on("data",c=>body+=c);
 
-    req.on("end", async () => {
+    req.on("end",async()=>{
+
       const file = JSON.parse(body || "{}");
+
       const result = await addFile(file);
 
-      res.writeHead(200, { "Content-Type": "application/json" });
+      res.writeHead(200,{"Content-Type":"application/json"});
       res.end(JSON.stringify(result));
     });
 
     return;
   }
 
-  const filePath = url === "/" ? "index.html" : path.join(__dirname, url);
+  /* STATIC FILE */
+  const filePath = req.url === "/"
+    ? "index.html"
+    : path.join(__dirname, req.url);
 
-  fs.readFile(filePath, (err, data) => {
-    if (err) {
+  fs.readFile(filePath,(err,data)=>{
+
+    if(err){
       res.writeHead(404);
-      return res.end("페이지를 찾을 수 없어요");
+      return res.end("not found");
     }
+
     res.writeHead(200);
     res.end(data);
   });
 });
 
-(async () => {
+/* INIT */
+(async()=>{
   loadSite();
   await rebuildVector();
 })();
 
-server.listen(PORT, () => {
-  console.log("헬시키즈 서버 실행:", PORT);
+server.listen(PORT, ()=>{
+  console.log("🚀 헬시키즈 AI 서버 실행:", PORT);
 });
