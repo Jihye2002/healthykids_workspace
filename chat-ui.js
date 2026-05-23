@@ -3,7 +3,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const API_BASE = "https://healthykids-workspace.onrender.com";
 
   /* =========================
-     STYLE (GPT STYLE)
+     STYLE
   ========================= */
   const style = document.createElement("style");
 
@@ -12,9 +12,9 @@ document.addEventListener("DOMContentLoaded", () => {
     position:fixed;
     bottom:90px;
     right:20px;
-    width:420px;
-    height:650px;
-    background:#ffffff;
+    width:430px;
+    height:680px;
+    background:#fff;
     border-radius:18px;
     box-shadow:0 20px 50px rgba(0,0,0,0.2);
     display:none;
@@ -26,12 +26,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   #chatHeader{
     background:#2f63c7;
-    color:white;
+    color:#fff;
     padding:14px;
     font-weight:bold;
     display:flex;
     justify-content:space-between;
-    align-items:center;
   }
 
   #chatBody{
@@ -42,7 +41,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   .msg{
-    max-width:90%;
+    max-width:92%;
     padding:10px 12px;
     margin:8px 0;
     border-radius:12px;
@@ -52,7 +51,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   .user{
     background:#2f63c7;
-    color:white;
+    color:#fff;
     margin-left:auto;
   }
 
@@ -61,7 +60,32 @@ document.addEventListener("DOMContentLoaded", () => {
     border:1px solid #ddd;
   }
 
-  /* ================= GPT INPUT BAR ================= */
+  /* ===== GUIDE BOX ===== */
+  .guideBox, .guideBox2{
+    background:#eef3ff;
+    padding:12px;
+    border-radius:12px;
+    margin-bottom:10px;
+    font-size:13px;
+    line-height:1.5;
+  }
+
+  .guideBox2{
+    background:#e7f0ff;
+  }
+
+  .guideBtn{
+    display:inline-block;
+    margin-top:8px;
+    padding:7px 12px;
+    background:#2f63c7;
+    color:#fff;
+    border-radius:8px;
+    text-decoration:none;
+    font-size:12px;
+  }
+
+  /* INPUT */
   #inputBox{
     display:flex;
     align-items:center;
@@ -71,40 +95,49 @@ document.addEventListener("DOMContentLoaded", () => {
     background:#fff;
   }
 
+  /* + 버튼 (원형) */
   #uploadBtn{
-    width:40px;
-    height:40px;
-    border-radius:10px;
+    width:42px;
+    height:42px;
+    border-radius:50%;
     background:#2f63c7;
-    color:white;
+    color:#fff;
     display:flex;
-    align-items:center;
     justify-content:center;
+    align-items:center;
+    font-size:20px;
     cursor:pointer;
-    font-size:18px;
   }
 
   #file{ display:none; }
 
   #text{
     flex:1;
-    height:40px;
-    resize:none;
+    height:42px;
     padding:10px;
     border-radius:10px;
     border:1px solid #ddd;
     outline:none;
-    font-size:14px;
   }
 
   #send{
     width:70px;
-    height:40px;
+    height:42px;
+    background:#2f63c7;
+    color:#fff;
     border:none;
     border-radius:10px;
-    background:#2f63c7;
-    color:white;
     cursor:pointer;
+  }
+
+  #voiceBtn{
+    width:42px;
+    height:42px;
+    border-radius:50%;
+    background:#ffcc00;
+    border:none;
+    cursor:pointer;
+    font-weight:bold;
   }
 
   #toggleBtn{
@@ -115,29 +148,9 @@ document.addEventListener("DOMContentLoaded", () => {
     height:60px;
     border-radius:50%;
     background:#2f63c7;
-    color:white;
+    color:#fff;
     border:none;
     font-size:22px;
-    cursor:pointer;
-  }
-
-  .guideBox{
-    background:#eef3ff;
-    padding:10px;
-    border-radius:10px;
-    margin-bottom:10px;
-    font-size:13px;
-  }
-
-  .guideBtn{
-    display:inline-block;
-    margin-top:6px;
-    padding:6px 10px;
-    background:#2f63c7;
-    color:white;
-    border-radius:8px;
-    text-decoration:none;
-    font-size:12px;
   }
   `;
 
@@ -149,18 +162,20 @@ document.addEventListener("DOMContentLoaded", () => {
   document.body.insertAdjacentHTML("beforeend", `
     <div id="chatApp">
       <div id="chatHeader">
-        AI 검색 엔진
+        헬시키즈 AI
         <span id="closeBtn" style="cursor:pointer;">✕</span>
       </div>
 
       <div id="chatBody"></div>
 
       <div id="inputBox">
-        <label id="uploadBtn" for="file">＋</label>
-        <input type="file" id="file">
+        <label id="uploadBtn">＋
+          <input type="file" id="file">
+        </label>
 
-        <textarea id="text" placeholder="검색어 입력 (Enter=전송 / Shift+Enter=줄바꿈)"></textarea>
+        <textarea id="text" placeholder="질문 입력 (Enter 전송 / Shift+Enter 줄바꿈)"></textarea>
 
+        <button id="voiceBtn">🎤</button>
         <button id="send">검색</button>
       </div>
     </div>
@@ -168,67 +183,64 @@ document.addEventListener("DOMContentLoaded", () => {
     <button id="toggleBtn">💬</button>
   `);
 
-  const chatApp = document.getElementById("chatApp");
   const body = document.getElementById("chatBody");
   const input = document.getElementById("text");
 
   /* =========================
-     RESET + GUIDE
+     GUIDE BOX 2개
   ========================= */
   function resetChat() {
     body.innerHTML = "";
 
-    const guide = document.createElement("div");
-    guide.className = "guideBox";
-    guide.innerHTML = `
-      🔎 AI 검색 사용법<br><br>
-      1. 질문 입력 → 의미 기반 검색<br>
-      2. 파일 업로드 → 자동 반영<br>
-      3. 결과 클릭 → 원본 페이지 이동<br><br>
-
-      💡 예시:<br>
-      - 감기 예방 방법 알려줘<br>
-      - 손씻기 관련 자료 찾아줘<br>
-      - 건강한 음식 추천해줘<br><br>
-
-      📌 가이드를 더 자세히 보려면 아래 버튼 클릭
-      <br>
-      <a class="guideBtn" href="guide.html">가이드 보기</a>
+    const box1 = document.createElement("div");
+    box1.className = "guideBox";
+    box1.innerHTML = `
+      🔎 <b>헬시키즈 챗봇 사용 방법</b><br><br>
+      - 궁금한 내용을 입력하면 쉽게 설명해줘요<br>
+      - 손씻기, 건강, 안전 정보를 알려줘요<br>
+      - 영상, PDF, 홈페이지 내용을 함께 찾아요
     `;
 
-    body.appendChild(guide);
+    const box2 = document.createElement("div");
+    box2.className = "guideBox2";
+    box2.innerHTML = `
+      📘 <b>헬시키즈 전체 가이드</b><br><br>
+      헬시키즈는 아이들이 건강하고 안전하게 생활할 수 있도록 돕는 서비스예요.<br>
+      손씻기, 위생, 안전, 건강 습관을 재미있게 배울 수 있어요.<br><br>
+
+      아래 버튼을 누르면 전체 가이드 페이지로 이동해요.
+      <br>
+      <a class="guideBtn" href="guide.html">헬시키즈 가이드 보기</a>
+    `;
+
+    body.appendChild(box1);
+    body.appendChild(box2);
   }
 
   /* =========================
      MESSAGE
   ========================= */
-  function addMessage(type, text) {
+  function addMessage(type, text){
     const div = document.createElement("div");
     div.className = `msg ${type}`;
     div.innerText = text;
     body.appendChild(div);
-    body.scrollTop = body.scrollHeight;
   }
 
   /* =========================
      CARD
   ========================= */
-  function addCard(r) {
+  function addCard(r){
     const div = document.createElement("div");
     div.className = "msg ai";
 
     div.innerHTML = `
-      <b>${r.title || "결과"}</b><br>
+      <b>${r.title}</b><br>
       ${r.summary || ""}<br><br>
-      <a href="${r.url}" target="_blank" style="
-        display:inline-block;
-        padding:6px 10px;
-        background:#2f63c7;
-        color:#fff;
-        border-radius:8px;
-        text-decoration:none;
-        font-size:12px;
-      ">이동</a>
+      <a href="${r.url}" target="_blank"
+        style="padding:6px 10px;background:#2f63c7;color:#fff;border-radius:8px;text-decoration:none;">
+        이동
+      </a>
     `;
 
     body.appendChild(div);
@@ -237,70 +249,79 @@ document.addEventListener("DOMContentLoaded", () => {
   /* =========================
      SEND
   ========================= */
-  async function send() {
+  async function send(){
     const text = input.value.trim();
-    if (!text) return;
+    if(!text) return;
 
     addMessage("user", text);
     input.value = "";
 
     addMessage("ai", "🔍 검색 중...");
 
-    try {
-      const res = await fetch(`${API_BASE}/api/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text })
-      });
+    const res = await fetch(`${API_BASE}/api/chat`, {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ message:text })
+    });
 
-      const data = await res.json();
+    const data = await res.json();
 
-      body.lastChild.remove();
+    body.lastChild.remove();
 
-      addMessage("ai", data.reply || "결과 없음");
+    addMessage("ai", data.reply || "결과 없음");
 
-      if (Array.isArray(data.results)) {
-        data.results.forEach(addCard);
-      }
-
-    } catch (e) {
-      body.lastChild?.remove();
-      addMessage("ai", "❌ 서버 연결 실패");
-    }
+    (data.results || []).forEach(addCard);
   }
 
   /* =========================
-     ENTER / SHIFT+ENTER
+     ENTER + SHIFT
   ========================= */
-  input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+  input.addEventListener("keydown", (e)=>{
+    if(e.key==="Enter" && !e.shiftKey){
       e.preventDefault();
       send();
     }
   });
 
   /* =========================
+     VOICE (Web Speech API)
+  ========================= */
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  if(SpeechRecognition){
+    const recog = new SpeechRecognition();
+    recog.lang = "ko-KR";
+
+    document.getElementById("voiceBtn").onclick = ()=>{
+      recog.start();
+    };
+
+    recog.onresult = (e)=>{
+      input.value = e.results[0][0].transcript;
+      send();
+    };
+  }
+
+  /* =========================
      FILE UPLOAD
   ========================= */
-  document.getElementById("file").addEventListener("change", async (e) => {
+  document.getElementById("file").addEventListener("change", async (e)=>{
     const file = e.target.files[0];
-    if (!file) return;
+    if(!file) return;
 
     const reader = new FileReader();
 
-    reader.onload = async () => {
-      addMessage("user", "📁 파일 업로드");
-
+    reader.onload = async ()=>{
       await fetch(`${API_BASE}/api/upload`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: file.name,
-          content: reader.result.split(",")[1]
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+          name:file.name,
+          content:reader.result.split(",")[1]
         })
       });
 
-      addMessage("ai", "📄 즉시 검색 반영 완료");
+      addMessage("ai","📄 문서가 검색 데이터로 추가되었어요");
     };
 
     reader.readAsDataURL(file);
@@ -311,14 +332,14 @@ document.addEventListener("DOMContentLoaded", () => {
   ========================= */
   document.getElementById("send").onclick = send;
 
-  document.getElementById("toggleBtn").onclick = () => {
-    chatApp.style.display = "flex";
+  document.getElementById("toggleBtn").onclick = ()=>{
+    document.getElementById("chatApp").style.display="flex";
     resetChat();
   };
 
-  document.getElementById("closeBtn").onclick = () => {
-    chatApp.style.display = "none";
-    body.innerHTML = "";
+  document.getElementById("closeBtn").onclick = ()=>{
+    document.getElementById("chatApp").style.display="none";
+    body.innerHTML="";
   };
 
 });
