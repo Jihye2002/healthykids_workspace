@@ -8,13 +8,10 @@ document.addEventListener("DOMContentLoaded", () => {
   document.head.insertAdjacentHTML("beforeend", `
   <style>
 
-    /* =========================
-       CHAT WINDOW
-    ========================= */
     #chatApp{
       position:fixed;
       bottom:110px;
-      right:20px;
+      right:25px;
       width:420px;
       height:650px;
       background:#f6f7fb;
@@ -27,44 +24,64 @@ document.addEventListener("DOMContentLoaded", () => {
       font-family:Arial;
     }
 
-    /* HEADER */
     #chatHeader{
       background:#2f63c7;
       color:#fff;
       padding:14px;
-      font-weight:bold;
       display:flex;
       justify-content:space-between;
       align-items:center;
+      font-weight:bold;
     }
 
-    /* BODY */
     #chatBody{
       flex:1;
       padding:14px;
       overflow-y:auto;
       display:flex;
       flex-direction:column;
-      gap:10px;
+      gap:12px;
     }
 
     /* =========================
-       MESSAGE RESET (말풍선 제거)
+       GUIDE BOX
+    ========================= */
+    .guideBox{
+      background:#fff;
+      border-radius:14px;
+      padding:14px;
+      border:1px solid #e5e5e5;
+    }
+
+    .guideTitle{
+      font-weight:bold;
+      color:#2f63c7;
+      margin-bottom:8px;
+    }
+
+    .guideBtn{
+      margin-top:10px;
+      display:inline-block;
+      padding:6px 10px;
+      background:#2f63c7;
+      color:#fff;
+      border-radius:8px;
+      font-size:13px;
+      text-decoration:none;
+    }
+
+    /* =========================
+       MESSAGE
     ========================= */
     .msg{
-      max-width:100%;
       display:flex;
-      align-items:flex-start;
       gap:10px;
       font-size:14px;
       line-height:1.5;
     }
 
-    /* USER */
     .user{
       justify-content:flex-end;
-      text-align:right;
-      color:#333;
     }
 
     .user .bubble{
@@ -72,45 +89,30 @@ document.addEventListener("DOMContentLoaded", () => {
       color:#fff;
       padding:10px 14px;
       border-radius:14px;
-      max-width:75%;
+      max-width:70%;
     }
 
-    /* AI (로봇 스타일) */
-    .ai{
-      justify-content:flex-start;
-    }
-
-    /* 로봇 아이콘 */
-    .robot{
-      width:36px;
-      height:36px;
-      min-width:36px;
-      border-radius:50%;
-      background:#2f63c7;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      color:#fff;
-      font-size:18px;
-      box-shadow:0 4px 10px rgba(0,0,0,0.15);
-    }
-
-    /* AI 말 */
     .ai .bubble{
       background:#fff;
       border:1px solid #ddd;
       padding:10px 14px;
       border-radius:14px;
-      max-width:75%;
+      max-width:70%;
     }
 
-    /* GUIDE */
-    .guide{
-      background:#eef5ff;
-      padding:12px;
-      border-radius:12px;
-      font-size:13px;
-      line-height:1.5;
+    /* =========================
+       ROBOT ICON (SVG)
+    ========================= */
+    .robotIcon{
+      width:34px;
+      height:34px;
+      min-width:34px;
+      border-radius:50%;
+      background:#2f63c7;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      box-shadow:0 4px 10px rgba(0,0,0,0.15);
     }
 
     /* =========================
@@ -130,21 +132,6 @@ document.addEventListener("DOMContentLoaded", () => {
       border-radius:10px;
       border:1px solid #ddd;
       padding:10px;
-      outline:none;
-    }
-
-    #voiceBtn{
-      width:42px;
-      height:42px;
-      border-radius:50%;
-      background:#444;
-      color:#fff;
-      border:none;
-      cursor:pointer;
-    }
-
-    #voiceBtn.recording{
-      background:#e74c3c;
     }
 
     #send{
@@ -153,11 +140,10 @@ document.addEventListener("DOMContentLoaded", () => {
       color:#fff;
       border:none;
       border-radius:10px;
-      cursor:pointer;
     }
 
     /* =========================
-       🔵 완전 원형 챗봇 버튼
+       TOGGLE BUTTON (ROBOT)
     ========================= */
     #toggleBtn{
       position:fixed;
@@ -167,20 +153,12 @@ document.addEventListener("DOMContentLoaded", () => {
       height:70px;
       border-radius:50%;
       background:#2f63c7;
-      color:#fff;
-      border:none;
-      font-size:28px;
-      cursor:pointer;
-      z-index:10000;
-      box-shadow:0 12px 30px rgba(0,0,0,0.25);
       display:flex;
       align-items:center;
       justify-content:center;
-    }
-
-    #toggleBtn:hover{
-      transform:scale(1.05);
-      transition:0.2s;
+      border:none;
+      cursor:pointer;
+      box-shadow:0 12px 30px rgba(0,0,0,0.25);
     }
 
   </style>
@@ -200,37 +178,42 @@ document.addEventListener("DOMContentLoaded", () => {
     <div id="chatBody"></div>
 
     <div id="inputBox">
-      <textarea id="text" placeholder="궁금한 걸 물어보세요 😊"></textarea>
-      <button id="voiceBtn">🎙</button>
+      <input id="text" placeholder="궁금한 걸 물어보세요 😊" />
       <button id="send">검색</button>
     </div>
+
   </div>
 
-  <!-- 🔵 원형 버튼 -->
-  <button id="toggleBtn">🤖</button>
+  <!-- ROBOT BUTTON (SVG) -->
+  <button id="toggleBtn">
+    <svg width="30" height="30" viewBox="0 0 24 24" fill="white">
+      <path d="M12 2a2 2 0 00-2 2v1H7a3 3 0 00-3 3v9a3 3 0 003 3h10a3 3 0 003-3V8a3 3 0 00-3-3h-3V4a2 2 0 00-2-2zm-4 9h2v2H8v-2zm6 0h2v2h-2v-2z"/>
+    </svg>
+  </button>
   `);
 
   const body = document.getElementById("chatBody");
   const input = document.getElementById("text");
 
   /* =========================
-     GUIDE
+     GUIDE (2 BOX)
   ========================= */
   function showGuide(){
+
     body.innerHTML = "";
 
     body.innerHTML = `
-      <div class="guide">
-        🌼 <b>헬시키즈 사용 방법</b><br><br>
-        ★ 안전, 건강, 생활습관을 쉽게 알려줘요<br>
-        ★ 영상과 자료도 함께 볼 수 있어요 😊
+      <div class="guideBox">
+        <div class="guideTitle">💡 AI 사용 예시</div>
+        <div>• 손 씻는 방법 알려줘</div>
+        <div>• 감기 예방 방법</div>
+        <div>• 횡단보도 안전하게 건너기</div>
       </div>
 
-      <div class="guide">
-        💡 <b>이렇게 물어보면 좋아요</b><br>
-        “손 씻는 방법 알려줘”<br>
-        “감기 안 걸리는 방법”<br>
-        “횡단보도 안전하게 건너기”
+      <div class="guideBox">
+        <div class="guideTitle">📘 헬시키즈 이용 가이드</div>
+        <div>홈페이지의 영상, 자료, 안전수칙을 쉽게 배울 수 있어요.</div>
+        <a class="guideBtn" href="guide.html">가이드 보기</a>
       </div>
     `;
   }
@@ -245,39 +228,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if(type === "ai"){
       wrap.innerHTML = `
-        <div class="robot">🤖</div>
+        <div class="robotIcon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
+            <path d="M12 2a2 2 0 00-2 2v1H7a3 3 0 00-3 3v9a3 3 0 003 3h10a3 3 0 003-3V8a3 3 0 00-3-3h-3V4a2 2 0 00-2-2z"/>
+          </svg>
+        </div>
         <div class="bubble">${text}</div>
       `;
     } else {
-      wrap.innerHTML = `
-        <div class="bubble">${text}</div>
-      `;
+      wrap.innerHTML = `<div class="bubble">${text}</div>`;
     }
 
     body.appendChild(wrap);
     body.scrollTop = body.scrollHeight;
-  }
-
-  /* =========================
-     CARD
-  ========================= */
-  function addCard(r){
-    const d = document.createElement("div");
-    d.className = "msg ai";
-
-    d.innerHTML = `
-      <div class="robot">🤖</div>
-      <div class="bubble">
-        <b>${r.title}</b><br>
-        ${r.summary || ""}<br><br>
-        <a href="${r.url}" target="_blank"
-          style="padding:6px 10px;background:#2f63c7;color:#fff;border-radius:8px;text-decoration:none;">
-          👉 보러가기
-        </a>
-      </div>
-    `;
-
-    body.appendChild(d);
   }
 
   /* =========================
@@ -291,9 +254,10 @@ document.addEventListener("DOMContentLoaded", () => {
     addMsg("user", text);
     input.value = "";
 
-    addMsg("ai", "검색 중... 🤖");
+    addMsg("ai", "조금만 기다려주세요 😊");
 
     try{
+
       const res = await fetch(`${API_BASE}/api/chat`, {
         method:"POST",
         headers:{"Content-Type":"application/json"},
@@ -304,66 +268,40 @@ document.addEventListener("DOMContentLoaded", () => {
 
       body.lastChild.remove();
 
-      addMsg("ai", data.reply || "결과를 찾았어요 😊");
+      addMsg("ai", data.reply || "찾은 내용이 없어요 😢");
 
-      (data.results || []).forEach(addCard);
+      if(!data.results || data.results.length === 0){
+        addMsg("ai", "이 내용은 아직 자료에 없어요.");
+        return;
+      }
+
+      data.results.forEach(r=>{
+        const d = document.createElement("div");
+        d.className = "msg ai";
+        d.innerHTML = `
+          <div class="robotIcon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
+              <path d="M12 2a2 2 0 00-2 2v1H7a3 3 0 00-3 3v9a3 3 0 003 3h10a3 3 0 003-3V8a3 3 0 00-3-3h-3V4a2 2 0 00-2-2z"/>
+            </svg>
+          </div>
+          <div class="bubble">
+            <b>${r.title}</b><br>
+            ${r.summary}<br><br>
+            <a href="${r.url}" target="_blank">👉 보러가기</a>
+          </div>
+        `;
+        body.appendChild(d);
+      });
 
     }catch(e){
       body.lastChild.remove();
-      addMsg("ai", "서버 연결 문제가 있어요 😢");
+      addMsg("ai", "서버 연결이 안 돼요 😢");
     }
   }
 
-  /* =========================
-     EVENTS
-  ========================= */
+  /* EVENTS */
   document.getElementById("send").onclick = send;
 
-  /* =========================
-     VOICE
-  ========================= */
-  let rec;
-  let listening = false;
-
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-  if(SR){
-    rec = new SR();
-    rec.lang = "ko-KR";
-    rec.interimResults = true;
-
-    rec.onresult = (e)=>{
-      let t="";
-      for(let i=e.resultIndex;i<e.results.length;i++){
-        t += e.results[i][0].transcript;
-      }
-      input.value = t;
-    };
-
-    rec.onend = ()=>{
-      listening = false;
-      document.getElementById("voiceBtn").classList.remove("recording");
-      if(input.value.trim()) send();
-    };
-  }
-
-  document.getElementById("voiceBtn").onclick = ()=>{
-    if(!rec) return;
-
-    if(listening){
-      rec.stop();
-      listening = false;
-      return;
-    }
-
-    rec.start();
-    listening = true;
-    document.getElementById("voiceBtn").classList.add("recording");
-  };
-
-  /* =========================
-     OPEN / CLOSE
-  ========================= */
   document.getElementById("toggleBtn").onclick = ()=>{
     document.getElementById("chatApp").style.display = "flex";
     showGuide();
