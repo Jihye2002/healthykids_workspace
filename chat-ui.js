@@ -55,7 +55,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     .guideTitle{
       font-weight:bold;
-      color:#2f63c7;
+      color:#000;
       margin-bottom:10px;
     }
 
@@ -117,23 +117,45 @@ document.addEventListener("DOMContentLoaded", () => {
       border:1px solid #e3e3e3;
     }
 
-    /* ROBOT ICON (soft + eyes) */
+    /* =========================
+       🤖 캐릭터형 AI 아이콘
+    ========================= */
     .robotIcon{
-      width:38px;
-      height:38px;
+      width:40px;
+      height:40px;
       border-radius:50%;
-      background:rgba(47,99,199,0.85);
+      background:#4f7de6;
       display:flex;
       align-items:center;
       justify-content:center;
       flex-shrink:0;
       box-shadow:0 4px 10px rgba(0,0,0,0.08);
+      position:relative;
     }
 
-    .robotIcon svg{
-      width:20px;
-      height:20px;
-      fill:#fff;
+    /* eyes */
+    .robotIcon::before,
+    .robotIcon::after{
+      content:"";
+      position:absolute;
+      width:5px;
+      height:5px;
+      background:#fff;
+      border-radius:50%;
+      top:14px;
+    }
+
+    .robotIcon::before{ left:13px; }
+    .robotIcon::after{ right:13px; }
+
+    /* mouth */
+    .robotIcon span{
+      position:absolute;
+      bottom:10px;
+      width:10px;
+      height:3px;
+      background:#fff;
+      border-radius:3px;
     }
 
     /* INPUT */
@@ -151,14 +173,16 @@ document.addEventListener("DOMContentLoaded", () => {
       height:54px;
       border:1px solid #ddd;
       border-radius:10px;
-      padding:12px;
+      padding:0 12px;
       font-size:14px;
       outline:none;
       resize:none;
+      display:flex;
+      align-items:center;
     }
 
     #text::placeholder{
-      text-align:center;
+      text-align:left;
       color:#999;
     }
 
@@ -171,6 +195,9 @@ document.addEventListener("DOMContentLoaded", () => {
       border-radius:10px;
       font-weight:bold;
       cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
     }
 
     /* TOGGLE */
@@ -188,6 +215,7 @@ document.addEventListener("DOMContentLoaded", () => {
       justify-content:center;
       cursor:pointer;
       z-index:9999;
+      font-size:26px;
     }
 
   </style>
@@ -213,13 +241,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     </div>
 
-    <button id="toggleBtn">
-      <svg viewBox="0 0 24 24" width="32" height="32">
-        <circle cx="9" cy="11" r="1.5"/>
-        <circle cx="15" cy="11" r="1.5"/>
-        <path d="M12 2a2 2 0 00-2 2v1H8a3 3 0 00-3 3v9a3 3 0 003 3h8a3 3 0 003-3V8a3 3 0 00-3-3h-2V4a2 2 0 00-2-2z"/>
-      </svg>
-    </button>
+    <button id="toggleBtn">🤖</button>
   `);
 
   const chatApp = document.getElementById("chatApp");
@@ -228,23 +250,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let loadingNode = null;
 
-  /* ROBOT ICON */
-  const robotSVG = `
-    <svg viewBox="0 0 24 24">
-      <circle cx="9" cy="11" r="1.5"></circle>
-      <circle cx="15" cy="11" r="1.5"></circle>
-      <path d="M12 2a2 2 0 00-2 2v1H8a3 3 0 00-3 3v9a3 3 0 003 3h8a3 3 0 003-3V8a3 3 0 00-3-3h-2V4a2 2 0 00-2-2z"/>
-    </svg>
-  `;
-
-  /* RESET */
+  /* =========================
+     RESET
+  ========================= */
   function resetChat(){
     body.innerHTML = "";
     input.value = "";
     showGuide();
   }
 
-  /* GUIDE */
+  /* =========================
+     GUIDE
+  ========================= */
   function showGuide(){
     body.innerHTML = `
       <div class="guideBox">
@@ -258,18 +275,10 @@ document.addEventListener("DOMContentLoaded", () => {
       <div class="guideBox">
         <div class="guideTitle">📘 이용 가이드</div>
 
-        <div class="guideItem">
-          <span class="quote">"헬시키즈에서 AI를 어떻게 사용하는지 알려줘요"</span>
-        </div>
-        <div class="guideItem">
-          <span class="quote">"메뉴를 어디서 누르는지 알려줘요"</span>
-        </div>
-        <div class="guideItem">
-          <span class="quote">"영상은 어디에서 보는지 알려줘요"</span>
-        </div>
-        <div class="guideItem">
-          <span class="quote">"공부할 내용은 어떻게 보는지 알려줘요"</span>
-        </div>
+        <div class="guideItem"><span class="quote">"AI는 어떻게 써요"</span></div>
+        <div class="guideItem"><span class="quote">"메뉴는 어디에 있어요"</span></div>
+        <div class="guideItem"><span class="quote">"영상은 어디서 봐요"</span></div>
+        <div class="guideItem"><span class="quote">"공부는 어떻게 해요"</span></div>
 
         <br>
 
@@ -278,7 +287,9 @@ document.addEventListener("DOMContentLoaded", () => {
     `;
   }
 
-  /* MESSAGE */
+  /* =========================
+     MESSAGE
+  ========================= */
   function addMessage(type, text){
 
     const wrap = document.createElement("div");
@@ -286,7 +297,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if(type === "ai"){
       wrap.innerHTML = `
-        <div class="robotIcon">${robotSVG}</div>
+        <div class="robotIcon"><span></span></div>
         <div class="bubble">${text}</div>
       `;
     } else {
@@ -297,7 +308,9 @@ document.addEventListener("DOMContentLoaded", () => {
     body.scrollTop = body.scrollHeight;
   }
 
-  /* SEND */
+  /* =========================
+     SEND
+  ========================= */
   async function send(){
 
     const text = input.value.trim();
@@ -309,7 +322,7 @@ document.addEventListener("DOMContentLoaded", () => {
     loadingNode = document.createElement("div");
     loadingNode.className = "msg ai";
     loadingNode.innerHTML = `
-      <div class="robotIcon">${robotSVG}</div>
+      <div class="robotIcon"><span></span></div>
       <div class="bubble">찾고 있어요 😊</div>
     `;
     body.appendChild(loadingNode);
@@ -338,8 +351,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  /* EVENTS */
-
+  /* =========================
+     EVENTS
+  ========================= */
   document.getElementById("send").onclick = send;
 
   input.addEventListener("keydown", (e)=>{
@@ -347,16 +361,13 @@ document.addEventListener("DOMContentLoaded", () => {
       e.preventDefault();
       send();
     }
-    // Shift+Enter = 기본 줄바꿈 유지
   });
 
-  /* OPEN = RESET */
   document.getElementById("toggleBtn").onclick = () => {
     chatApp.style.display = "flex";
     resetChat();
   };
 
-  /* CLOSE = RESET */
   document.getElementById("closeBtn").onclick = () => {
     chatApp.style.display = "none";
     resetChat();
