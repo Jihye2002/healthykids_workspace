@@ -2,11 +2,19 @@
   "name": "healthykids",
   "version": "1.0.0",
   "main": "server.js",
+
+  "type": "commonjs",
+
   "scripts": {
     "start": "node server.js"
   },
+
   "dependencies": {
     "openai": "^4.0.0",
     "pdf-parse": "^1.1.1"
+  },
+
+  "engines": {
+    "node": "20.x"
   }
 }
