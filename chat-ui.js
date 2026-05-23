@@ -22,7 +22,7 @@ document.addEventListener("DOMContentLoaded", () => {
       flex-direction:column;
       overflow:hidden;
       z-index:9999;
-      font-family:Arial;
+      font-family:Arial,sans-serif;
     }
 
     #chatHeader{
@@ -46,7 +46,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     /* =========================
-       GUIDE BOX
+       GUIDE
     ========================= */
     .guideBox{
       background:#fff;
@@ -91,8 +91,8 @@ document.addEventListener("DOMContentLoaded", () => {
       border-radius:14px;
       line-height:1.6;
       font-size:14px;
-      word-break:keep-all;
       white-space:pre-wrap;
+      word-break:keep-all;
     }
 
     .user .bubble{
@@ -130,7 +130,7 @@ document.addEventListener("DOMContentLoaded", () => {
       border:1px solid #ddd;
       border-radius:14px;
       padding:14px;
-      margin-top:8px;
+      width:100%;
     }
 
     .resultTitle{
@@ -184,7 +184,7 @@ document.addEventListener("DOMContentLoaded", () => {
       padding:10px;
       font-size:14px;
       outline:none;
-      font-family:Arial;
+      font-family:Arial,sans-serif;
       overflow-y:auto;
     }
 
@@ -239,7 +239,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         <textarea
           id="text"
-          placeholder="궁금한 걸 물어보세요 😊
+          placeholder="궁금한 걸 물어보세요 😊"
         ></textarea>
 
         <button id="send">검색</button>
@@ -315,7 +315,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const wrap =
       document.createElement("div");
 
-    wrap.className = `msg ${type}`;
+    wrap.className =
+      `msg ${type}`;
 
     if(type === "ai"){
 
@@ -480,6 +481,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     }catch(e){
 
+      console.log(e);
+
       body.lastChild.remove();
 
       addMessage(
@@ -513,34 +516,45 @@ document.addEventListener("DOMContentLoaded", () => {
   ========================= */
   document
     .getElementById("send")
-    .onclick = send;
+    .addEventListener(
+      "click",
+      send
+    );
 
   /* =========================
      OPEN CHAT
   ========================= */
   document
     .getElementById("toggleBtn")
-    .onclick = ()=>{
+    .addEventListener(
+      "click",
+      ()=>{
 
-      document
-        .getElementById("chatApp")
-        .style.display = "flex";
+        document
+          .getElementById("chatApp")
+          .style.display = "flex";
 
-      showGuide();
-    };
+        if(
+          body.innerHTML.trim() === ""
+        ){
+          showGuide();
+        }
+      }
+    );
 
   /* =========================
      CLOSE CHAT
   ========================= */
   document
     .getElementById("closeBtn")
-    .onclick = ()=>{
+    .addEventListener(
+      "click",
+      ()=>{
 
-      document
-        .getElementById("chatApp")
-        .style.display = "none";
-
-      body.innerHTML = "";
-    };
+        document
+          .getElementById("chatApp")
+          .style.display = "none";
+      }
+    );
 
 });
