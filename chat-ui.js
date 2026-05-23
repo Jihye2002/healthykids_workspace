@@ -3,7 +3,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const API_BASE = "https://healthykids-workspace.onrender.com";
 
   /* =========================
-     STYLE
+     STYLE (soft blue + light UI)
   ========================= */
   document.head.insertAdjacentHTML("beforeend", `
   <style>
@@ -16,7 +16,7 @@ document.addEventListener("DOMContentLoaded", () => {
       height:650px;
       background:#ffffff;
       border-radius:18px;
-      box-shadow:0 20px 50px rgba(0,0,0,0.15);
+      box-shadow:0 20px 50px rgba(0,0,0,0.12);
       display:none;
       flex-direction:column;
       overflow:hidden;
@@ -41,7 +41,7 @@ document.addEventListener("DOMContentLoaded", () => {
       display:flex;
       flex-direction:column;
       gap:12px;
-      background:#f6f7fb;
+      background:#f7f9ff;
     }
 
     /* GUIDE */
@@ -64,10 +64,11 @@ document.addEventListener("DOMContentLoaded", () => {
       gap:6px;
       margin:6px 0;
       font-size:14px;
+      color:#333;
     }
 
     .star{
-      color:#f5c542;
+      color:#ffd66b;
       font-size:14px;
     }
 
@@ -107,56 +108,28 @@ document.addEventListener("DOMContentLoaded", () => {
 
     .ai .bubble{
       background:#fff;
-      border:1px solid #dcdcdc;
+      border:1px solid #e3e3e3;
       max-width:78%;
     }
 
-    /* ROBOT */
+    /* ROBOT (연한 느낌 + 눈 추가) */
     .robotIcon{
       width:36px;
       height:36px;
       border-radius:50%;
-      background:#2f63c7;
+      background:#4f7de6;
       display:flex;
       align-items:center;
       justify-content:center;
       flex-shrink:0;
+      opacity:0.9;
+      box-shadow:0 3px 8px rgba(0,0,0,0.08);
     }
 
     .robotIcon svg{
       width:20px;
       height:20px;
       fill:#fff;
-    }
-
-    /* RESULT */
-    .resultCard{
-      background:#fff;
-      border:1px solid #ddd;
-      border-radius:14px;
-      padding:14px;
-    }
-
-    .resultTitle{
-      font-weight:bold;
-      color:#2f63c7;
-      margin-bottom:8px;
-    }
-
-    .resultSummary{
-      font-size:14px;
-      color:#333;
-      line-height:1.5;
-    }
-
-    .resultBtn{
-      display:inline-block;
-      margin-top:10px;
-      padding:8px 12px;
-      background:#2f63c7;
-      color:#fff;
-      border-radius:8px;
-      text-decoration:none;
     }
 
     /* INPUT */
@@ -178,12 +151,11 @@ document.addEventListener("DOMContentLoaded", () => {
       font-size:14px;
       outline:none;
       resize:none;
-      font-family:Arial;
     }
 
-    /* placeholder 가운데 느낌 */
     #text::placeholder{
       text-align:center;
+      color:#999;
     }
 
     #send{
@@ -195,7 +167,6 @@ document.addEventListener("DOMContentLoaded", () => {
       border-radius:10px;
       font-weight:bold;
       cursor:pointer;
-      text-align:center;
     }
 
     #toggleBtn{
@@ -237,11 +208,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     </div>
 
-    <button id="toggleBtn">
-      <svg width="30" height="30" viewBox="0 0 24 24">
-        <path fill="white" d="M12 2a2 2 0 00-2 2v1H8a3 3 0 00-3 3v9a3 3 0 003 3h8a3 3 0 003-3V8a3 3 0 00-3-3h-2V4a2 2 0 00-2-2z"/>
-      </svg>
-    </button>
+    <button id="toggleBtn">🤖</button>
   `);
 
   const chatApp = document.getElementById("chatApp");
@@ -250,10 +217,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let loadingNode = null;
 
-  /* ROBOT */
+  /* ROBOT SVG (눈 있는 버전) */
   const robotSVG = `
     <svg viewBox="0 0 24 24">
-      <path d="M12 2a2 2 0 00-2 2v1H8a3 3 0 00-3 3v9a3 3 0 003 3h8a3 3 0 003-3V8a3 3 0 00-3-3h-2V4a2 2 0 00-2-2zm-3 9h2v2H9v-2zm6 0h2v2h-2v-2z"/>
+      <circle cx="9" cy="11" r="1.5"></circle>
+      <circle cx="15" cy="11" r="1.5"></circle>
+      <path d="M12 2a2 2 0 00-2 2v1H8a3 3 0 00-3 3v9a3 3 0 003 3h8a3 3 0 003-3V8a3 3 0 00-3-3h-2V4a2 2 0 00-2-2z"/>
     </svg>
   `;
 
@@ -271,16 +240,17 @@ document.addEventListener("DOMContentLoaded", () => {
         <div class="guideTitle">💡 사용 예시</div>
 
         <div class="guideItem"><span class="star">⭐</span> 손 씻기 어떻게 해요</div>
-        <div class="guideItem"><span class="star">⭐</span> 감기 안 걸리려면 어떻게 해요/div>
+        <div class="guideItem"><span class="star">⭐</span> 감기 안 걸리려면 어떻게 해요</div>
         <div class="guideItem"><span class="star">⭐</span> 횡단보도 안전하게 건너기</div>
-
       </div>
 
       <div class="guideBox">
         <div class="guideTitle">📘 이용 가이드</div>
-        헬시키즈에서 AI랑 메뉴 쓰는 방법을 알려줘요 😊<br>
-        영상은 어디서 보는지 알려줘요 🎥<br>
-        공부할 내용은 어떻게 보는지 알려줘요 📘
+
+        헬시키즈에서 AI랑 메뉴를 어떻게 쓰는지 알려줘요<br>
+        영상은 어디에서 보는지 알려줘요<br>
+        공부할 내용은 어떻게 보는지 알려줘요
+
         <br><br>
         <a class="guideBtn" href="guide.html" target="_blank">가이드 보기</a>
       </div>
@@ -306,28 +276,6 @@ document.addEventListener("DOMContentLoaded", () => {
     body.scrollTop = body.scrollHeight;
   }
 
-  /* RESULT */
-  function addResultCard(r){
-
-    const wrap = document.createElement("div");
-    wrap.className = "msg ai";
-
-    wrap.innerHTML = `
-      <div class="robotIcon">${robotSVG}</div>
-      <div class="resultCard">
-        <div class="resultTitle">${r?.title || "제목 없음"}</div>
-        <div class="resultSummary">${r?.summary || "내용 없음"}</div>
-
-        <a class="resultBtn" href="${r?.url || "#"}" target="_blank">
-          👉 보러가기
-        </a>
-      </div>
-    `;
-
-    body.appendChild(wrap);
-    body.scrollTop = body.scrollHeight;
-  }
-
   /* SEND */
   async function send(){
 
@@ -341,7 +289,7 @@ document.addEventListener("DOMContentLoaded", () => {
     loadingNode.className = "msg ai";
     loadingNode.innerHTML = `
       <div class="robotIcon">${robotSVG}</div>
-      <div class="bubble">자료를 찾고 있어요 😊</div>
+      <div class="bubble">찾고 있어요 😊</div>
     `;
     body.appendChild(loadingNode);
 
@@ -358,28 +306,23 @@ document.addEventListener("DOMContentLoaded", () => {
       loadingNode?.remove();
       loadingNode = null;
 
-      addMessage("ai", data.reply || "결과를 찾았어요 😊");
+      addMessage("ai", data.reply || "찾았어요 😊");
 
       if(!data.results?.length){
-        addMessage("ai", "관련 자료가 없어요 😢");
+        addMessage("ai", "아직 찾을 내용이 없어요 😢");
         return;
       }
 
-      data.results.forEach(addResultCard);
-
     } catch(e){
-
-      console.log(e);
 
       loadingNode?.remove();
       loadingNode = null;
 
-      addMessage("ai", "서버 오류가 발생했어요 😢");
+      addMessage("ai", "서버에 문제가 있어요 😢");
     }
   }
 
   /* EVENTS */
-
   document.getElementById("send").onclick = send;
 
   input.addEventListener("keydown", (e)=>{
@@ -387,7 +330,6 @@ document.addEventListener("DOMContentLoaded", () => {
       e.preventDefault();
       send();
     }
-    // Shift+Enter는 기본 textarea 줄바꿈 유지
   });
 
   document.getElementById("toggleBtn").onclick = () => {
