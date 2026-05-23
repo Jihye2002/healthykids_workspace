@@ -8,8 +8,8 @@ const app = express();
 
 const PORT = process.env.PORT || 3000;
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const GROQ_API_KEY = process.env.GROQ_API_KEY;
+const OPENAI_API_KEY =
+    process.env.OPENAI_API_KEY;
 
 /* =========================
    DATABASE
@@ -21,14 +21,18 @@ let VECTOR_DB = [];
    MIDDLEWARE
 ========================= */
 app.use(express.json());
-app.use(express.urlencoded({ extended:true }));
+
+app.use(express.urlencoded({
+    extended:true
+}));
+
 app.use(express.static(__dirname));
 
 /* =========================
    UPLOAD
 ========================= */
 const upload = multer({
-  dest: "uploads/"
+    dest:"uploads/"
 });
 
 /* =========================
@@ -36,25 +40,19 @@ const upload = multer({
 ========================= */
 function stripHtml(html){
 
-  return html
+    return html
 
-    /* script 제거 */
     .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi,"")
 
-    /* style 제거 */
     .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi,"")
 
-    /* nav 제거 */
     .replace(/<nav[\s\S]*?>[\s\S]*?<\/nav>/gi,"")
 
-    /* header 제거 */
     .replace(/<header[\s\S]*?>[\s\S]*?<\/header>/gi,"")
 
-    /* footer 제거 */
     .replace(/<footer[\s\S]*?>[\s\S]*?<\/footer>/gi,"")
 
-    /* menu 제거 */
-    .replace(/로그인|회원가입|개인정보 수정|회원탈퇴/g,"")
+    .replace(/로그인|회원가입|회원정보|개인정보 수정|회원탈퇴/g,"")
 
     .replace(/<[^>]*>/g," ")
 
@@ -68,11 +66,11 @@ function stripHtml(html){
 ========================= */
 function normalize(text){
 
-  return text
-    .toLowerCase()
-    .replace(/[^\w가-힣]/g," ")
-    .replace(/\s+/g," ")
-    .trim();
+    return text
+        .toLowerCase()
+        .replace(/[^\w가-힣]/g," ")
+        .replace(/\s+/g," ")
+        .trim();
 }
 
 /* =========================
@@ -80,10 +78,10 @@ function normalize(text){
 ========================= */
 function splitParagraphs(text){
 
-  return text
-    .split(/\n\s*\n|(?<=[.!?])\s+/g)
-    .map(t => t.trim())
-    .filter(t => t.length > 25);
+    return text
+        .split(/\n\s*\n|(?<=[.!?])\s+/g)
+        .map(t=>t.trim())
+        .filter(t=>t.length > 25);
 }
 
 /* =========================
@@ -91,14 +89,15 @@ function splitParagraphs(text){
 ========================= */
 function getTitle(html,file){
 
-  const m = html.match(/<title>(.*?)<\/title>/i);
+    const m =
+        html.match(/<title>(.*?)<\/title>/i);
 
-  if(m && m[1]){
+    if(m && m[1]){
 
-    return m[1].trim();
-  }
+        return m[1].trim();
+    }
 
-  return file.replace(".html","");
+    return file.replace(".html","");
 }
 
 /* =========================
@@ -106,89 +105,92 @@ function getTitle(html,file){
 ========================= */
 function extractLinks(html){
 
-  const regex =
-    /href=["']([^"'#]+)["']/g;
+    const regex =
+        /href=["']([^"'#]+)["']/g;
 
-  const links = [];
+    const links = [];
 
-  let match;
+    let match;
 
-  while((match = regex.exec(html)) !== null){
+    while((match = regex.exec(html)) !== null){
 
-    const href = match[1];
+        const href = match[1];
 
-    if(href.endsWith(".html")){
+        if(href.endsWith(".html")){
 
-      links.push(href);
+            links.push(href);
+        }
     }
-  }
 
-  return [...new Set(links)];
+    return [...new Set(links)];
 }
 
 /* =========================
-   CRAWLER
+   HTML CRAWL
 ========================= */
-async function crawlSite(start="index.html"){
+async function crawlSite(){
 
-  DOCUMENTS = [];
+    const files =
+        fs.readdirSync(__dirname);
 
-  const visited = new Set();
+    const htmlFiles =
+        files.filter(f =>
+            f.endsWith(".html")
+        );
 
-  async function crawl(file){
+    for(const file of htmlFiles){
 
-    try{
+        try{
 
-      if(visited.has(file)) return;
+            const fullPath =
+                path.join(__dirname,file);
 
-      visited.add(file);
+            const html =
+                fs.readFileSync(
+                    fullPath,
+                    "utf-8"
+                );
 
-      const full =
-        path.join(__dirname,file);
+            const clean =
+                stripHtml(html);
 
-      if(!fs.existsSync(full)) return;
+            const title =
+                getTitle(html,file);
 
-      const html =
-        fs.readFileSync(full,"utf-8");
+            splitParagraphs(clean)
+            .forEach(p=>{
 
-      const clean =
-        stripHtml(html);
+                DOCUMENTS.push({
 
-      const title =
-        getTitle(html,file);
+                    title,
 
-      splitParagraphs(clean)
-      .forEach(p => {
+                    text:p,
 
-        DOCUMENTS.push({
+                    url:"/" + file,
 
-          title,
-          text:p,
-          url:"/" + file,
-          type:"html"
-        });
+                    type:"html"
+                });
 
-      });
+            });
 
-      console.log("크롤링:",file);
+            console.log(
+                "크롤링:",
+                file
+            );
 
-      const links =
-        extractLinks(html);
+        }catch(e){
 
-      for(const link of links){
-
-        await crawl(link);
-      }
-
-    }catch(e){
-
-      console.log("크롤 실패:",file);
+            console.log(
+                "크롤 실패:",
+                file
+            );
+        }
     }
-  }
 
-  await crawl(start);
-
-  console.log("문서 수:",DOCUMENTS.length);
+    console.log(
+        "HTML 문서:",
+        DOCUMENTS.length
+    );
 }
 
 /* =========================
@@ -196,44 +198,56 @@ async function crawlSite(start="index.html"){
 ========================= */
 async function loadPdfFiles(){
 
-  const files =
-    fs.readdirSync(__dirname);
+    const files =
+        fs.readdirSync(__dirname);
 
-  const pdfs =
-    files.filter(f=>f.endsWith(".pdf"));
-
-  for(const pdf of pdfs){
-
-    try{
-
-      const buffer =
-        fs.readFileSync(
-          path.join(__dirname,pdf)
+    const pdfs =
+        files.filter(f =>
+            f.endsWith(".pdf")
         );
 
-      const parsed =
-        await pdfParse(buffer);
+    for(const pdf of pdfs){
 
-      splitParagraphs(parsed.text)
-      .forEach(p=>{
+        try{
 
-        DOCUMENTS.push({
+            const buffer =
+                fs.readFileSync(
+                    path.join(__dirname,pdf)
+                );
 
-          title:pdf.replace(".pdf",""),
-          text:p,
-          url:"/" + pdf,
-          type:"pdf"
-        });
+            const parsed =
+                await pdfParse(buffer);
 
-      });
+            splitParagraphs(parsed.text)
+            .forEach(p=>{
 
-      console.log("PDF:",pdf);
+                DOCUMENTS.push({
 
-    }catch(e){
+                    title:
+                        pdf.replace(".pdf",""),
 
-      console.log("PDF 실패:",pdf);
+                    text:p,
+
+                    url:"/" + pdf,
+
+                    type:"pdf"
+                });
+
+            });
+
+            console.log(
+                "PDF:",
+                pdf
+            );
+
+        }catch(e){
+
+            console.log(
+                "PDF 실패:",
+                pdf
+            );
+        }
     }
-  }
 }
 
 /* =========================
@@ -241,44 +255,66 @@ async function loadPdfFiles(){
 ========================= */
 async function loadVideos(){
 
-  const file =
-    path.join(
-      __dirname,
-      "video-data.json"
-    );
+    const file =
+        path.join(
+            __dirname,
+            "video-data.json"
+        );
 
-  if(!fs.existsSync(file)) return;
+    if(!fs.existsSync(file)){
 
-  const videos =
-    JSON.parse(
-      fs.readFileSync(file,"utf-8")
-    );
+        console.log(
+            "video-data.json 없음"
+        );
 
-  videos.forEach(v=>{
+        return;
+    }
 
-    DOCUMENTS.push({
+    try{
 
-      title:v.title,
+        const videos =
+            JSON.parse(
+                fs.readFileSync(
+                    file,
+                    "utf-8"
+                )
+            );
 
-      text:`
+        videos.forEach(v=>{
+
+            DOCUMENTS.push({
+
+                title:v.title,
+
+                text:`
 ${v.title}
 ${v.description || ""}
 ${v.summary || ""}
 ${v.education || ""}
 ${v.keywords || ""}
-      `,
+                `,
 
-      url:v.url,
+                url:v.url,
 
-      thumbnail:
-        v.thumbnail || "",
+                thumbnail:
+                    v.thumbnail || "",
 
-      type:"video"
-    });
+                type:"video"
+            });
 
-  });
+        });
 
-  console.log("영상:",videos.length);
+        console.log(
+            "영상:",
+            videos.length
+        );
+
+    }catch(e){
+
+        console.log(
+            "영상 로드 실패"
+        );
+    }
 }
 
 /* =========================
@@ -286,39 +322,47 @@ ${v.keywords || ""}
 ========================= */
 async function embed(text){
 
-  if(!OPENAI_API_KEY) return [];
+    if(!OPENAI_API_KEY){
 
-  try{
+        return [];
+    }
 
-    const res = await fetch(
-      "https://api.openai.com/v1/embeddings",
-      {
-        method:"POST",
+    try{
 
-        headers:{
-          "Content-Type":"application/json",
-          "Authorization":
-            `Bearer ${OPENAI_API_KEY}`
-        },
+        const response =
+            await fetch(
+                "https://api.openai.com/v1/embeddings",
+                {
+                    method:"POST",
 
-        body:JSON.stringify({
+                    headers:{
+                        "Content-Type":"application/json",
+                        "Authorization":
+                        `Bearer ${OPENAI_API_KEY}`
+                    },
 
-          model:"text-embedding-3-small",
+                    body:JSON.stringify({
 
-          input:text
-        })
-      }
-    );
+                        model:"text-embedding-3-small",
 
-    const data =
-      await res.json();
+                        input:text
+                    })
+                }
+            );
 
-    return data?.data?.[0]?.embedding || [];
+        const data =
+            await response.json();
 
-  }catch{
+        return data?.data?.[0]?.embedding || [];
 
-    return [];
-  }
+    }catch(e){
+
+        console.log(
+            "Embedding 실패"
+        );
+
+        return [];
+    }
 }
 
 /* =========================
@@ -326,23 +370,23 @@ async function embed(text){
 ========================= */
 async function rebuildVector(){
 
-  VECTOR_DB = [];
+    VECTOR_DB = [];
 
-  for(const d of DOCUMENTS){
+    for(const d of DOCUMENTS){
 
-    const vector =
-      await embed(d.text);
+        const vector =
+            await embed(d.text);
 
-    VECTOR_DB.push({
-      ...d,
-      vector
-    });
-  }
+        VECTOR_DB.push({
+            ...d,
+            vector
+        });
+    }
 
-  console.log(
-    "벡터 생성:",
-    VECTOR_DB.length
-  );
+    console.log(
+        "벡터 생성:",
+        VECTOR_DB.length
+    );
 }
 
 /* =========================
@@ -350,29 +394,29 @@ async function rebuildVector(){
 ========================= */
 function cosine(a,b){
 
-  if(!a.length || !b.length){
+    if(!a.length || !b.length){
 
-    return 0;
-  }
+        return 0;
+    }
 
-  let dot=0;
-  let ma=0;
-  let mb=0;
+    let dot = 0;
+    let ma = 0;
+    let mb = 0;
 
-  for(let i=0;i<a.length;i++){
+    for(let i=0;i<a.length;i++){
 
-    dot += a[i]*b[i];
+        dot += a[i]*b[i];
 
-    ma += a[i]**2;
+        ma += a[i]**2;
 
-    mb += b[i]**2;
-  }
+        mb += b[i]**2;
+    }
 
-  return dot / (
-    Math.sqrt(ma) *
-    Math.sqrt(mb) +
-    1e-9
-  );
+    return dot / (
+        Math.sqrt(ma) *
+        Math.sqrt(mb) +
+        1e-9
+    );
 }
 
 /* =========================
@@ -380,196 +424,215 @@ function cosine(a,b){
 ========================= */
 async function search(query){
 
-  const q =
-    await embed(query);
+    const q =
+        await embed(query);
 
-  const keywords =
-    normalize(query).split(" ");
+    const keywords =
+        normalize(query).split(" ");
 
-  const results =
-    VECTOR_DB.map(d=>{
+    const results =
+        VECTOR_DB.map(d=>{
 
-      let score = 0;
+            let score = 0;
 
-      if(q.length && d.vector.length){
+            if(q.length && d.vector.length){
 
-        score += cosine(q,d.vector);
-      }
+                score += cosine(q,d.vector);
+            }
 
-      const text =
-        normalize(d.text);
+            const text =
+                normalize(d.text);
 
-      keywords.forEach(k=>{
+            keywords.forEach(k=>{
 
-        if(text.includes(k)){
+                if(
+                    k &&
+                    text.includes(k)
+                ){
+                    score += 0.45;
+                }
+            });
 
-          score += 0.45;
-        }
-      });
+            if(
+                normalize(d.title)
+                .includes(normalize(query))
+            ){
+                score += 1;
+            }
 
-      if(
-        normalize(d.title)
-        .includes(normalize(query))
-      ){
-        score += 0.8;
-      }
+            return {
+                ...d,
+                score
+            };
 
-      return {
-        ...d,
-        score
-      };
+        })
+        .filter(r=>r.score > 0.4)
 
-    })
-    .filter(r=>r.score > 0.45)
-    .sort((a,b)=>b.score-a.score)
-    .slice(0,5);
+        .sort((a,b)=>b.score-a.score)
 
-  return results.map(r=>({
+        .slice(0,5);
 
-    title:r.title,
+    return results.map(r=>({
 
-    summary:
-      r.text.slice(0,220),
+        title:r.title,
 
-    url:r.url,
+        summary:
+            r.text
+            .replace(/\s+/g," ")
+            .trim()
+            .slice(0,180),
 
-    type:r.type,
+        url:r.url,
 
-    thumbnail:r.thumbnail || ""
-  }));
+        type:r.type,
+
+        thumbnail:
+            r.thumbnail || ""
+    }));
 }
 
 /* =========================
-   API
+   CHAT API
 ========================= */
 app.post("/api/chat", async (req,res)=>{
 
-  try{
+    try{
 
-    const message =
-      req.body.message || "";
+        const message =
+            req.body.message || "";
 
-    const results =
-      await search(message);
+        const results =
+            await search(message);
 
-    if(!results.length){
+        if(!results.length){
 
-      return res.json({
+            return res.json({
 
-        reply:
-          "앗 😊 아직 등록되지 않은 자료예요.",
+                reply:
+                "앗 😊 아직 관련 자료가 없어요.",
 
-        results:[]
-      });
+                results:[]
+            });
+        }
+
+        res.json({
+
+            reply:
+            "관련 자료를 찾았어요 😊",
+
+            results
+        });
+
+    }catch(e){
+
+        console.log(e);
+
+        res.status(500).json({
+
+            reply:
+            "서버 연결 문제가 있어요 😢",
+
+            results:[]
+        });
     }
-
-    res.json({
-
-      reply:
-        "관련 자료를 찾았어요 😊",
-
-      results
-    });
-
-  }catch(e){
-
-    console.log(e);
-
-    res.status(500).json({
-
-      reply:
-        "서버 연결 문제가 있어요 😢",
-
-      results:[]
-    });
-  }
 });
 
 /* =========================
    FILE UPLOAD
 ========================= */
 app.post(
-  "/upload",
-  upload.single("file"),
-  async (req,res)=>{
+    "/upload",
+    upload.single("file"),
+    async (req,res)=>{
 
-    try{
+        try{
 
-      const file = req.file;
+            const file =
+                req.file;
 
-      if(!file){
+            if(!file){
 
-        return res.json({
-          success:false
-        });
-      }
+                return res.json({
+                    success:false
+                });
+            }
 
-      const newPath =
-        path.join(
-          __dirname,
-          file.originalname
-        );
+            const newPath =
+                path.join(
+                    __dirname,
+                    file.originalname
+                );
 
-      fs.renameSync(
-        file.path,
-        newPath
-      );
+            fs.renameSync(
+                file.path,
+                newPath
+            );
 
-      /* 자동 재빌드 */
-      await crawlSite();
+            DOCUMENTS = [];
 
-      await loadPdfFiles();
+            await crawlSite();
 
-      await loadVideos();
+            await loadPdfFiles();
 
-      await rebuildVector();
+            await loadVideos();
 
-      res.json({
+            await rebuildVector();
 
-        success:true
-      });
+            console.log(
+                "업로드 후 재빌드 완료"
+            );
 
-    }catch(e){
+            res.json({
+                success:true
+            });
 
-      console.log(e);
+        }catch(e){
 
-      res.json({
-        success:false
-      });
+            console.log(e);
+
+            res.json({
+                success:false
+            });
+        }
     }
-  }
 );
 
 /* =========================
    REALTIME WATCH
 ========================= */
 fs.watch(
-  __dirname,
-  async (event,filename)=>{
+    __dirname,
+    async (event,filename)=>{
 
-    if(
-      filename &&
-      (
-        filename.endsWith(".html") ||
-        filename.endsWith(".pdf") ||
-        filename.endsWith(".json")
-      )
-    ){
+        if(
+            filename &&
+            (
+                filename.endsWith(".html") ||
+                filename.endsWith(".pdf") ||
+                filename.endsWith(".json")
+            )
+        ){
 
-      console.log(
-        "파일 변경:",
-        filename
-      );
+            console.log(
+                "파일 변경:",
+                filename
+            );
 
-      await crawlSite();
+            DOCUMENTS = [];
 
-      await loadPdfFiles();
+            await crawlSite();
 
-      await loadVideos();
+            await loadPdfFiles();
 
-      await rebuildVector();
+            await loadVideos();
+
+            await rebuildVector();
+
+            console.log(
+                "자동 업데이트 완료"
+            );
+        }
     }
-  }
 );
 
 /* =========================
@@ -577,13 +640,19 @@ fs.watch(
 ========================= */
 (async ()=>{
 
-  await crawlSite();
+    console.log("초기화 시작");
 
-  await loadPdfFiles();
+    DOCUMENTS = [];
 
-  await loadVideos();
+    await crawlSite();
 
-  await rebuildVector();
+    await loadPdfFiles();
+
+    await loadVideos();
+
+    await rebuildVector();
+
+    console.log("초기화 완료");
 
 })();
 
@@ -592,8 +661,8 @@ fs.watch(
 ========================= */
 app.listen(PORT,()=>{
 
-  console.log(
-    "헬시키즈 서버 실행:",
-    PORT
-  );
+    console.log(
+        "헬시키즈 서버 실행:",
+        PORT
+    );
 });
