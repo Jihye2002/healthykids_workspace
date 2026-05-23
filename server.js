@@ -8,37 +8,11 @@ const PORT = process.env.PORT || 3000;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
-/* =========================
-   DATA
-========================= */
 let DOCUMENTS = [];
 let VECTOR_DB = [];
 
 /* =========================
-   ALLOWED FILES (핵심)
-========================= */
-const ALLOWED_KEYWORDS = [
-   "하루건강",
-   "체크리스트",
-   "퀴즈",
-   "위생",
-   "실외",
-   "생활",
-   "건강",
-   "질병",
-   "안전",
-   "자료",
-   "예방", 
-   "자주 묻는 질문"
-
-];
-
-function isAllowedFile(name) {
-  return ALLOWED_KEYWORDS.some(k => name.includes(k));
-}
-
-/* =========================
-   HTML CLEAN
+   TEXT CLEAN
 ========================= */
 function stripHtml(html) {
   return html
@@ -50,31 +24,31 @@ function stripHtml(html) {
 }
 
 /* =========================
-   CHUNK (문단 단위 핵심)
-========================= */
-function splitParagraph(text) {
-  return text
-    .split(/\n|\.|\r/g)
-    .map(t => t.trim())
-    .filter(t => t.length > 25);
-}
-
-/* =========================
    LINK PARSER
 ========================= */
 function extractLinks(html) {
   const regex = /href="([^"#]+)"/g;
-  const links = new Set();
-  let match;
+  const set = new Set();
+  let m;
 
-  while ((match = regex.exec(html))) {
-    const url = match[1];
-    if (!url.startsWith("http")) {
-      links.add(url.split("?")[0]);
+  while ((m = regex.exec(html))) {
+    const link = m[1];
+    if (!link.startsWith("http") && !link.startsWith("mailto:")) {
+      set.add(link.split("?")[0]);
     }
   }
 
-  return [...links];
+  return [...set];
+}
+
+/* =========================
+   PDF → PARAGRAPH SPLIT
+========================= */
+function splitParagraph(text) {
+  return text
+    .split(/\n\s*\n/)
+    .map(t => t.replace(/\s+/g, " ").trim())
+    .filter(t => t.length > 30);
 }
 
 /* =========================
@@ -83,37 +57,31 @@ function extractLinks(html) {
 async function loadSite() {
   DOCUMENTS = [];
 
-  const index = fs.readFileSync(path.join(__dirname, "index.html"), "utf-8");
-  const links = extractLinks(index);
+  const indexHtml = fs.readFileSync(path.join(__dirname, "index.html"), "utf-8");
+  const links = extractLinks(indexHtml);
 
-  splitParagraph(stripHtml(index)).forEach((p, i) => {
-    DOCUMENTS.push({
-      title: `home_${i}`,
-      text: p,
-      url: "/"
-    });
+  DOCUMENTS.push({
+    title: "홈",
+    text: stripHtml(indexHtml),
+    url: "/"
   });
 
   for (const link of links) {
-    const file = path.join(__dirname, link);
-    if (!fs.existsSync(file)) continue;
+    const filePath = path.join(__dirname, link);
+    if (!fs.existsSync(filePath)) continue;
 
-    const html = fs.readFileSync(file, "utf-8");
+    const html = fs.readFileSync(filePath, "utf-8");
 
-    splitParagraph(stripHtml(html)).forEach((p, i) => {
-      DOCUMENTS.push({
-        title: `${link}_${i}`,
-        text: p,
-        url: "/" + link
-      });
+    DOCUMENTS.push({
+      title: link,
+      text: stripHtml(html),
+      url: "/" + link
     });
   }
-
-  console.log("📦 SITE DOCS:", DOCUMENTS.length);
 }
 
 /* =========================
-   PDF LOAD
+   LOAD PDF (PARAGRAPH BASED)
 ========================= */
 async function loadPdfs() {
   const dir = path.join(__dirname, "files");
@@ -127,20 +95,20 @@ async function loadPdfs() {
     const buffer = fs.readFileSync(path.join(dir, file));
     const parsed = await pdfParse(buffer);
 
-    splitParagraph(parsed.text).forEach((p, i) => {
+    const paragraphs = splitParagraph(parsed.text);
+
+    paragraphs.forEach((p, i) => {
       DOCUMENTS.push({
-        title: file,
+        title: file + ` (p${i})`,
         text: p,
         url: "/files/" + file
       });
     });
   }
-
-  console.log("📄 PDF LOADED");
 }
 
 /* =========================
-   EMBED
+   EMBEDDING
 ========================= */
 async function embed(text) {
   const res = await fetch("https://api.openai.com/v1/embeddings", {
@@ -156,21 +124,19 @@ async function embed(text) {
   });
 
   const data = await res.json();
-  return data.data?.[0]?.embedding || [];
+  return data?.data?.[0]?.embedding || [];
 }
 
 /* =========================
-   VECTOR
+   VECTOR BUILD
 ========================= */
-async function rebuildVector() {
+async function rebuild() {
   VECTOR_DB = [];
 
-  for (const doc of DOCUMENTS) {
-    const vector = await embed(doc.text);
-    VECTOR_DB.push({ ...doc, vector });
+  for (const d of DOCUMENTS) {
+    const v = await embed(d.title + " " + d.text);
+    VECTOR_DB.push({ ...d, vector: v });
   }
-
-  console.log("🧠 VECTOR READY");
 }
 
 /* =========================
@@ -191,27 +157,27 @@ function cosine(a, b) {
 /* =========================
    SEARCH
 ========================= */
-async function search(query) {
-  const qVec = await embed(query);
+async function search(q) {
+  const qv = await embed(q);
 
   return VECTOR_DB
     .map(d => ({
       ...d,
-      score: cosine(qVec, d.vector)
+      score: cosine(qv, d.vector)
     }))
     .sort((a, b) => b.score - a.score)
-    .slice(0, 6);
+    .slice(0, 5);
 }
 
 /* =========================
-   AI
+   AI RESPONSE (CHILD FRIENDLY)
 ========================= */
 async function askAI(query, results) {
 
   const context = results.map(r =>
-`TEXT: ${r.text}
-URL: ${r.url}`
-  ).join("\n\n");
+`제목: ${r.title}
+내용: ${r.text}
+URL: ${r.url}`).join("\n\n");
 
   const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
@@ -225,11 +191,12 @@ URL: ${r.url}`
         {
           role: "system",
           content: `
-너는 검색 AI다.
+너는 5~7세 어린이와 선생님을 위한 교육용 AI다.
+
 반드시 JSON만 출력:
 
 {
- "reply": "",
+ "reply": "아주 쉽고 친절한 설명",
  "results": [
    {
      "title": "",
@@ -239,12 +206,16 @@ URL: ${r.url}`
  ]
 }
 
-URL은 반드시 제공된 것만 사용
-`
+규칙:
+- 무조건 쉬운 말
+- 친절한 말투
+- URL은 제공된 것만 사용
+- 추측 금지
+          `
         },
         {
           role: "user",
-          content: `질문:${query}\n\n문서:\n${context}`
+          content: `질문: ${query}\n\n문서:\n${context}`
         }
       ]
     })
@@ -256,7 +227,7 @@ URL은 반드시 제공된 것만 사용
     return JSON.parse(data.choices[0].message.content);
   } catch {
     return {
-      reply: "검색 완료",
+      reply: "찾은 내용을 쉽게 정리했어요 😊",
       results
     };
   }
@@ -269,39 +240,6 @@ async function pipeline(msg) {
   const results = await search(msg);
   return await askAI(msg, results);
 }
-
-/* =========================
-   UPLOAD (SAFE MODE)
-========================= */
-async function addFile(file) {
-
-  if (!isAllowedFile(file.name)) {
-    return { ok: false };
-  }
-
-  const buffer = Buffer.from(file.content, "base64");
-  const parsed = await pdfParse(buffer);
-
-  splitParagraph(parsed.text).forEach((p, i) => {
-    DOCUMENTS.push({
-      title: file.name,
-      text: p,
-      url: "/uploaded"
-    });
-  });
-
-  await rebuildVector();
-  return { ok: true };
-}
-
-/* =========================
-   INIT
-========================= */
-(async () => {
-  await loadSite();
-  await loadPdfs();
-  await rebuildVector();
-})();
 
 /* =========================
    SERVER
@@ -325,24 +263,8 @@ const server = http.createServer(async (req, res) => {
     req.on("data", c => body += c);
 
     req.on("end", async () => {
-      const { message } = JSON.parse(body);
+      const { message } = JSON.parse(body || "{}");
       const result = await pipeline(message);
-
-      res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify(result));
-    });
-
-    return;
-  }
-
-  if (url === "/api/upload" && req.method === "POST") {
-    let body = "";
-
-    req.on("data", c => body += c);
-
-    req.on("end", async () => {
-      const file = JSON.parse(body);
-      const result = await addFile(file);
 
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify(result));
@@ -362,6 +284,12 @@ const server = http.createServer(async (req, res) => {
     res.end(data);
   });
 });
+
+(async () => {
+  await loadSite();
+  await loadPdfs();
+  await rebuild();
+})();
 
 server.listen(PORT, () => {
   console.log("🚀 RUNNING:", PORT);
