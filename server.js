@@ -11,10 +11,8 @@ const GROQ_API_KEY = process.env.GROQ_API_KEY;
 let DOCUMENTS = [];
 let VECTOR_DB = [];
 
-const UPLOAD_THRESHOLD = 0.72;
-
 /* =========================
-   UTIL
+   TEXT CLEAN
 ========================= */
 function stripHtml(html) {
   return html
@@ -29,27 +27,27 @@ function splitParagraphs(text) {
   return text
     .split(/\n\s*\n|(?<=[.!?])\s+/g)
     .map(t => t.trim())
-    .filter(t => t.length > 50 && t.length < 1200);
+    .filter(t => t.length > 20);
 }
 
 /* =========================
    LOAD SITE
 ========================= */
-async function loadSite() {
+function loadSite() {
   DOCUMENTS = [];
 
   const html = fs.readFileSync("index.html", "utf-8");
 
   splitParagraphs(stripHtml(html)).forEach((p, i) => {
     DOCUMENTS.push({
-      title: `홈페이지 ${i + 1}`,
+      title: `헬시키즈 메인 홈페이지 ${i + 1}`,
       text: p,
       url: "/index.html",
       type: "html"
     });
   });
 
-  console.log("HTML LOADED");
+  console.log("사이트 로딩 완료:", DOCUMENTS.length);
 }
 
 /* =========================
@@ -77,25 +75,25 @@ async function embed(text) {
 }
 
 /* =========================
-   VECTOR
+   VECTOR BUILD
 ========================= */
 async function rebuildVector() {
   VECTOR_DB = [];
 
   for (const d of DOCUMENTS) {
     const v = await embed(d.text);
-    if (!v.length) continue;
-
-    VECTOR_DB.push({ ...d, vector: v });
+    VECTOR_DB.push({ ...d, vector: v || [] });
   }
 
-  console.log("VECTOR READY:", VECTOR_DB.length);
+  console.log("벡터 준비 완료:", VECTOR_DB.length);
 }
 
 /* =========================
    COSINE
 ========================= */
 function cosine(a, b) {
+  if (!a.length || !b.length) return 0;
+
   let dot = 0, ma = 0, mb = 0;
 
   for (let i = 0; i < a.length; i++) {
@@ -108,36 +106,38 @@ function cosine(a, b) {
 }
 
 /* =========================
-   SEARCH (score 제거)
+   SEARCH (안정 + 키워드 보강)
 ========================= */
 async function search(query) {
   const q = await embed(query);
-  if (!q.length) return [];
 
-  return VECTOR_DB
-    .map(d => ({
-      title: d.title,
-      text: d.text,
-      url: d.url,
-      type: d.type,
-      score: cosine(q, d.vector)
-    }))
+  return DOCUMENTS.map(d => {
+    let score = 0;
+
+    if (q.length && d.vector.length) {
+      score = cosine(q, d.vector);
+    }
+
+    if (d.text.includes(query)) score += 0.3;
+
+    return { ...d, score };
+  })
     .sort((a, b) => b.score - a.score)
-    .slice(0, 5)
-    .map(({ score, ...rest }) => rest);
+    .slice(0, 6)
+    .map(({ score, ...r }) => r);
 }
 
 /* =========================
-   SAFE JSON PARSE
+   SAFE JSON
 ========================= */
 function safeJSON(text, fallback) {
   try {
     return JSON.parse(text);
   } catch {
-    const match = text.match(/\{[\s\S]*\}/);
-    if (!match) return fallback;
+    const m = text.match(/\{[\s\S]*\}/);
+    if (!m) return fallback;
     try {
-      return JSON.parse(match[0]);
+      return JSON.parse(m[0]);
     } catch {
       return fallback;
     }
@@ -145,56 +145,75 @@ function safeJSON(text, fallback) {
 }
 
 /* =========================
-   SUMMARY
+   CHILD FRIENDLY SUMMARY (핵심 수정)
 ========================= */
 async function summarize(query, results) {
 
   const context = results.map(r => `
-[문서]
+[자료]
 제목: ${r.title}
 내용: ${r.text}
-URL: ${r.url}
+링크: ${r.url}
 `).join("\n");
 
-  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${GROQ_API_KEY}`
-    },
-    body: JSON.stringify({
-      model: "llama-3.1-70b-versatile",
-      messages: [
-        {
-          role: "system",
-          content: `
-너는 어린이 AI이다.
-- 4~6줄 설명
-- JSON만 출력
+  try {
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${GROQ_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: "llama-3.1-70b-versatile",
+        messages: [
+          {
+            role: "system",
+            content: `
+너는 5~7세 아이들과 선생님을 위한 아주 친절한 교육 AI야.
 
-형식:
+반드시 아래 규칙을 지켜:
+
+1. 말투는 아주 부드럽고 따뜻하게
+2. 설명은 5~7줄 정도로 조금 자세하게
+3. 어려운 단어는 쉽게 풀어서 설명
+4. 친근한 예시를 포함
+5. JSON만 출력
+
+출력 형식:
 {
  "reply": "",
  "results": [
-   { "title": "", "summary": "", "url": "", "type": "" }
+   {
+     "title": "",
+     "summary": "",
+     "url": "",
+     "type": ""
+   }
  ]
 }
 `
-        },
-        {
-          role: "user",
-          content: `질문: ${query}\n\n${context}`
-        }
-      ]
-    })
-  });
+          },
+          {
+            role: "user",
+            content: `질문: ${query}\n\n${context}`
+          }
+        ]
+      })
+    });
 
-  const data = await res.json();
+    const data = await res.json();
 
-  return safeJSON(data?.choices?.[0]?.message?.content, {
-    reply: "검색 결과",
-    results
-  });
+    return safeJSON(data?.choices?.[0]?.message?.content, {
+      reply: "잠깐만 기다려주세요 😊",
+      results
+    });
+
+  } catch {
+    return {
+      reply: "내용을 정리했어요 😊",
+      results
+    };
+  }
 }
 
 /* =========================
@@ -206,17 +225,35 @@ async function pipeline(msg) {
 }
 
 /* =========================
-   VIDEO SUPPORT (진짜 파일 서빙)
+   FILE UPLOAD
 ========================= */
-function serveFile(req, res, filePath) {
-  fs.readFile(filePath, (err, data) => {
-    if (err) {
-      res.writeHead(404);
-      return res.end("404");
-    }
-    res.writeHead(200);
-    res.end(data);
-  });
+async function addFile(file) {
+
+  if (file.name.endsWith(".pdf")) {
+    const buffer = Buffer.from(file.content, "base64");
+    const parsed = await pdfParse(buffer);
+
+    splitParagraphs(parsed.text).forEach((p, i) => {
+      DOCUMENTS.push({
+        title: `📄 ${file.name} ${i + 1}`,
+        text: p,
+        url: "/files/" + file.name,
+        type: "pdf"
+      });
+    });
+  }
+
+  if (file.name.endsWith(".mp4")) {
+    DOCUMENTS.push({
+      title: `🎬 ${file.name}`,
+      text: "이 영상은 쉽고 재미있는 학습 영상이에요",
+      url: "/files/" + file.name,
+      type: "video"
+    });
+  }
+
+  await rebuildVector();
+  return { ok: true };
 }
 
 /* =========================
@@ -235,9 +272,9 @@ const server = http.createServer(async (req, res) => {
     return res.end();
   }
 
-  /* CHAT */
   if (url === "/api/chat") {
     let body = "";
+
     req.on("data", c => body += c);
 
     req.on("end", async () => {
@@ -247,66 +284,43 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify(result));
     });
+
     return;
   }
 
-  /* UPLOAD (PDF/VIDEO 구분) */
   if (url === "/api/upload") {
     let body = "";
+
     req.on("data", c => body += c);
 
     req.on("end", async () => {
-      const file = JSON.parse(body);
-
-      if (file.name.endsWith(".pdf")) {
-        const buffer = Buffer.from(file.content, "base64");
-        const parsed = await pdfParse(buffer);
-
-        splitParagraphs(parsed.text).forEach((p, i) => {
-          DOCUMENTS.push({
-            title: `${file.name}-${i}`,
-            text: p,
-            url: `/files/${file.name}`,
-            type: "pdf"
-          });
-        });
-
-      } else if (file.name.endsWith(".mp4")) {
-        DOCUMENTS.push({
-          title: file.name,
-          text: `영상: ${file.name}`,
-          url: `/files/${file.name}`,
-          type: "video"
-        });
-      }
-
-      await rebuildVector();
+      const file = JSON.parse(body || "{}");
+      const result = await addFile(file);
 
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ ok: true }));
+      res.end(JSON.stringify(result));
     });
 
     return;
   }
 
-  /* FILE SERVER (핵심!) */
-  if (url.startsWith("/files/")) {
-    return serveFile(req, res, path.join(__dirname, url));
-  }
-
-  /* STATIC */
   const filePath = url === "/" ? "index.html" : path.join(__dirname, url);
-  serveFile(req, res, filePath);
+
+  fs.readFile(filePath, (err, data) => {
+    if (err) {
+      res.writeHead(404);
+      return res.end("페이지를 찾을 수 없어요");
+    }
+    res.writeHead(200);
+    res.end(data);
+  });
 });
 
-/* =========================
-   INIT
-========================= */
 (async () => {
-  await loadSite();
+  loadSite();
   await rebuildVector();
 })();
 
 server.listen(PORT, () => {
-  console.log("RUN:", PORT);
+  console.log("헬시키즈 서버 실행:", PORT);
 });
