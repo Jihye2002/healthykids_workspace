@@ -60,7 +60,7 @@ document.addEventListener("DOMContentLoaded", () => {
     border:1px solid #ddd;
   }
 
-  /* ===== GUIDE BOX ===== */
+  /* GUIDE */
   .guideBox, .guideBox2{
     background:#eef3ff;
     padding:12px;
@@ -95,7 +95,6 @@ document.addEventListener("DOMContentLoaded", () => {
     background:#fff;
   }
 
-  /* + 버튼 (원형) */
   #uploadBtn{
     width:42px;
     height:42px;
@@ -187,7 +186,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const input = document.getElementById("text");
 
   /* =========================
-     GUIDE BOX 2개
+     GUIDE
   ========================= */
   function resetChat() {
     body.innerHTML = "";
@@ -196,20 +195,19 @@ document.addEventListener("DOMContentLoaded", () => {
     box1.className = "guideBox";
     box1.innerHTML = `
       🔎 <b>헬시키즈 챗봇 사용 방법</b><br><br>
-      - 궁금한 내용을 입력하면 설명해줘요<br>
-      - 건강, 안전 정보를 알려줘요<br>
-      - 홈페이지 내용을 함께 찾아요
+      - 궁금한 내용을 입력하면 쉽게 설명해줘요<br>
+      - 건강·안전 정보를 알려줘요<br>
+      - 홈페이지 자료를 함께 찾아요
     `;
 
     const box2 = document.createElement("div");
     box2.className = "guideBox2";
     box2.innerHTML = `
       📘 <b>헬시키즈 전체 가이드</b><br><br>
-      헬시키즈는 아이들이 건강하고 안전하게 생활할 수 있도록 돕는 서비스예요.<br>
-      재미있게 배울 수 있어요.<br><br>
+      헬시키즈는 아이들이 건강하고 안전하게 생활할 수 있도록 도와주는 서비스예요.<br>
+      손씻기, 위생, 안전, 생활 습관을 쉽게 배울 수 있어요.<br><br>
 
-      아래 버튼을 누르면 가이드 페이지로 이동해요.
-      <br>
+      아래 버튼을 누르면 전체 가이드로 이동해요.<br>
       <a class="guideBtn" href="guide.html">헬시키즈 가이드 보기</a>
     `;
 
@@ -235,7 +233,7 @@ document.addEventListener("DOMContentLoaded", () => {
     div.className = "msg ai";
 
     div.innerHTML = `
-      <b>${r.title}</b><br>
+      <b>${r.title || "결과"}</b><br>
       ${r.summary || ""}<br><br>
       <a href="${r.url}" target="_blank"
         style="padding:6px 10px;background:#2f63c7;color:#fff;border-radius:8px;text-decoration:none;">
@@ -274,7 +272,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* =========================
-     ENTER + SHIFT
+     ENTER
   ========================= */
   input.addEventListener("keydown", (e)=>{
     if(e.key==="Enter" && !e.shiftKey){
@@ -284,23 +282,63 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   /* =========================
-     VOICE (Web Speech API)
+     VOICE (FIXED GPT STYLE)
   ========================= */
+  let recognition = null;
+  let isListening = false;
+
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
   if(SpeechRecognition){
-    const recog = new SpeechRecognition();
-    recog.lang = "ko-KR";
-
-    document.getElementById("voiceBtn").onclick = ()=>{
-      recog.start();
-    };
-
-    recog.onresult = (e)=>{
-      input.value = e.results[0][0].transcript;
-      send();
-    };
+    recognition = new SpeechRecognition();
+    recognition.lang = "ko-KR";
+    recognition.continuous = false;
+    recognition.interimResults = true;
   }
+
+  const voiceBtn = document.getElementById("voiceBtn");
+
+  voiceBtn.onclick = () => {
+    if(!recognition) return;
+
+    if(isListening){
+      recognition.stop();
+      return;
+    }
+
+    try{
+      recognition.start();
+      isListening = true;
+      voiceBtn.innerText = "🎤 듣는 중...";
+      voiceBtn.style.background = "#ff4d4d";
+    }catch(e){
+      console.log(e);
+    }
+  };
+
+  recognition.onresult = (e)=>{
+    let text = "";
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      text += e.results[i][0].transcript;
+    }
+    input.value = text;
+  };
+
+  recognition.onend = ()=>{
+    isListening = false;
+    voiceBtn.innerText = "🎤";
+    voiceBtn.style.background = "#ffcc00";
+
+    if(input.value.trim().length>0){
+      send(); // 자동 검색
+    }
+  };
+
+  recognition.onerror = ()=>{
+    isListening = false;
+    voiceBtn.innerText = "🎤";
+    voiceBtn.style.background = "#ffcc00";
+  };
 
   /* =========================
      FILE UPLOAD
@@ -321,7 +359,7 @@ document.addEventListener("DOMContentLoaded", () => {
         })
       });
 
-      addMessage("ai","📄 문서가 검색 데이터로 추가되었어요");
+      addMessage("ai","📄 문서가 추가되었어요");
     };
 
     reader.readAsDataURL(file);
