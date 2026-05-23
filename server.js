@@ -15,7 +15,7 @@ let DOCUMENTS = [];
 let VECTOR_DB = [];
 
 /* =========================
-   TEXT CLEAN
+   CLEAN HTML
 ========================= */
 function stripHtml(html) {
   return html
@@ -27,17 +27,17 @@ function stripHtml(html) {
 }
 
 /* =========================
-   PARAGRAPH SPLIT (핵심)
+   BETTER PARAGRAPH SPLIT (핵심 개선)
 ========================= */
 function splitParagraphs(text) {
   return text
-    .split(/\n\s*\n|\. |\.\s/g)
+    .split(/\n\s*\n|(?<=[.!?])\s+/g)
     .map(t => t.trim())
-    .filter(t => t.length > 20);
+    .filter(t => t.length > 25); // 너무 짧은 것 제거 (정확도 핵심)
 }
 
 /* =========================
-   HTML LINK EXTRACT
+   LINK EXTRACT
 ========================= */
 function extractLinks(html) {
   const regex = /href="([^"#]+)"/g;
@@ -55,7 +55,7 @@ function extractLinks(html) {
 }
 
 /* =========================
-   LOAD SITE (문단 단위)
+   LOAD SITE (HTML → 문단)
 ========================= */
 async function loadSite() {
   DOCUMENTS = [];
@@ -63,13 +63,15 @@ async function loadSite() {
   const indexHtml = fs.readFileSync("index.html", "utf-8");
   const links = extractLinks(indexHtml);
 
-  // HOME
-  splitParagraphs(stripHtml(indexHtml)).forEach((p, i) => {
+  const homeParagraphs = splitParagraphs(stripHtml(indexHtml));
+
+  homeParagraphs.forEach((p, i) => {
     DOCUMENTS.push({
-      title: "홈",
+      title: "홈페이지",
       text: p,
       url: "/",
-      type: "html"
+      type: "html",
+      id: `home-${i}`
     });
   });
 
@@ -78,14 +80,15 @@ async function loadSite() {
     if (!fs.existsSync(filePath)) continue;
 
     const html = fs.readFileSync(filePath, "utf-8");
-    const text = stripHtml(html);
+    const paragraphs = splitParagraphs(stripHtml(html));
 
-    splitParagraphs(text).forEach((p) => {
+    paragraphs.forEach((p, i) => {
       DOCUMENTS.push({
         title: link,
         text: p,
         url: "/" + link,
-        type: "html"
+        type: "html",
+        id: `${link}-${i}`
       });
     });
   }
@@ -94,7 +97,7 @@ async function loadSite() {
 }
 
 /* =========================
-   LOAD PDF (문단 + 페이지 느낌)
+   LOAD PDF (문단 기반)
 ========================= */
 async function loadPdfs() {
   const pdfDir = path.join(__dirname, "files");
@@ -116,7 +119,8 @@ async function loadPdfs() {
         text: p,
         url: `/files/${file}`,
         type: "pdf",
-        page: i
+        id: `${file}-${i}`,
+        page: i + 1
       });
     });
   }
@@ -125,23 +129,27 @@ async function loadPdfs() {
 }
 
 /* =========================
-   EMBEDDING
+   EMBEDDING (안정화)
 ========================= */
 async function embed(text) {
-  const res = await fetch("https://api.openai.com/v1/embeddings", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${OPENAI_API_KEY}`
-    },
-    body: JSON.stringify({
-      model: "text-embedding-3-small",
-      input: text
-    })
-  });
+  try {
+    const res = await fetch("https://api.openai.com/v1/embeddings", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${OPENAI_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: "text-embedding-3-small",
+        input: text
+      })
+    });
 
-  const data = await res.json();
-  return data.data[0].embedding;
+    const data = await res.json();
+    return data?.data?.[0]?.embedding || [];
+  } catch (e) {
+    return [];
+  }
 }
 
 /* =========================
@@ -152,10 +160,12 @@ async function rebuildVector() {
 
   for (const d of DOCUMENTS) {
     const v = await embed(d.text);
+    if (!v.length) continue;
+
     VECTOR_DB.push({ ...d, vector: v });
   }
 
-  console.log("🧠 VECTOR READY");
+  console.log("🧠 VECTOR READY:", VECTOR_DB.length);
 }
 
 /* =========================
@@ -174,26 +184,28 @@ function cosine(a, b) {
 }
 
 /* =========================
-   SEARCH
+   SEARCH (Top 6)
 ========================= */
 async function search(query) {
-  const q = await embed(query);
+  const qVec = await embed(query);
+  if (!qVec.length) return [];
 
   return VECTOR_DB
     .map(d => ({
       ...d,
-      score: cosine(q, d.vector)
+      score: cosine(qVec, d.vector)
     }))
     .sort((a, b) => b.score - a.score)
     .slice(0, 6);
 }
 
 /* =========================
-   AI SUMMARY (문단 기반)
+   AI SUMMARY (JSON 안정화)
 ========================= */
 async function summarize(query, results) {
-  const context = results.map(r => `
-[문서]
+
+  const context = results.slice(0, 5).map(r => `
+[문단]
 제목: ${r.title}
 내용: ${r.text}
 URL: ${r.url}
@@ -211,30 +223,32 @@ URL: ${r.url}
         {
           role: "system",
           content: `
-너는 어린이 교육용 검색 AI다.
+너는 어린이용 검색 AI이다.
 
-규칙:
-- 반드시 JSON만 출력
-- URL은 반드시 제공된 것만 사용
-- 문단 기반으로만 요약
-- 과장 금지
+반드시 JSON만 출력한다.
+설명 금지.
 
 형식:
 {
- "reply": "",
- "results": [
-   {
-     "title": "",
-     "summary": "",
-     "url": ""
-   }
- ]
+  "reply": "쉬운 설명",
+  "results": [
+    {
+      "title": "",
+      "summary": "",
+      "url": ""
+    }
+  ]
 }
+
+규칙:
+- URL은 반드시 제공된 것만 사용
+- 문단 기반으로만 요약
+- 과장 금지
           `
         },
         {
           role: "user",
-          content: `질문: ${query}\n\n문단:\n${context}`
+          content: `질문: ${query}\n\n${context}`
         }
       ]
     })
@@ -244,9 +258,9 @@ URL: ${r.url}
 
   try {
     return JSON.parse(data.choices[0].message.content);
-  } catch {
+  } catch (e) {
     return {
-      reply: "검색 완료",
+      reply: "검색 결과를 찾았어요",
       results
     };
   }
@@ -277,7 +291,7 @@ const server = http.createServer(async (req, res) => {
   }
 
   /* CHAT */
-  if (url === "/api/chat") {
+  if (url === "/api/chat" && req.method === "POST") {
     let body = "";
 
     req.on("data", c => body += c);
