@@ -175,6 +175,7 @@ document.addEventListener("DOMContentLoaded", () => {
       border-top:1px solid #ddd;
     }
     
+    /* 입력창 */
     #text{
       flex:1;
     
@@ -221,9 +222,11 @@ document.addEventListener("DOMContentLoaded", () => {
       align-items:center;
       justify-content:center;
     
+      flex-shrink:0;
+    
       box-sizing:border-box;
     }
-
+    
     /* =========================
        TOGGLE BUTTON
     ========================= */
@@ -231,16 +234,23 @@ document.addEventListener("DOMContentLoaded", () => {
       position:fixed;
       right:25px;
       bottom:25px;
+    
       width:70px;
       height:70px;
+    
       border:none;
       border-radius:50%;
+    
       background:#2f63c7;
+    
       display:flex;
       align-items:center;
       justify-content:center;
+    
       cursor:pointer;
+    
       box-shadow:0 12px 30px rgba(0,0,0,0.25);
+    
       z-index:9999;
     }
 
