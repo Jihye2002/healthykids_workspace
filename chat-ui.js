@@ -313,8 +313,8 @@ document.addEventListener("DOMContentLoaded", () => {
           💡 AI 사용 예시
         </div>
 
-        <div>⭐ 손 씻는 방법 알려줘</div>
-        <div>⭐ 감기 예방 방법</div>
+        <div>⭐ 손 씻기 어떻게 해요</div>
+        <div>⭐ 감기 걸리지 않으려면 어떻게 해요</div>
         <div>⭐ 횡단보도 안전하게 건너기</div>
 
       </div>
@@ -326,8 +326,10 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>
 
         <div>
-          홈페이지의 영상, 놀이자료,
-          안전수칙 자료를 쉽게 찾아볼 수 있어요.
+          헬시키즈에서 메뉴와  
+          헬시키즈 AI를 어떻게 쓰는지,  
+          영상과 놀이자료를 찾아보는 걸  
+          쉽게 알려줘요 😊
         </div>
 
         <a
