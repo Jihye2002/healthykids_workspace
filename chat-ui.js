@@ -3,7 +3,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const API_BASE = "https://healthykids-workspace.onrender.com";
 
   /* =========================
-     STYLE
+     STYLE (유아 친화 UI)
   ========================= */
   document.head.insertAdjacentHTML("beforeend", `
   <style>
@@ -50,30 +50,34 @@ document.addEventListener("DOMContentLoaded", () => {
       border-radius:14px;
       padding:14px;
       border:1px solid #e5e5e5;
-      line-height:1.5;
+      line-height:1.6;
     }
 
     .guideTitle{
       font-weight:bold;
-      color:#000;
+      color:#1f2a44;
       margin-bottom:10px;
+      font-size:15px;
     }
 
+    /* 한 칸 더 들여쓰기 느낌 */
     .guideItem{
-      display:flex;
-      align-items:center;
-      gap:8px;
-      margin:6px 0;
+      margin:10px 0;
       font-size:14px;
+      line-height:1.7;
+      padding-left:10px;
     }
 
     .star{
       color:#f5c542;
+      margin-right:6px;
     }
 
     .quote{
       color:#2f63c7;
       font-weight:600;
+      display:block;
+      margin:6px 0 6px 10px;
     }
 
     .guideBtn{
@@ -103,7 +107,7 @@ document.addEventListener("DOMContentLoaded", () => {
       font-size:14px;
       white-space:pre-wrap;
       word-break:break-word;
-      line-height:1.4;
+      line-height:1.5;
       max-width:78%;
     }
 
@@ -118,44 +122,47 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     /* =========================
-       🤖 캐릭터형 AI 아이콘
+       🤖 친근한 로봇 캐릭터 (핵심 수정)
     ========================= */
     .robotIcon{
-      width:40px;
-      height:40px;
+      width:42px;
+      height:42px;
       border-radius:50%;
-      background:#4f7de6;
+      background:linear-gradient(145deg,#6fa3ff,#3d6fe0);
       display:flex;
       align-items:center;
       justify-content:center;
       flex-shrink:0;
-      box-shadow:0 4px 10px rgba(0,0,0,0.08);
+      box-shadow:0 4px 12px rgba(0,0,0,0.12);
       position:relative;
     }
 
-    /* eyes */
+    /* 눈 (부드럽게 크게) */
     .robotIcon::before,
     .robotIcon::after{
       content:"";
       position:absolute;
-      width:5px;
-      height:5px;
+      width:6px;
+      height:6px;
       background:#fff;
       border-radius:50%;
       top:14px;
+      opacity:0.95;
     }
 
     .robotIcon::before{ left:13px; }
     .robotIcon::after{ right:13px; }
 
-    /* mouth */
+    /* 입 (미소) */
     .robotIcon span{
       position:absolute;
-      bottom:10px;
-      width:10px;
-      height:3px;
-      background:#fff;
-      border-radius:3px;
+      bottom:11px;
+      width:14px;
+      height:6px;
+      border:2px solid #fff;
+      border-top:0;
+      border-radius:0 0 10px 10px;
+      opacity:0.9;
     }
 
     /* INPUT */
@@ -177,8 +184,6 @@ document.addEventListener("DOMContentLoaded", () => {
       font-size:14px;
       outline:none;
       resize:none;
-      display:flex;
-      align-items:center;
     }
 
     #text::placeholder{
@@ -250,35 +255,56 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let loadingNode = null;
 
-  /* =========================
-     RESET
-  ========================= */
+  /* ROBOT ICON */
+  const robotHTML = `<span></span>`;
+
+  /* RESET */
   function resetChat(){
     body.innerHTML = "";
-    input.value = "";
     showGuide();
   }
 
-  /* =========================
-     GUIDE
-  ========================= */
+  /* GUIDE (유아용 설명 확장 + 줄바꿈 명확화) */
   function showGuide(){
     body.innerHTML = `
       <div class="guideBox">
-        <div class="guideTitle">💡 사용 예시</div>
+        <div class="guideTitle">💡 사용 예시 (이렇게 물어보면 돼요)</div>
 
-        <div class="guideItem"><span class="star">⭐</span> 손 씻기 어떻게 해요</div>
-        <div class="guideItem"><span class="star">⭐</span> 감기 안 걸리는 방법</div>
-        <div class="guideItem"><span class="star">⭐</span> 횡단보도 안전하게 건너기</div>
+        <div class="guideItem">
+          ⭐ 손 씻기는 어떻게 해야 하나요?
+        </div>
+
+        <div class="guideItem">
+          ⭐ 감기에 걸리지 않으려면 무엇을 하면 좋을까요?
+        </div>
+
+        <div class="guideItem">
+          ⭐ 횡단보도를 안전하게 건너는 방법은 무엇인가요?
+        </div>
       </div>
 
       <div class="guideBox">
-        <div class="guideTitle">📘 이용 가이드</div>
+        <div class="guideTitle">📘 헬시키즈 사용 방법</div>
 
-        <div class="guideItem"><span class="quote">"AI는 어떻게 써요"</span></div>
-        <div class="guideItem"><span class="quote">"메뉴는 어디에 있어요"</span></div>
-        <div class="guideItem"><span class="quote">"영상은 어디서 봐요"</span></div>
-        <div class="guideItem"><span class="quote">"공부는 어떻게 해요"</span></div>
+        <div class="guideItem">
+          "헬시키즈에서 AI를 어떻게 사용하는지 알려줘요"<br>
+          → AI에게 질문하는 방법을 알려줘요
+        </div>
+
+        <div class="guideItem">
+          "메뉴는 어디에 있어요"<br>
+          → 원하는 기능 버튼 위치를 알려줘요
+        </div>
+
+        <div class="guideItem">
+          "영상은 어디서 봐요"<br>
+          → 재미있는 영상을 보는 방법을 알려줘요
+        </div>
+
+        <div class="guideItem">
+          "공부는 어떻게 해요"<br>
+          → 공부할 내용을 찾는 방법을 알려줘요
+        </div>
 
         <br>
 
@@ -287,9 +313,7 @@ document.addEventListener("DOMContentLoaded", () => {
     `;
   }
 
-  /* =========================
-     MESSAGE
-  ========================= */
+  /* MESSAGE */
   function addMessage(type, text){
 
     const wrap = document.createElement("div");
@@ -297,7 +321,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if(type === "ai"){
       wrap.innerHTML = `
-        <div class="robotIcon"><span></span></div>
+        <div class="robotIcon">${robotHTML}</div>
         <div class="bubble">${text}</div>
       `;
     } else {
@@ -308,9 +332,7 @@ document.addEventListener("DOMContentLoaded", () => {
     body.scrollTop = body.scrollHeight;
   }
 
-  /* =========================
-     SEND
-  ========================= */
+  /* SEND */
   async function send(){
 
     const text = input.value.trim();
@@ -322,7 +344,7 @@ document.addEventListener("DOMContentLoaded", () => {
     loadingNode = document.createElement("div");
     loadingNode.className = "msg ai";
     loadingNode.innerHTML = `
-      <div class="robotIcon"><span></span></div>
+      <div class="robotIcon">${robotHTML}</div>
       <div class="bubble">찾고 있어요 😊</div>
     `;
     body.appendChild(loadingNode);
@@ -351,9 +373,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  /* =========================
-     EVENTS
-  ========================= */
+  /* EVENTS */
   document.getElementById("send").onclick = send;
 
   input.addEventListener("keydown", (e)=>{
