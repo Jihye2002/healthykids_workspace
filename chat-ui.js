@@ -168,16 +168,18 @@ document.addEventListener("DOMContentLoaded", () => {
     ========================= */
     #inputBox{
       display:flex;
+      align-items:center;
       gap:8px;
       padding:10px;
       background:#fff;
       border-top:1px solid #ddd;
     }
-
+    
     #text{
       flex:1;
-      height:48px;
-      min-height:48px;
+    
+      height:44px;
+      min-height:44px;
       max-height:120px;
     
       resize:none;
@@ -185,7 +187,7 @@ document.addEventListener("DOMContentLoaded", () => {
       border:1px solid #ddd;
       border-radius:10px;
     
-      padding:11px 10px 0 10px;
+      padding:12px 12px;
     
       font-size:14px;
       line-height:20px;
