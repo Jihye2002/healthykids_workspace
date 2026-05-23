@@ -37,16 +37,6 @@ function normalize(t = "") {
 }
 
 /* =========================
-   SPLIT TEXT
-========================= */
-function splitText(text) {
-  return text
-    .split(/\n\s*\n|(?<=[.!?])\s+/g)
-    .map(t => t.trim())
-    .filter(t => t.length > 30);
-}
-
-/* =========================
    HTML CLEAN
 ========================= */
 function stripHtml(html) {
@@ -59,28 +49,40 @@ function stripHtml(html) {
 }
 
 /* =========================
-   VIDEO → TEXT (Whisper)
+   CHUNK SPLIT
+========================= */
+function splitText(text) {
+  return text
+    .split(/\n\s*\n|(?<=[.!?])\s+/g)
+    .map(t => t.trim())
+    .filter(t => t.length > 25);
+}
+
+/* =========================
+   VIDEO → TEXT (요약 핵심)
 ========================= */
 async function videoToText(videoPath) {
-  const audioPath = videoPath + ".mp3";
+  const audio = videoPath + ".mp3";
 
-  await new Promise((resolve, reject) => {
-    exec(
-      `ffmpeg -i "${videoPath}" -vn -acodec mp3 "${audioPath}"`,
-      (err) => (err ? reject(err) : resolve())
-    );
+  await new Promise((res, rej) => {
+    exec(`ffmpeg -i "${videoPath}" -vn -acodec mp3 "${audio}"`, err => {
+      if (err) rej(err);
+      else res();
+    });
   });
 
-  const formData = new FormData();
-  formData.append("file", fs.createReadStream(audioPath));
-  formData.append("model", "whisper-1");
+  const file = fs.createReadStream(audio);
+
+  const form = new FormData();
+  form.append("file", file);
+  form.append("model", "whisper-1");
 
   const res = await fetch("https://api.openai.com/v1/audio/transcriptions", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
     },
-    body: formData
+    body: form
   });
 
   const data = await res.json();
@@ -88,7 +90,7 @@ async function videoToText(videoPath) {
 }
 
 /* =========================
-   LOAD FILES (MULTIMODAL INDEX)
+   LOAD FILES (FULL MULTIMODAL INDEX)
 ========================= */
 async function loadFiles() {
   DOCS = [];
@@ -105,10 +107,10 @@ async function loadFiles() {
 
       splitText(clean).forEach((t, i) => {
         DOCS.push({
-          title: file,
           type: "html",
+          title: file,
           text: t,
-          url: `/${file}#s${i}`
+          url: `/${file}#${i}`
         });
       });
     }
@@ -120,24 +122,24 @@ async function loadFiles() {
 
       splitText(pdf.text).forEach((t, i) => {
         DOCS.push({
-          title: file,
           type: "pdf",
+          title: file,
           text: t,
-          url: `/${file}#p${i}`
+          url: `/${file}#${i}`
         });
       });
     }
 
-    /* IMAGE */
+    /* IMAGE OCR */
     if (file.match(/\.(png|jpg|jpeg)$/)) {
       const ocr = await Tesseract.recognize(full, "kor+eng");
 
       splitText(ocr.data.text).forEach((t, i) => {
         DOCS.push({
-          title: file,
           type: "image",
+          title: file,
           text: t,
-          url: `/${file}#i${i}`
+          url: `/${file}`
         });
       });
     }
@@ -149,17 +151,16 @@ async function loadFiles() {
 
         splitText(text).forEach((t, i) => {
           DOCS.push({
-            title: file,
             type: "video",
+            title: file,
             text: t,
-            url: `/${file}#t${i}`
+            url: `/${file}`
           });
         });
 
         console.log("🎥 VIDEO INDEXED:", file);
-
       } catch (e) {
-        console.log("VIDEO ERROR:", file, e.message);
+        console.log("VIDEO ERROR:", file);
       }
     }
   }
@@ -217,7 +218,7 @@ function cosine(a, b) {
 }
 
 /* =========================
-   SEARCH ENGINE (V14 CORE)
+   SEARCH ENGINE (V14 FINAL)
 ========================= */
 async function search(query) {
   if (CACHE.has(query)) return CACHE.get(query);
@@ -227,29 +228,37 @@ async function search(query) {
   let results = [];
 
   for (const d of VECTORS) {
-    const score =
-      cosine(qvec, d.vector) * 3 +
-      (normalize(d.text).includes(normalize(query)) ? 2 : 0);
+    const sim = cosine(qvec, d.vector);
+
+    let score = sim * 3;
+
+    if (normalize(d.text).includes(normalize(query))) {
+      score += 1;
+    }
 
     results.push({ ...d, score });
   }
 
   results.sort((a, b) => b.score - a.score);
 
-  /* DEDUP (URL 기반) */
+  /* =========================
+     DEDUP (URL + TEXT)
+  ========================= */
   const seen = new Set();
   const final = [];
 
   for (const r of results) {
-    if (seen.has(r.url)) continue;
-    seen.add(r.url);
+    const key = r.url + r.text.slice(0, 30);
+
+    if (seen.has(key)) continue;
+    seen.add(key);
+
     final.push(r);
   }
 
   const top = final.slice(0, 10);
 
   CACHE.set(query, top);
-
   return top;
 }
 
@@ -262,12 +271,12 @@ app.post("/api/chat", async (req, res) => {
   const docs = await search(q);
 
   res.json({
-    reply: "검색 완료 (V14)",
+    reply: "검색 완료",
     results: docs.map(d => ({
       title: d.title,
-      type: d.type,
       url: d.url,
-      summary: d.text.slice(0, 140)
+      type: d.type,
+      summary: d.text.slice(0, 120)
     }))
   });
 });
@@ -276,7 +285,7 @@ app.post("/api/chat", async (req, res) => {
    AUTO REINDEX
 ========================= */
 fs.watch(__dirname, async () => {
-  console.log("🔄 REINDEXING...");
+  console.log("🔄 REINDEX");
   await loadFiles();
   await buildVectors();
 });
@@ -293,5 +302,5 @@ fs.watch(__dirname, async () => {
    START
 ========================= */
 app.listen(PORT, () => {
-  console.log("🚀 V14 MULTIMODAL GOOGLE RUNNING:", PORT);
+  console.log("🚀 V14 MULTIMODAL SEARCH RUNNING:", PORT);
 });
