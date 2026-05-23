@@ -183,11 +183,11 @@ document.addEventListener("DOMContentLoaded", () => {
     body.innerHTML = "";
 
     addMessage("ai",
-`🔎 AI 문단 검색 시스템
+🔎 AI 챗봇 사용방법
 
-- 문단 단위 의미 검색
-- PDF + 웹 자동 분석
-- 결과 클릭 시 해당 페이지 이동`);
+    예시) 감기에 걸리면 어떡하지?
+          손씻기 자료 좀 찾아줘
+          몸이 튼튼해지는 음식은 뭐가 있을까?
   }
 
   /* =========================
