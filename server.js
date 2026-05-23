@@ -21,19 +21,19 @@ let VECTOR_DB = [];
 /* =========================
    MIDDLEWARE
 ========================= */
-
 app.use(cors());
 
 app.use(express.json({
-  limit:"50mb"
+    limit:"50mb"
 }));
 
 app.use(express.urlencoded({
-  extended:true,
-  limit:"50mb"
+    extended:true,
+    limit:"50mb"
 }));
 
 app.use(express.static(__dirname));
+
 /* =========================
    UPLOAD
 ========================= */
@@ -48,20 +48,23 @@ function stripHtml(html){
 
     return html
 
+    /* 제거 */
     .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi,"")
-
     .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi,"")
-
     .replace(/<nav[\s\S]*?>[\s\S]*?<\/nav>/gi,"")
-
     .replace(/<header[\s\S]*?>[\s\S]*?<\/header>/gi,"")
-
     .replace(/<footer[\s\S]*?>[\s\S]*?<\/footer>/gi,"")
 
-    .replace(/로그인|회원가입|회원정보|개인정보 수정|회원탈퇴/g,"")
+    /* 메뉴 제거 */
+    .replace(
+        /로그인|회원가입|회원정보|개인정보 수정|회원탈퇴|Q&A|공지사항|놀이학습자료|다운로드|영상보기|진행중인 영상|자주 묻는 질문|문의|자료 다운로드/gi,
+        ""
+    )
 
+    /* html 제거 */
     .replace(/<[^>]*>/g," ")
 
+    /* 공백 정리 */
     .replace(/\s+/g," ")
 
     .trim();
@@ -87,7 +90,17 @@ function splitParagraphs(text){
     return text
         .split(/\n\s*\n|(?<=[.!?])\s+/g)
         .map(t=>t.trim())
-        .filter(t=>t.length > 25);
+        .filter(t=>
+
+            t.length > 40 &&
+
+            !t.includes("로그인") &&
+            !t.includes("회원가입") &&
+            !t.includes("회원탈퇴") &&
+            !t.includes("개인정보") &&
+            !t.includes("Q&A") &&
+            !t.includes("공지사항")
+        );
 }
 
 /* =========================
@@ -107,31 +120,6 @@ function getTitle(html,file){
 }
 
 /* =========================
-   LINK EXTRACT
-========================= */
-function extractLinks(html){
-
-    const regex =
-        /href=["']([^"'#]+)["']/g;
-
-    const links = [];
-
-    let match;
-
-    while((match = regex.exec(html)) !== null){
-
-        const href = match[1];
-
-        if(href.endsWith(".html")){
-
-            links.push(href);
-        }
-    }
-
-    return [...new Set(links)];
-}
-
-/* =========================
    HTML CRAWL
 ========================= */
 async function crawlSite(){
@@ -140,7 +128,7 @@ async function crawlSite(){
         fs.readdirSync(__dirname);
 
     const htmlFiles =
-        files.filter(f =>
+        files.filter(f=>
             f.endsWith(".html")
         );
 
@@ -163,17 +151,16 @@ async function crawlSite(){
             const title =
                 getTitle(html,file);
 
-            splitParagraphs(clean)
-            .forEach(p=>{
+            const paragraphs =
+                splitParagraphs(clean);
+
+            paragraphs.forEach(p=>{
 
                 DOCUMENTS.push({
 
                     title,
-
                     text:p,
-
                     url:"/" + file,
-
                     type:"html"
                 });
 
@@ -208,7 +195,7 @@ async function loadPdfFiles(){
         fs.readdirSync(__dirname);
 
     const pdfs =
-        files.filter(f =>
+        files.filter(f=>
             f.endsWith(".pdf")
         );
 
@@ -441,9 +428,13 @@ async function search(query){
 
             let score = 0;
 
-            if(q.length && d.vector.length){
+            if(
+                q.length &&
+                d.vector.length
+            ){
 
-                score += cosine(q,d.vector);
+                score +=
+                    cosine(q,d.vector);
             }
 
             const text =
@@ -455,7 +446,8 @@ async function search(query){
                     k &&
                     text.includes(k)
                 ){
-                    score += 0.45;
+
+                    score += 0.7;
                 }
             });
 
@@ -463,7 +455,8 @@ async function search(query){
                 normalize(d.title)
                 .includes(normalize(query))
             ){
-                score += 1;
+
+                score += 1.5;
             }
 
             return {
@@ -472,29 +465,117 @@ async function search(query){
             };
 
         })
-        .filter(r=>r.score > 0.4)
 
-        .sort((a,b)=>b.score-a.score)
+        .filter(r=>r.score > 0.8)
+
+        .sort((a,b)=>
+            b.score - a.score
+        )
 
         .slice(0,5);
 
-    return results.map(r=>({
+    return results;
+}
 
-        title:r.title,
+/* =========================
+   GPT RESPONSE
+========================= */
+async function generateAIResponse(
+    query,
+    docs
+){
 
-        summary:
-            r.text
-            .replace(/\s+/g," ")
-            .trim()
-            .slice(0,180),
+    try{
 
-        url:r.url,
+        const context =
+            docs
+            .map(d=>`
+제목:
+${d.title}
 
-        type:r.type,
+내용:
+${d.text}
+            `)
+            .join("\n\n");
 
-        thumbnail:
-            r.thumbnail || ""
-    }));
+        const response =
+            await fetch(
+                "https://api.openai.com/v1/chat/completions",
+                {
+                    method:"POST",
+
+                    headers:{
+                        "Content-Type":"application/json",
+                        "Authorization":
+                        `Bearer ${OPENAI_API_KEY}`
+                    },
+
+                    body:JSON.stringify({
+
+                        model:"gpt-4o-mini",
+
+                        messages:[
+
+                            {
+                                role:"system",
+
+                                content:`
+너는 어린이 건강교육 AI야.
+
+규칙:
+- 질문과 관련된 내용만 설명
+- 관련 없는 내용 절대 금지
+- 핵심만 자연스럽게 요약
+- 메뉴/네비게이션 문구 제거
+- 어린이가 이해하기 쉽게 설명
+- 5줄 이하로 답변
+                                `
+                            },
+
+                            {
+                                role:"user",
+
+                                content:`
+질문:
+${query}
+
+자료:
+${context}
+
+질문과 관련된 내용만
+짧고 자연스럽게
+설명해줘.
+                                `
+                            }
+                        ],
+
+                        temperature:0.3,
+
+                        max_tokens:300
+                    })
+                }
+            );
+
+        const data =
+            await response.json();
+
+        return data
+            ?.choices?.[0]
+            ?.message?.content
+            ?.trim()
+            ||
+            "관련 자료를 찾았어요 😊";
+
+    }catch(e){
+
+        console.log(
+            "GPT 실패:",
+            e
+        );
+
+        return
+        "AI 요약 생성 실패 😢";
+    }
 }
 
 /* =========================
@@ -521,12 +602,29 @@ app.post("/api/chat", async (req,res)=>{
             });
         }
 
+        /* GPT 요약 */
+        const aiReply =
+            await generateAIResponse(
+                message,
+                results
+            );
+
+        /* 결과 반환 */
         res.json({
 
-            reply:
-            "관련 자료를 찾았어요 😊",
+            reply:aiReply,
 
-            results
+            results:results.map(r=>({
+
+                title:r.title,
+
+                url:r.url,
+
+                type:r.type,
+
+                thumbnail:
+                    r.thumbnail || ""
+            }))
         });
 
     }catch(e){
@@ -577,11 +675,8 @@ app.post(
             DOCUMENTS = [];
 
             await crawlSite();
-
             await loadPdfFiles();
-
             await loadVideos();
-
             await rebuildVector();
 
             console.log(
@@ -614,7 +709,7 @@ fs.watch(
             filename &&
             (
                 filename.endsWith(".html") ||
-                filename.endsWith(".pdf") ||
+                               filename.endsWith(".pdf") ||
                 filename.endsWith(".json")
             )
         ){
@@ -627,11 +722,8 @@ fs.watch(
             DOCUMENTS = [];
 
             await crawlSite();
-
             await loadPdfFiles();
-
             await loadVideos();
-
             await rebuildVector();
 
             console.log(
@@ -646,19 +738,20 @@ fs.watch(
 ========================= */
 (async ()=>{
 
-    console.log("초기화 시작");
+    console.log(
+        "초기화 시작"
+    );
 
     DOCUMENTS = [];
 
     await crawlSite();
-
     await loadPdfFiles();
-
     await loadVideos();
-
     await rebuildVector();
 
-    console.log("초기화 완료");
+    console.log(
+        "초기화 완료"
+    );
 
 })();
 
