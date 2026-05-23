@@ -29,14 +29,14 @@ function stripHtml(html){
 }
 
 /* =========================
-   SPLIT TEXT
+   TEXT SPLIT
 ========================= */
 function splitParagraphs(text){
 
   return text
     .split(/\n\s*\n|(?<=[.!?])\s+/g)
     .map(t => t.trim())
-    .filter(t => t.length > 20);
+    .filter(t => t.length > 15);
 }
 
 /* =========================
@@ -69,9 +69,24 @@ function extractLinks(html){
 }
 
 /* =========================
+   HTML TITLE
+========================= */
+function getTitle(html, fallback){
+
+  const m = html.match(/<title>(.*?)<\/title>/i);
+
+  if(m && m[1]){
+
+    return m[1].trim();
+  }
+
+  return fallback.replace(".html","");
+}
+
+/* =========================
    AUTO SITE CRAWLER
 ========================= */
-async function crawlSite(start = "index.html"){
+async function crawlSite(start="index.html"){
 
   DOCUMENTS = [];
 
@@ -96,12 +111,17 @@ async function crawlSite(start = "index.html"){
 
       const clean = stripHtml(html);
 
+      const title = getTitle(
+        html,
+        file
+      );
+
       splitParagraphs(clean)
-      .forEach((p,i)=>{
+      .forEach((p)=>{
 
         DOCUMENTS.push({
 
-          title:file.replace(".html",""),
+          title,
 
           text:p,
 
@@ -112,7 +132,7 @@ async function crawlSite(start = "index.html"){
 
       });
 
-      console.log("크롤링:", file);
+      console.log("크롤링 완료:", file);
 
       const links = extractLinks(html);
 
@@ -129,34 +149,36 @@ async function crawlSite(start = "index.html"){
 
   await crawl(start);
 
-  console.log("전체 문서 수:", DOCUMENTS.length);
+  console.log("HTML 문서:", DOCUMENTS.length);
 }
 
 /* =========================
-   PDF AUTO LOAD
+   PDF LOAD
 ========================= */
 async function loadPdfFiles(){
 
   const files = fs.readdirSync(__dirname);
 
-  const pdfs = files.filter(f => f.endsWith(".pdf"));
+  const pdfs = files.filter(f =>
+    f.endsWith(".pdf")
+  );
 
   for(const pdf of pdfs){
 
     try{
 
       const buffer = fs.readFileSync(
-        path.join(__dirname, pdf)
+        path.join(__dirname,pdf)
       );
 
       const parsed = await pdfParse(buffer);
 
       splitParagraphs(parsed.text)
-      .forEach((p,i)=>{
+      .forEach((p)=>{
 
         DOCUMENTS.push({
 
-          title:pdf,
+          title:pdf.replace(".pdf",""),
 
           text:p,
 
@@ -199,35 +221,32 @@ async function loadVideos(){
       fs.readFileSync(file,"utf-8")
     );
 
-    videos.forEach(v => {
+    videos.forEach(v=>{
 
       DOCUMENTS.push({
 
-        title: v.title,
+        title:v.title,
 
-        text: `
+        text:`
 영상 제목:
 ${v.title}
 
 영상 설명:
-${v.description}
+${v.description || ""}
 
 영상 요약:
 ${v.summary || ""}
 
-관련 키워드:
-${v.keywords || ""}
-
-카테고리:
-${v.category || ""}
-
 교육 내용:
 ${v.education || ""}
+
+키워드:
+${v.keywords || ""}
         `,
 
-        url: v.url,
+        url:v.url,
 
-        thumbnail: v.thumbnail || "",
+        thumbnail:v.thumbnail || "",
 
         type:"video"
       });
@@ -235,7 +254,7 @@ ${v.education || ""}
     });
 
     console.log(
-      "영상 데이터 로드 완료:",
+      "영상 데이터:",
       videos.length
     );
 
@@ -250,6 +269,13 @@ ${v.education || ""}
 ========================= */
 async function embed(text){
 
+  if(!OPENAI_API_KEY){
+
+    console.log("OPENAI_API_KEY 없음");
+
+    return [];
+  }
+
   try{
 
     const res = await fetch(
@@ -259,17 +285,27 @@ async function embed(text){
 
         headers:{
           "Content-Type":"application/json",
-          "Authorization":`Bearer ${OPENAI_API_KEY}`
+          "Authorization":
+            `Bearer ${OPENAI_API_KEY}`
         },
 
         body:JSON.stringify({
+
           model:"text-embedding-3-small",
+
           input:text
         })
       }
     );
 
     const data = await res.json();
+
+    if(data.error){
+
+      console.log(data.error);
+
+      return [];
+    }
 
     return data?.data?.[0]?.embedding || [];
 
@@ -298,7 +334,10 @@ async function rebuildVector(){
     });
   }
 
-  console.log("벡터 생성 완료:", VECTOR_DB.length);
+  console.log(
+    "벡터 생성:",
+    VECTOR_DB.length
+  );
 }
 
 /* =========================
@@ -306,7 +345,10 @@ async function rebuildVector(){
 ========================= */
 function cosine(a,b){
 
-  if(!a.length || !b.length) return 0;
+  if(!a.length || !b.length){
+
+    return 0;
+  }
 
   let dot = 0;
   let ma = 0;
@@ -315,7 +357,9 @@ function cosine(a,b){
   for(let i=0;i<a.length;i++){
 
     dot += a[i] * b[i];
+
     ma += a[i] ** 2;
+
     mb += b[i] ** 2;
   }
 
@@ -327,35 +371,52 @@ function cosine(a,b){
 }
 
 /* =========================
+   KOREAN CLEAN
+========================= */
+function normalize(text){
+
+  return text
+    .toLowerCase()
+    .replace(/[^\w가-힣]/g," ")
+    .replace(/\s+/g," ")
+    .trim();
+}
+
+/* =========================
    SEARCH
 ========================= */
 async function search(query){
 
   const q = await embed(query);
 
-  const results = VECTOR_DB.map(d => {
+  const normalizedQuery =
+    normalize(query);
+
+  const keywords =
+    normalizedQuery.split(" ");
+
+  const results = VECTOR_DB.map(d=>{
 
     let score = 0;
 
-    /* 의미 기반 검색 */
+    /* 의미 기반 */
     if(q.length && d.vector.length){
 
-      score += cosine(q, d.vector);
+      score += cosine(q,d.vector);
     }
 
-    /* 키워드 기반 검색 */
-    const keywords = query
-      .toLowerCase()
-      .split(/\s+/);
+    /* 키워드 기반 */
+    const docText =
+      normalize(d.text);
 
-    keywords.forEach(k => {
+    keywords.forEach(k=>{
 
       if(
-        d.text.toLowerCase().includes(k)
+        k &&
+        docText.includes(k)
       ){
-        score += 0.15;
+        score += 0.35;
       }
-
     });
 
     return {
@@ -364,11 +425,11 @@ async function search(query){
     };
 
   })
-  .filter(x => x.score > 0.15)
+  .filter(r => r.score > 0.2)
   .sort((a,b)=>b.score-a.score)
-  .slice(0,5);
+  .slice(0,6);
 
-  return results.map(r => ({
+  return results.map(r=>({
 
     title:r.title,
 
@@ -376,7 +437,7 @@ async function search(query){
       r.text
         .replace(/\s+/g," ")
         .trim()
-        .slice(0,220),
+        .slice(0,260),
 
     url:r.url,
 
@@ -389,7 +450,7 @@ async function search(query){
 /* =========================
    SAFE JSON
 ========================= */
-function safeJSON(text, fallback){
+function safeJSON(text,fallback){
 
   try{
 
@@ -397,7 +458,8 @@ function safeJSON(text, fallback){
 
   }catch{
 
-    const m = text.match(/\{[\s\S]*\}/);
+    const m =
+      text.match(/\{[\s\S]*\}/);
 
     if(!m) return fallback;
 
@@ -420,17 +482,40 @@ async function summarize(query, results){
   if(!results.length){
 
     return {
-      reply:"이 내용은 아직 헬시키즈 자료에 없어요 😊",
+
+      reply:
+        "앗 😊 아직 등록되지 않은 자료예요. 다른 키워드로 다시 찾아볼까요?",
+
       results:[]
     };
   }
 
-  const context = results.map(r => `
-[자료]
-제목: ${r.title}
-내용: ${r.summary}
-링크: ${r.url}
-  `).join("\n");
+  if(!GROQ_API_KEY){
+
+    return {
+
+      reply:"자료를 찾았어요 😊",
+
+      results
+    };
+  }
+
+  const context =
+    results.map(r=>`
+
+제목:
+${r.title}
+
+내용:
+${r.summary}
+
+링크:
+${r.url}
+
+타입:
+${r.type}
+
+    `).join("\n");
 
   try{
 
@@ -441,12 +526,15 @@ async function summarize(query, results){
 
         headers:{
           "Content-Type":"application/json",
-          "Authorization":`Bearer ${GROQ_API_KEY}`
+          "Authorization":
+            `Bearer ${GROQ_API_KEY}`
         },
 
         body:JSON.stringify({
 
           model:"llama-3.1-70b-versatile",
+
+          temperature:0.4,
 
           messages:[
 
@@ -454,19 +542,19 @@ async function summarize(query, results){
               role:"system",
 
               content:`
-너는 아이들과 선생님을 도와주는
+
+너는 유치원 선생님과 아이들을 도와주는
 따뜻한 헬시키즈 AI야.
 
-반드시 아래 규칙을 지켜:
+반드시 지켜:
 
 1. 말투는 아주 부드럽고 친절하게
-2. 아이들이 이해하기 쉽게 설명
-3. 검색 결과를 3~4줄 정도로 자연스럽게 요약
-4. 영상이면 영상 내용도 함께 설명
-5. 실제 자료만 사용
-6. 없는 내용을 지어내지 말기
-7. 관련 자료가 있으면 함께 추천
-8. JSON만 출력
+2. 아이들도 이해할 수 있게 쉽게 설명
+3. 실제 자료만 사용
+4. 없는 내용은 지어내지 말기
+5. 결과를 3~4줄 정도로 자연스럽게 요약
+6. 영상이면 영상 내용도 설명
+7. JSON만 출력
 
 출력 형식:
 
@@ -481,21 +569,23 @@ async function summarize(query, results){
     }
   ]
 }
-`
+
+              `
             },
 
             {
               role:"user",
 
               content:`
+
 질문:
 ${query}
 
 자료:
 ${context}
-`
-            }
 
+              `
+            }
           ]
         })
       }
@@ -506,15 +596,21 @@ ${context}
     return safeJSON(
       data?.choices?.[0]?.message?.content,
       {
+
         reply:"자료를 찾았어요 😊",
+
         results
       }
     );
 
   }catch(e){
 
+    console.log("Groq 실패");
+
     return {
+
       reply:"자료를 찾았어요 😊",
+
       results
     };
   }
@@ -525,58 +621,89 @@ ${context}
 ========================= */
 async function pipeline(message){
 
-  const results = await search(message);
+  const results =
+    await search(message);
 
-  return await summarize(message, results);
+  return await summarize(
+    message,
+    results
+  );
 }
 
 /* =========================
    REALTIME UPDATE
 ========================= */
-fs.watch(__dirname, async (event, filename)=>{
+fs.watch(
+  __dirname,
+  async (event, filename)=>{
 
-  if(
-    filename &&
-    (
-      filename.endsWith(".html") ||
-      filename.endsWith(".pdf") ||
-      filename.endsWith(".json") ||
-      filename.endsWith(".mp4")
-    )
-  ){
+    if(
+      filename &&
+      (
+        filename.endsWith(".html") ||
+        filename.endsWith(".pdf") ||
+        filename.endsWith(".json") ||
+        filename.endsWith(".mp4")
+      )
+    ){
 
-    console.log("파일 변경 감지:", filename);
+      console.log(
+        "파일 변경:",
+        filename
+      );
 
-    await crawlSite();
+      try{
 
-    await loadPdfFiles();
+        await crawlSite();
 
-    await loadVideos();
+        await loadPdfFiles();
 
-    await rebuildVector();
+        await loadVideos();
+
+        await rebuildVector();
+
+        console.log(
+          "자동 업데이트 완료"
+        );
+
+      }catch(e){
+
+        console.log(
+          "자동 업데이트 실패"
+        );
+      }
+    }
   }
-});
+);
 
 /* =========================
    MIME
 ========================= */
 function getContentType(file){
 
-  if(file.endsWith(".html")) return "text/html";
+  if(file.endsWith(".html"))
+    return "text/html";
 
-  if(file.endsWith(".js")) return "application/javascript";
+  if(file.endsWith(".js"))
+    return "application/javascript";
 
-  if(file.endsWith(".css")) return "text/css";
+  if(file.endsWith(".css"))
+    return "text/css";
 
-  if(file.endsWith(".png")) return "image/png";
+  if(file.endsWith(".png"))
+    return "image/png";
 
-  if(file.endsWith(".jpg")) return "image/jpeg";
+  if(file.endsWith(".jpg"))
+    return "image/jpeg";
 
-  if(file.endsWith(".pdf")) return "application/pdf";
+  if(file.endsWith(".pdf"))
+    return "application/pdf";
 
-  if(file.endsWith(".json")) return "application/json";
+  if(file.endsWith(".json"))
+    return "application/json";
 
-  if(file.endsWith(".mp4")) return "video/mp4";
+  if(file.endsWith(".mp4"))
+    return "video/mp4";
 
   return "text/plain";
 }
@@ -584,104 +711,134 @@ function getContentType(file){
 /* =========================
    SERVER
 ========================= */
-const server = http.createServer(async (req,res)=>{
+const server = http.createServer(
+  async (req,res)=>{
 
-  const url = req.url.split("?")[0];
+    const url =
+      req.url.split("?")[0];
 
-  res.setHeader(
-    "Access-Control-Allow-Origin",
-    "*"
-  );
+    res.setHeader(
+      "Access-Control-Allow-Origin",
+      "*"
+    );
 
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "Content-Type"
-  );
+    res.setHeader(
+      "Access-Control-Allow-Headers",
+      "Content-Type"
+    );
 
-  res.setHeader(
-    "Access-Control-Allow-Methods",
-    "GET,POST,OPTIONS"
-  );
+    res.setHeader(
+      "Access-Control-Allow-Methods",
+      "GET,POST,OPTIONS"
+    );
 
-  if(req.method === "OPTIONS"){
+    if(req.method === "OPTIONS"){
 
-    res.writeHead(204);
+      res.writeHead(204);
 
-    return res.end();
-  }
-
-  /* =========================
-     CHAT API
-  ========================= */
-  if(url === "/api/chat"){
-
-    let body = "";
-
-    req.on("data", c => body += c);
-
-    req.on("end", async ()=>{
-
-      try{
-
-        const { message } = JSON.parse(body);
-
-        const result = await pipeline(message);
-
-        res.writeHead(200,{
-          "Content-Type":"application/json"
-        });
-
-        res.end(JSON.stringify(result));
-
-      }catch(e){
-
-        console.log(e);
-
-        res.writeHead(500,{
-          "Content-Type":"application/json"
-        });
-
-        res.end(JSON.stringify({
-
-          reply:"서버 연결 문제가 있어요 😢",
-
-          results:[]
-        }));
-      }
-    });
-
-    return;
-  }
-
-  /* =========================
-     STATIC FILE
-  ========================= */
-  const filePath =
-    url === "/"
-      ? path.join(__dirname,"index.html")
-      : path.join(__dirname,url);
-
-  fs.readFile(filePath,(err,data)=>{
-
-    if(err){
-
-      res.writeHead(404);
-
-      return res.end("페이지를 찾을 수 없어요");
+      return res.end();
     }
 
-    res.writeHead(200,{
-      "Content-Type":getContentType(filePath)
-    });
+    /* =========================
+       CHAT API
+    ========================= */
+    if(url === "/api/chat"){
 
-    res.end(data);
-  });
-});
+      let body = "";
+
+      req.on("data",chunk=>{
+
+        body += chunk;
+      });
+
+      req.on("end", async ()=>{
+
+        try{
+
+          const parsed =
+            JSON.parse(body);
+
+          const message =
+            parsed.message || "";
+
+          const result =
+            await pipeline(message);
+
+          res.writeHead(200,{
+            "Content-Type":
+              "application/json"
+          });
+
+          res.end(
+            JSON.stringify(result)
+          );
+
+        }catch(e){
+
+          console.log(e);
+
+          res.writeHead(500,{
+            "Content-Type":
+              "application/json"
+          });
+
+          res.end(JSON.stringify({
+
+            reply:
+              "서버 연결에 문제가 있어요 😢",
+
+            results:[]
+          }));
+        }
+      });
+
+      return;
+    }
+
+    /* =========================
+       STATIC FILE
+    ========================= */
+    const filePath =
+      url === "/"
+      ? path.join(
+          __dirname,
+          "index.html"
+        )
+      : path.join(
+          __dirname,
+          url
+        );
+
+    fs.readFile(
+      filePath,
+      (err,data)=>{
+
+        if(err){
+
+          res.writeHead(404);
+
+          return res.end(
+            "페이지를 찾을 수 없어요"
+          );
+        }
+
+        res.writeHead(200,{
+          "Content-Type":
+            getContentType(filePath)
+        });
+
+        res.end(data);
+      }
+    );
+  }
+);
 
 /* =========================
    INIT
 ========================= */
 (async ()=>{
+
+  console.log("초기화 시작");
 
   await crawlSite();
 
@@ -691,6 +848,8 @@ const server = http.createServer(async (req,res)=>{
 
   await rebuildVector();
 
+  console.log("초기화 완료");
+
 })();
 
 /* =========================
@@ -698,6 +857,8 @@ const server = http.createServer(async (req,res)=>{
 ========================= */
 server.listen(PORT, ()=>{
 
-  console.log("헬시키즈 서버 실행:", PORT);
-
+  console.log(
+    "헬시키즈 서버 실행:",
+    PORT
+  );
 });
