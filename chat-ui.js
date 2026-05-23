@@ -166,7 +166,7 @@ document.addEventListener("DOMContentLoaded", () => {
     /* =========================
        INPUT
     ========================= */
-    #inputBox{
+   #inputBox{
       display:flex;
       align-items:center;
       gap:8px;
@@ -178,8 +178,8 @@ document.addEventListener("DOMContentLoaded", () => {
     #text{
       flex:1;
     
-      height:44px;
-      min-height:44px;
+      height:54px;
+      min-height:54px;
       max-height:120px;
     
       resize:none;
@@ -187,7 +187,8 @@ document.addEventListener("DOMContentLoaded", () => {
       border:1px solid #ddd;
       border-radius:10px;
     
-      padding:12px 12px;
+      /* 세로 가운데처럼 보이게 */
+      padding:16px 12px 0 12px;
     
       font-size:14px;
       line-height:20px;
