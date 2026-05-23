@@ -67,7 +67,6 @@ document.addEventListener("DOMContentLoaded", () => {
     border-radius:12px;
     margin-bottom:10px;
     font-size:13px;
-    line-height:1.5;
   }
 
   .guideBox2{
@@ -82,7 +81,6 @@ document.addEventListener("DOMContentLoaded", () => {
     color:#fff;
     border-radius:8px;
     text-decoration:none;
-    font-size:12px;
   }
 
   /* INPUT */
@@ -92,7 +90,6 @@ document.addEventListener("DOMContentLoaded", () => {
     gap:8px;
     padding:10px;
     border-top:1px solid #ddd;
-    background:#fff;
   }
 
   #uploadBtn{
@@ -104,7 +101,6 @@ document.addEventListener("DOMContentLoaded", () => {
     display:flex;
     justify-content:center;
     align-items:center;
-    font-size:20px;
     cursor:pointer;
   }
 
@@ -129,31 +125,21 @@ document.addEventListener("DOMContentLoaded", () => {
     cursor:pointer;
   }
 
-  /* REC BUTTON */
+  /* 🎙️ 녹음 버튼 */
   #voiceBtn{
     width:42px;
     height:42px;
     border-radius:50%;
-    background:#444;
+    background:#333;
+    color:#fff;
     border:none;
     cursor:pointer;
-    color:#fff;
-    font-size:11px;
-    font-weight:bold;
-    display:flex;
-    align-items:center;
-    justify-content:center;
+    font-size:16px;
   }
 
   #voiceBtn.recording{
-    background:#ff3b3b;
-    animation:pulse 1s infinite;
-  }
-
-  @keyframes pulse{
-    0%{transform:scale(1);}
-    50%{transform:scale(1.1);}
-    100%{transform:scale(1);}
+    background:#e53935;
+    box-shadow:0 0 10px rgba(229,57,53,0.5);
   }
 
   #toggleBtn{
@@ -189,9 +175,9 @@ document.addEventListener("DOMContentLoaded", () => {
           <input type="file" id="file">
         </label>
 
-        <textarea id="text" placeholder="궁금한 내용을 물어보세요"></textarea>
+        <textarea id="text" placeholder="궁금한 내용을 입력하세요"></textarea>
 
-        <button id="voiceBtn">REC</button>
+        <button id="voiceBtn">🎙</button>
         <button id="send">검색</button>
       </div>
     </div>
@@ -202,19 +188,14 @@ document.addEventListener("DOMContentLoaded", () => {
   const body = document.getElementById("chatBody");
   const input = document.getElementById("text");
 
-  /* =========================
-     MESSAGE
-  ========================= */
   function addMessage(type, text){
     const div = document.createElement("div");
     div.className = `msg ${type}`;
     div.innerText = text;
     body.appendChild(div);
+    body.scrollTop = body.scrollHeight;
   }
 
-  /* =========================
-     CARD (결과)
-  ========================= */
   function addCard(r){
     const div = document.createElement("div");
     div.className = "msg ai";
@@ -231,9 +212,6 @@ document.addEventListener("DOMContentLoaded", () => {
     body.appendChild(div);
   }
 
-  /* =========================
-     SEND
-  ========================= */
   async function send(){
     const text = input.value.trim();
     if(!text) return;
@@ -243,134 +221,95 @@ document.addEventListener("DOMContentLoaded", () => {
 
     addMessage("ai", "🔍 검색 중...");
 
-    const res = await fetch(`${API_BASE}/api/chat`, {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({ message:text })
-    });
+    try {
+      const res = await fetch(`${API_BASE}/api/chat`, {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ message:text })
+      });
 
-    const data = await res.json();
+      const data = await res.json();
 
-    body.lastChild.remove();
+      body.lastChild.remove();
 
-    addMessage("ai", data.reply || "결과 없음");
+      addMessage("ai", data.reply || "결과 없음");
 
-    (data.results || []).forEach(addCard);
+      (data.results || []).forEach(addCard);
+
+    } catch (e) {
+      body.lastChild.remove();
+      addMessage("ai", "서버 연결 실패");
+    }
   }
 
-  /* =========================
-     ENTER
-  ========================= */
-  input.addEventListener("keydown", (e)=>{
-    if(e.key==="Enter" && !e.shiftKey){
-      e.preventDefault();
-      send();
-    }
-  });
+  document.getElementById("send").onclick = send;
 
   /* =========================
-     VOICE (REC STYLE)
+     VOICE (완전 수정)
   ========================= */
   let recognition = null;
   let isListening = false;
 
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-  if(SpeechRecognition){
+  if (SpeechRecognition) {
     recognition = new SpeechRecognition();
     recognition.lang = "ko-KR";
-    recognition.continuous = false;
     recognition.interimResults = true;
   }
 
   const voiceBtn = document.getElementById("voiceBtn");
 
-  function startRecord(){
-    if(!recognition) return;
-
-    recognition.start();
-    isListening = true;
-
-    voiceBtn.classList.add("recording");
-    voiceBtn.innerText = "REC";
-  }
-
-  function stopRecord(){
-    if(!recognition) return;
-
-    recognition.stop();
-    isListening = false;
-
-    voiceBtn.classList.remove("recording");
-    voiceBtn.innerText = "REC";
-  }
-
   voiceBtn.onclick = () => {
-    if(isListening) stopRecord();
-    else startRecord();
+    if (!recognition) return;
+
+    if (isListening) {
+      recognition.stop();
+      return;
+    }
+
+    try {
+      recognition.start();
+      isListening = true;
+      voiceBtn.classList.add("recording");
+      voiceBtn.innerText = "REC";
+    } catch (e) {
+      console.log(e);
+    }
   };
 
-  if(recognition){
-    recognition.onresult = (e)=>{
+  if (recognition) {
+    recognition.onresult = (e) => {
       let text = "";
-      for(let i=e.resultIndex;i<e.results.length;i++){
+      for (let i = e.resultIndex; i < e.results.length; i++) {
         text += e.results[i][0].transcript;
       }
       input.value = text;
     };
 
-    recognition.onend = ()=>{
+    recognition.onend = () => {
       isListening = false;
       voiceBtn.classList.remove("recording");
+      voiceBtn.innerText = "🎙";
 
-      if(input.value.trim().length > 0){
-        send();
-      }
+      if (input.value.trim()) send();
     };
 
-    recognition.onerror = ()=>{
+    recognition.onerror = () => {
       isListening = false;
       voiceBtn.classList.remove("recording");
+      voiceBtn.innerText = "🎙";
     };
   }
 
-  /* =========================
-     FILE UPLOAD
-  ========================= */
-  document.getElementById("file").addEventListener("change", async (e)=>{
-    const file = e.target.files[0];
-    if(!file) return;
-
-    const reader = new FileReader();
-
-    reader.onload = async ()=>{
-      await fetch(`${API_BASE}/api/upload`, {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({
-          name:file.name,
-          content:reader.result.split(",")[1]
-        })
-      });
-
-      addMessage("ai","📄 문서가 추가되었어요");
-    };
-
-    reader.readAsDataURL(file);
-  });
-
-  /* =========================
-     EVENTS
-  ========================= */
-  document.getElementById("send").onclick = send;
-
-  document.getElementById("toggleBtn").onclick = ()=>{
-    document.getElementById("chatApp").style.display="flex";
+  document.getElementById("toggleBtn").onclick = () => {
+    document.getElementById("chatApp").style.display = "flex";
+    body.innerHTML = "";
   };
 
-  document.getElementById("closeBtn").onclick = ()=>{
-    document.getElementById("chatApp").style.display="none";
-    body.innerHTML="";
+  document.getElementById("closeBtn").onclick = () => {
+    document.getElementById("chatApp").style.display = "none";
+    body.innerHTML = "";
   };
 
 });
