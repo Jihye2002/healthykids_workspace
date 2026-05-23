@@ -4,27 +4,22 @@ const fs = require("fs");
 const path = require("path");
 const pdfParse = require("pdf-parse");
 const Tesseract = require("tesseract.js");
+const ffmpeg = require("fluent-ffmpeg");
 
-const fetch = global.fetch || require("node-fetch");
+const OpenAI = require("openai");
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-/* =========================
-   DATA
-========================= */
-let DOCS = [];
-let CACHE = new Map();
-
-/* =========================
-   MIDDLEWARE
-========================= */
 app.use(cors());
 app.use(express.json({ limit: "50mb" }));
 app.use(express.static(__dirname));
 
+let DOCS = [];
+
 /* =========================
-   HTML CLEAN (본문용)
+   HTML CLEAN (NAV 제거)
 ========================= */
 function cleanHTML(html) {
   return html
@@ -39,37 +34,25 @@ function cleanHTML(html) {
 }
 
 /* =========================
-   LINK EXTRACT (nav 포함)
+   LINK EXTRACT
 ========================= */
 function extractLinks(html) {
-  const links = [];
   const regex = /href="(.*?)".*?>(.*?)<\/a>/g;
+  const links = [];
 
-  let match;
-  while ((match = regex.exec(html))) {
-    const url = match[1];
-    const label = match[2].replace(/<[^>]+>/g, "").trim();
-
-    if (url && label) {
-      links.push({ url, label });
-    }
+  let m;
+  while ((m = regex.exec(html))) {
+    links.push({
+      url: m[1],
+      label: m[2].replace(/<[^>]+>/g, "").trim()
+    });
   }
 
   return links;
 }
 
 /* =========================
-   TEXT SPLIT
-========================= */
-function splitText(text) {
-  return text
-    .split(/\n\s*\n|(?<=[.!?])\s+/g)
-    .map(t => t.trim())
-    .filter(t => t.length > 25);
-}
-
-/* =========================
-   LOAD FILES (MULTIMODAL)
+   FILE LOAD (mp4 포함)
 ========================= */
 async function loadFiles() {
   DOCS = [];
@@ -79,23 +62,20 @@ async function loadFiles() {
   for (const file of files) {
     const full = path.join(__dirname, file);
 
-    /* ================= HTML ================= */
+    /* HTML */
     if (file.endsWith(".html")) {
       const html = fs.readFileSync(full, "utf8");
-
-      const links = extractLinks(html);
-      const clean = cleanHTML(html);
 
       DOCS.push({
         type: "html",
         title: file,
-        text: clean,
-        links,
+        text: cleanHTML(html),
+        links: extractLinks(html),
         url: `/${file}`
       });
     }
 
-    /* ================= PDF ================= */
+    /* PDF */
     if (file.endsWith(".pdf")) {
       const buf = fs.readFileSync(full);
       const pdf = await pdfParse(buf);
@@ -109,7 +89,7 @@ async function loadFiles() {
       });
     }
 
-    /* ================= IMAGE ================= */
+    /* IMAGE OCR */
     if (file.match(/\.(png|jpg|jpeg)$/)) {
       const ocr = await Tesseract.recognize(full, "kor+eng");
 
@@ -121,97 +101,115 @@ async function loadFiles() {
         url: `/${file}`
       });
     }
+
+    /* =========================
+       🎥 MP4 VIDEO 처리 (핵심)
+    ========================= */
+    if (file.endsWith(".mp4")) {
+      const audioPath = full + ".wav";
+
+      await new Promise((resolve) => {
+        ffmpeg(full)
+          .noVideo()
+          .audioCodec("pcm_s16le")
+          .save(audioPath)
+          .on("end", resolve);
+      });
+
+      const transcription = await openai.audio.transcriptions.create({
+        file: fs.createReadStream(audioPath),
+        model: "whisper-1"
+      });
+
+      fs.unlinkSync(audioPath);
+
+      DOCS.push({
+        type: "video",
+        title: file,
+        text: transcription.text,
+        links: [],
+        url: `/${file}`
+      });
+    }
   }
 
-  console.log("📦 DOCS LOADED:", DOCS.length);
+  console.log("DOCS LOADED:", DOCS.length);
 }
 
 /* =========================
-   SIMPLE RETRIEVAL (AI용 컨텍스트)
+   SEARCH (의미 기반)
 ========================= */
 function search(query) {
   const q = query.toLowerCase();
 
   return DOCS
     .map(d => {
-      const score = d.text.toLowerCase().includes(q) ? 2 : 0;
+      let score = 0;
+
+      if (d.text.toLowerCase().includes(q)) score += 2;
+
+      q.split(" ").forEach(k => {
+        if (d.text.toLowerCase().includes(k)) score += 0.5;
+      });
+
       return { ...d, score };
     })
     .sort((a, b) => b.score - a.score)
-    .slice(0, 8);
+    .slice(0, 6);
 }
 
 /* =========================
-   AI GENERATION (핵심)
+   AI RESPONSE (교육용)
 ========================= */
 async function generateAI(query, docs) {
 
   const context = docs.map(d => `
 TYPE: ${d.type}
-TITLE: ${d.title}
 URL: ${d.url}
-
-CONTENT:
-${d.text.slice(0, 400)}
-
-AVAILABLE LINKS:
-${(d.links || []).map(l => `- ${l.label} → ${l.url}`).join("\n")}
+TEXT:
+${d.text.slice(0, 600)}
 `).join("\n\n");
 
   const prompt = `
-너는 "웹사이트 이해형 AI 검색 엔진"이다.
+너는 5~7세 어린이를 위한 교육 AI이다.
 
-절대 규칙:
-- nav, footer, menu 같은 구조 설명은 출력 금지
-- 오직 "사용자에게 의미 있는 정보"만 출력
-- URL은 반드시 제공된 링크 중에서만 선택
+규칙:
+- 쉬운 말만 사용
+- 영상/문서 내용을 이해해서 설명
+- nav/footer 금지
+- 반드시 개념 기반 버튼 생성
 
-해야 할 것:
-1. 질문 핵심 요약
-2. 연관 개념 3~6개 생성
-3. 각 개념은 버튼 형태로 출력
-4. 버튼은 반드시 URL 포함
-
-출력 형식 (JSON):
+출력:
 {
-  "answer": "...",
+  "answer": "쉬운 설명 1~2문장",
   "buttons": [
-    { "label": "...", "url": "..." }
+    { "label": "연관 개념", "url": "링크" }
   ]
 }
 
-사용자 질문:
+연관 개념 예:
+감기 → 손씻기 / 마스크 / 기침예절 / 병원 / 독감
+
+질문:
 ${query}
 
 문서:
 ${context}
 `;
 
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: "Return ONLY valid JSON. No extra text." },
-        { role: "user", content: prompt }
-      ],
-      temperature: 0.2
-    })
+  const res = await openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    messages: [
+      { role: "system", content: "Return ONLY JSON." },
+      { role: "user", content: prompt }
+    ],
+    temperature: 0.2
   });
 
-  const data = await res.json();
-
   try {
-    return JSON.parse(data.choices[0].message.content);
-  } catch (e) {
-    return {
-      answer: "AI 생성 실패",
-      buttons: []
-    };
+    return JSON.parse(res.choices[0].message.content);
+  } catch {
+    return { answer: "이해 실패", buttons: [] };
   }
 }
 
@@ -220,30 +218,16 @@ ${context}
 ========================= */
 app.post("/api/chat", async (req, res) => {
 
-  const q = req.body.message || "";
-
-  if (CACHE.has(q)) {
-    return res.json(CACHE.get(q));
-  }
+  const q = req.body.message;
 
   const docs = search(q);
   const ai = await generateAI(q, docs);
 
-  const result = {
-    query: q,
+  res.json({
     answer: ai.answer,
     buttons: ai.buttons,
-    results: docs.map(d => ({
-      type: d.type,
-      title: d.title,
-      url: d.url,
-      preview: d.text.slice(0, 120)
-    }))
-  };
-
-  CACHE.set(q, result);
-
-  res.json(result);
+    sources: docs
+  });
 });
 
 /* =========================
@@ -253,9 +237,6 @@ app.post("/api/chat", async (req, res) => {
   await loadFiles();
 })();
 
-/* =========================
-   START
-========================= */
 app.listen(PORT, () => {
-  console.log("🚀 V18 AI WEB UNDERSTANDING ENGINE RUNNING:", PORT);
+  console.log("AI ENGINE RUNNING:", PORT);
 });
