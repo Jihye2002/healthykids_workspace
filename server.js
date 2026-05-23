@@ -11,15 +11,11 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 /* =========================
-   CONFIG
-========================= */
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-
-/* =========================
    DATA
 ========================= */
 let DOCS = [];
 let VECTORS = [];
+let CLICK_LOG = [];
 let CACHE = new Map();
 
 /* =========================
@@ -30,61 +26,50 @@ app.use(express.json({ limit: "50mb" }));
 app.use(express.static(__dirname));
 
 /* =========================
-   UTILS
+   NORMALIZE
 ========================= */
 function normalize(t = "") {
-  return t
-    .toLowerCase()
+  return t.toLowerCase()
     .replace(/[^\w가-힣]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
 
-function stripHtml(html) {
-  return html
-    .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "")
-    .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, "")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
+/* =========================
+   SPLIT (CHUNK ENGINE)
+========================= */
 function splitText(text) {
   return text
     .split(/\n\s*\n|(?<=[.!?])\s+/g)
     .map(t => t.trim())
-    .filter(t => t.length > 10); // 🔥 핵심: 짧은 문장 유지
+    .filter(t => t.length > 30);
 }
 
 /* =========================
-   EMBEDDING
+   HTML CLEAN
 ========================= */
-async function embed(text) {
-  if (!OPENAI_API_KEY) return Array(1536).fill(0);
-
-  try {
-    const res = await fetch("https://api.openai.com/v1/embeddings", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${OPENAI_API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model: "text-embedding-3-small",
-        input: text
-      })
-    });
-
-    const data = await res.json();
-    return data?.data?.[0]?.embedding || Array(1536).fill(0);
-
-  } catch {
-    return Array(1536).fill(0);
-  }
+function stripHtml(html) {
+  return html
+    .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, "")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 /* =========================
-   LOAD FILES (MULTI-MODAL INDEX)
+   INTENT
+========================= */
+function intent(q) {
+  q = q.toLowerCase();
+  if (q.includes("손") || q.includes("씻")) return "hygiene";
+  if (q.includes("감기") || q.includes("열")) return "health";
+  if (q.includes("횡단")) return "safety";
+  return "general";
+}
+
+/* =========================
+   LOAD FILES (V13 INDEXER)
 ========================= */
 async function loadFiles() {
   DOCS = [];
@@ -99,12 +84,13 @@ async function loadFiles() {
       const html = fs.readFileSync(full, "utf8");
       const clean = stripHtml(html);
 
-      splitText(clean).forEach(t => {
+      splitText(clean).forEach((t, i) => {
         DOCS.push({
-          type: "html",
           title: file,
+          type: "html",
+          section: `s${i}`,
           text: t,
-          url: "/" + file
+          url: `/${file}#s${i}`
         });
       });
     }
@@ -114,44 +100,54 @@ async function loadFiles() {
       const buf = fs.readFileSync(full);
       const pdf = await pdfParse(buf);
 
-      splitText(pdf.text).forEach(t => {
+      splitText(pdf.text).forEach((t, i) => {
         DOCS.push({
-          type: "pdf",
           title: file,
+          type: "pdf",
+          section: `p${i}`,
           text: t,
-          url: "/" + file
+          url: `/${file}#p${i}`
         });
       });
     }
 
     /* IMAGE OCR */
     if (file.match(/\.(png|jpg|jpeg)$/)) {
-      try {
-        const ocr = await Tesseract.recognize(full, "kor+eng");
+      const ocr = await Tesseract.recognize(full, "kor+eng");
 
-        splitText(ocr.data.text).forEach(t => {
-          DOCS.push({
-            type: "image",
-            title: file,
-            text: t,
-            url: "/" + file
-          });
+      splitText(ocr.data.text).forEach((t, i) => {
+        DOCS.push({
+          title: file,
+          type: "image",
+          section: `i${i}`,
+          text: t,
+          url: `/${file}#i${i}`
         });
-      } catch {}
-    }
-
-    /* VIDEO (SAFE META ONLY) */
-    if (file.endsWith(".mp4")) {
-      DOCS.push({
-        type: "video",
-        title: file,
-        text: file.replace(".mp4", "") + " 영상 콘텐츠",
-        url: "/" + file
       });
     }
   }
 
-  console.log("📦 DOCS INDEXED:", DOCS.length);
+  console.log("📦 INDEXED CHUNKS:", DOCS.length);
+}
+
+/* =========================
+   EMBEDDING (semantic search)
+========================= */
+async function embed(text) {
+  const res = await fetch("https://api.openai.com/v1/embeddings", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: "text-embedding-3-small",
+      input: text
+    })
+  });
+
+  const data = await res.json();
+  return data?.data?.[0]?.embedding || [];
 }
 
 /* =========================
@@ -172,8 +168,6 @@ async function buildVectors() {
    COSINE
 ========================= */
 function cosine(a, b) {
-  if (!a?.length || !b?.length) return 0;
-
   let dot = 0, ma = 0, mb = 0;
 
   for (let i = 0; i < a.length; i++) {
@@ -186,41 +180,31 @@ function cosine(a, b) {
 }
 
 /* =========================
-   BM25 LIGHT (강화 버전)
-========================= */
-function bm25(query, text) {
-  const q = normalize(query).split(" ");
-  const t = normalize(text);
-
-  let score = 0;
-
-  for (const w of q) {
-    if (t.includes(w)) score += 2; // 🔥 강화
-  }
-
-  return score;
-}
-
-/* =========================
-   SEARCH CORE (핵심)
+   SEARCH ENGINE V13
 ========================= */
 async function search(query) {
 
   if (CACHE.has(query)) return CACHE.get(query);
 
   const qvec = await embed(query);
+  const it = intent(query);
 
   let results = [];
 
   for (const d of VECTORS) {
 
-    const vecScore = cosine(qvec, d.vector);
-    const bmScore = bm25(query, d.text);
+    // intent boost filter
+    if (it !== "general") {
+      if (it === "hygiene" && !d.text.includes("손") && !d.text.includes("씻")) continue;
+      if (it === "health" && !d.text.includes("감기") && !d.text.includes("열")) continue;
+      if (it === "safety" && !d.text.includes("횡단")) continue;
+    }
 
-    let score =
-      vecScore * 2.5 +
-      bmScore * 2.0;
+    const sim = cosine(qvec, d.vector);
 
+    let score = sim * 3;
+
+    // title boost
     if (normalize(d.title).includes(normalize(query))) {
       score += 2;
     }
@@ -231,28 +215,18 @@ async function search(query) {
   results.sort((a, b) => b.score - a.score);
 
   /* =========================
-     DEDUP (강력)
+     DEDUP (URL 기준)
   ========================= */
   const seen = new Set();
-  const dedup = [];
+  const final = [];
 
   for (const r of results) {
-    const key = normalize(r.text).slice(0, 50);
-
-    if (seen.has(key)) continue;
-    seen.add(key);
-
-    dedup.push(r);
+    if (seen.has(r.url)) continue;
+    seen.add(r.url);
+    final.push(r);
   }
 
-  let top = dedup.slice(0, 8);
-
-  /* =========================
-     FALLBACK (검색 실패 방지)
-  ========================= */
-  if (top.length === 0) {
-    top = DOCS.slice(0, 5);
-  }
+  const top = final.slice(0, 10);
 
   CACHE.set(query, top);
 
@@ -260,58 +234,29 @@ async function search(query) {
 }
 
 /* =========================
-   GPT ANSWER
+   CLICK LEARNING (랭킹 강화)
 ========================= */
-async function answer(query, docs) {
-
-  const context = docs
-    .map(d => `${d.title}: ${d.text}`)
-    .join("\n")
-    .slice(0, 6000);
-
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${OPENAI_API_KEY}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content: "너는 어린이 교육 검색 AI야. 5줄 이내로 쉽게 설명해."
-        },
-        {
-          role: "user",
-          content: `질문: ${query}\n\n자료:\n${context}`
-        }
-      ],
-      temperature: 0.3
-    })
-  });
-
-  const data = await res.json();
-
-  return data?.choices?.[0]?.message?.content || "검색 결과를 찾을 수 없습니다.";
-}
+app.post("/api/click", (req, res) => {
+  const { url } = req.body;
+  CLICK_LOG.push(url);
+  res.json({ ok: true });
+});
 
 /* =========================
-   API
+   CHAT API
 ========================= */
 app.post("/api/chat", async (req, res) => {
 
   const q = req.body.message || "";
 
   const docs = await search(q);
-  const reply = await answer(q, docs);
 
   res.json({
-    reply,
+    reply: "검색 완료",
     results: docs.map(d => ({
       title: d.title,
-      type: d.type,
       url: d.url,
+      type: d.type,
       summary: d.text.slice(0, 120)
     }))
   });
@@ -338,5 +283,5 @@ fs.watch(__dirname, async () => {
    START
 ========================= */
 app.listen(PORT, () => {
-  console.log("🚀 V12 STABLE SEARCH ENGINE RUNNING:", PORT);
+  console.log("🚀 V13 GOOGLE URL SEARCH RUNNING:", PORT);
 });
