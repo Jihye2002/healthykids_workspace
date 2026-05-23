@@ -3,7 +3,6 @@ const cors = require("cors");
 const fs = require("fs");
 const path = require("path");
 const pdfParse = require("pdf-parse");
-const multer = require("multer");
 const Tesseract = require("tesseract.js");
 
 const fetch = global.fetch || require("node-fetch");
@@ -17,7 +16,7 @@ const PORT = process.env.PORT || 3000;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 /* =========================
-   DATA STORE
+   DATA
 ========================= */
 let DOCS = [];
 let VECTORS = [];
@@ -30,10 +29,8 @@ app.use(cors());
 app.use(express.json({ limit: "50mb" }));
 app.use(express.static(__dirname));
 
-const upload = multer({ dest: "uploads/" });
-
 /* =========================
-   NORMALIZE
+   UTILS
 ========================= */
 function normalize(t = "") {
   return t
@@ -43,9 +40,6 @@ function normalize(t = "") {
     .trim();
 }
 
-/* =========================
-   CLEAN HTML
-========================= */
 function stripHtml(html) {
   return html
     .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "")
@@ -55,18 +49,42 @@ function stripHtml(html) {
     .trim();
 }
 
-/* =========================
-   SPLIT
-========================= */
 function splitText(text) {
   return text
     .split(/\n\s*\n|(?<=[.!?])\s+/g)
     .map(t => t.trim())
-    .filter(t => t.length > 30);
+    .filter(t => t.length > 10); // 🔥 핵심: 짧은 문장 유지
 }
 
 /* =========================
-   LOAD FILES (AUTO INDEX)
+   EMBEDDING
+========================= */
+async function embed(text) {
+  if (!OPENAI_API_KEY) return Array(1536).fill(0);
+
+  try {
+    const res = await fetch("https://api.openai.com/v1/embeddings", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${OPENAI_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "text-embedding-3-small",
+        input: text
+      })
+    });
+
+    const data = await res.json();
+    return data?.data?.[0]?.embedding || Array(1536).fill(0);
+
+  } catch {
+    return Array(1536).fill(0);
+  }
+}
+
+/* =========================
+   LOAD FILES (MULTI-MODAL INDEX)
 ========================= */
 async function loadFiles() {
   DOCS = [];
@@ -76,71 +94,64 @@ async function loadFiles() {
   for (const file of files) {
     const full = path.join(__dirname, file);
 
+    /* HTML */
     if (file.endsWith(".html")) {
       const html = fs.readFileSync(full, "utf8");
       const clean = stripHtml(html);
 
       splitText(clean).forEach(t => {
         DOCS.push({
+          type: "html",
           title: file,
           text: t,
-          url: "/" + file,
-          type: "html"
+          url: "/" + file
         });
       });
     }
 
+    /* PDF */
     if (file.endsWith(".pdf")) {
       const buf = fs.readFileSync(full);
       const pdf = await pdfParse(buf);
 
       splitText(pdf.text).forEach(t => {
         DOCS.push({
+          type: "pdf",
           title: file,
           text: t,
-          url: "/" + file,
-          type: "pdf"
+          url: "/" + file
         });
       });
     }
 
+    /* IMAGE OCR */
     if (file.match(/\.(png|jpg|jpeg)$/)) {
-      const ocr = await Tesseract.recognize(full, "kor+eng");
+      try {
+        const ocr = await Tesseract.recognize(full, "kor+eng");
 
-      splitText(ocr.data.text).forEach(t => {
-        DOCS.push({
-          title: file,
-          text: t,
-          url: "/" + file,
-          type: "image"
+        splitText(ocr.data.text).forEach(t => {
+          DOCS.push({
+            type: "image",
+            title: file,
+            text: t,
+            url: "/" + file
+          });
         });
+      } catch {}
+    }
+
+    /* VIDEO (SAFE META ONLY) */
+    if (file.endsWith(".mp4")) {
+      DOCS.push({
+        type: "video",
+        title: file,
+        text: file.replace(".mp4", "") + " 영상 콘텐츠",
+        url: "/" + file
       });
     }
   }
 
-  console.log("📦 INDEXED DOCS:", DOCS.length);
-}
-
-/* =========================
-   EMBEDDING
-========================= */
-async function embed(text) {
-  if (!OPENAI_API_KEY) return [];
-
-  const res = await fetch("https://api.openai.com/v1/embeddings", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${OPENAI_API_KEY}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      model: "text-embedding-3-small",
-      input: text
-    })
-  });
-
-  const data = await res.json();
-  return data?.data?.[0]?.embedding || [];
+  console.log("📦 DOCS INDEXED:", DOCS.length);
 }
 
 /* =========================
@@ -175,7 +186,7 @@ function cosine(a, b) {
 }
 
 /* =========================
-   BM25 LIGHT
+   BM25 LIGHT (강화 버전)
 ========================= */
 function bm25(query, text) {
   const q = normalize(query).split(" ");
@@ -184,14 +195,14 @@ function bm25(query, text) {
   let score = 0;
 
   for (const w of q) {
-    if (t.includes(w)) score += 1;
+    if (t.includes(w)) score += 2; // 🔥 강화
   }
 
   return score;
 }
 
 /* =========================
-   SEARCH ENGINE V11 CORE
+   SEARCH CORE (핵심)
 ========================= */
 async function search(query) {
 
@@ -207,10 +218,9 @@ async function search(query) {
     const bmScore = bm25(query, d.text);
 
     let score =
-      vecScore * 2.2 +
-      bmScore * 1.5;
+      vecScore * 2.5 +
+      bmScore * 2.0;
 
-    // title boost
     if (normalize(d.title).includes(normalize(query))) {
       score += 2;
     }
@@ -221,13 +231,13 @@ async function search(query) {
   results.sort((a, b) => b.score - a.score);
 
   /* =========================
-     SEMANTIC DEDUP (핵심)
+     DEDUP (강력)
   ========================= */
   const seen = new Set();
   const dedup = [];
 
   for (const r of results) {
-    const key = normalize(r.text).slice(0, 40);
+    const key = normalize(r.text).slice(0, 50);
 
     if (seen.has(key)) continue;
     seen.add(key);
@@ -235,7 +245,14 @@ async function search(query) {
     dedup.push(r);
   }
 
-  const top = dedup.slice(0, 8);
+  let top = dedup.slice(0, 8);
+
+  /* =========================
+     FALLBACK (검색 실패 방지)
+  ========================= */
+  if (top.length === 0) {
+    top = DOCS.slice(0, 5);
+  }
 
   CACHE.set(query, top);
 
@@ -243,7 +260,7 @@ async function search(query) {
 }
 
 /* =========================
-   ANSWER (GPT)
+   GPT ANSWER
 ========================= */
 async function answer(query, docs) {
 
@@ -263,11 +280,11 @@ async function answer(query, docs) {
       messages: [
         {
           role: "system",
-          content: "너는 Google + ChatGPT 검색 AI. 결과를 5줄 이내로 쉽게 설명"
+          content: "너는 어린이 교육 검색 AI야. 5줄 이내로 쉽게 설명해."
         },
         {
           role: "user",
-          content: `질문:${query}\n\n자료:${context}`
+          content: `질문: ${query}\n\n자료:\n${context}`
         }
       ],
       temperature: 0.3
@@ -275,7 +292,8 @@ async function answer(query, docs) {
   });
 
   const data = await res.json();
-  return data?.choices?.[0]?.message?.content || "검색 실패";
+
+  return data?.choices?.[0]?.message?.content || "검색 결과를 찾을 수 없습니다.";
 }
 
 /* =========================
@@ -292,18 +310,18 @@ app.post("/api/chat", async (req, res) => {
     reply,
     results: docs.map(d => ({
       title: d.title,
-      url: d.url,
       type: d.type,
+      url: d.url,
       summary: d.text.slice(0, 120)
     }))
   });
 });
 
 /* =========================
-   AUTO UPDATE INDEX
+   AUTO REINDEX
 ========================= */
 fs.watch(__dirname, async () => {
-  console.log("🔄 REINDEXING...");
+  console.log("🔄 REINDEX");
   await loadFiles();
   await buildVectors();
 });
@@ -320,5 +338,5 @@ fs.watch(__dirname, async () => {
    START
 ========================= */
 app.listen(PORT, () => {
-  console.log("🚀 V11 GOOGLE-CHAT SEARCH RUNNING:", PORT);
+  console.log("🚀 V12 STABLE SEARCH ENGINE RUNNING:", PORT);
 });
