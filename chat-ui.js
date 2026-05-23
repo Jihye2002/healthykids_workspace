@@ -3,7 +3,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const API_BASE = "https://healthykids-workspace.onrender.com";
 
   /* =========================
-     STYLE (ChatGPT + Kid Friendly UI)
+     STYLE
   ========================= */
   document.head.insertAdjacentHTML("beforeend", `
   <style>
@@ -44,7 +44,7 @@ document.addEventListener("DOMContentLoaded", () => {
       background:#f7f9ff;
     }
 
-    /* ================= GUIDE ================= */
+    /* GUIDE */
     .guideBox{
       background:#fff;
       border-radius:14px;
@@ -56,15 +56,15 @@ document.addEventListener("DOMContentLoaded", () => {
     .guideTitle{
       font-weight:bold;
       color:#1f2a44;
-      margin-bottom:12px;
+      margin-bottom:10px;
       font-size:15px;
     }
 
     .guideItem{
       margin:10px 0;
-      padding-left:8px;
       font-size:14px;
-      line-height:1.6;
+      line-height:1.7;
+      padding-left:10px;
     }
 
     .star{
@@ -76,7 +76,7 @@ document.addEventListener("DOMContentLoaded", () => {
       color:#2f63c7;
       font-weight:600;
       display:block;
-      margin-left:10px;
+      margin:6px 0 6px 10px;
     }
 
     .guideBtn{
@@ -89,7 +89,7 @@ document.addEventListener("DOMContentLoaded", () => {
       text-decoration:none;
     }
 
-    /* ================= CHAT ================= */
+    /* MESSAGE */
     .msg{
       display:flex;
       gap:10px;
@@ -120,43 +120,28 @@ document.addEventListener("DOMContentLoaded", () => {
       border:1px solid #e3e3e3;
     }
 
-    /* ================= ROBOT CHARACTER ================= */
+    /* =========================
+       🔵 진짜 챗봇 로봇 아이콘 (핵심 수정)
+    ========================= */
     .robotIcon{
-      width:36px;
-      height:36px;
-      border-radius:50%;
-      background:linear-gradient(145deg,#6fa3ff,#3d6fe0);
-      position:relative;
+      width:38px;
+      height:38px;
+      border-radius:12px;
+      background:#3d6fe0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
       flex-shrink:0;
+      box-shadow:0 4px 10px rgba(0,0,0,0.12);
     }
 
-    .robotIcon::before,
-    .robotIcon::after{
-      content:"";
-      position:absolute;
-      width:5px;
-      height:5px;
-      background:#fff;
-      border-radius:50%;
-      top:12px;
+    .robotIcon svg{
+      width:22px;
+      height:22px;
+      fill:#fff;
     }
 
-    .robotIcon::before{ left:9px; }
-    .robotIcon::after{ right:9px; }
-
-    .robotIcon span{
-      position:absolute;
-      bottom:8px;
-      left:50%;
-      transform:translateX(-50%);
-      width:10px;
-      height:5px;
-      border:2px solid #fff;
-      border-top:0;
-      border-radius:0 0 10px 10px;
-    }
-
-    /* ================= INPUT ================= */
+    /* INPUT */
     #inputBox{
       display:flex;
       align-items:center;
@@ -171,11 +156,16 @@ document.addEventListener("DOMContentLoaded", () => {
       height:54px;
       border:1px solid #ddd;
       border-radius:10px;
-      padding:10px 12px;
+      padding:0 12px;
       font-size:14px;
       outline:none;
       resize:none;
-      line-height:1.4;
+      line-height:54px;   /* 세로 가운데 핵심 */
+    }
+
+    #text::placeholder{
+      color:#999;
+      line-height:54px;
     }
 
     #send{
@@ -192,30 +182,7 @@ document.addEventListener("DOMContentLoaded", () => {
       justify-content:center;
     }
 
-    /* ================= LOADING (typing effect) ================= */
-    .typing {
-      display:flex;
-      gap:4px;
-      padding:10px 14px;
-    }
-
-    .typing span{
-      width:6px;
-      height:6px;
-      background:#999;
-      border-radius:50%;
-      animation:bounce 1.2s infinite;
-    }
-
-    .typing span:nth-child(2){ animation-delay:0.2s; }
-    .typing span:nth-child(3){ animation-delay:0.4s; }
-
-    @keyframes bounce{
-      0%,80%,100%{ transform:translateY(0); opacity:0.4; }
-      40%{ transform:translateY(-5px); opacity:1; }
-    }
-
-    /* ================= TOGGLE ================= */
+    /* TOGGLE BUTTON */
     #toggleBtn{
       position:fixed;
       right:25px;
@@ -256,7 +223,12 @@ document.addEventListener("DOMContentLoaded", () => {
     </div>
 
     <button id="toggleBtn">
-      <div class="robotIcon"><span></span></div>
+      <svg viewBox="0 0 24 24">
+        <rect x="4" y="6" width="16" height="14" rx="3"></rect>
+        <circle cx="9" cy="12" r="1.2"></circle>
+        <circle cx="15" cy="12" r="1.2"></circle>
+        <path d="M9 16c1 .8 5 .8 6 0" stroke="white" stroke-width="1.5" fill="none"/>
+      </svg>
     </button>
   `);
 
@@ -266,7 +238,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let loadingNode = null;
 
-  const robotHTML = `<div class="robotIcon"><span></span></div>`;
+  /* =========================
+     ROBOT ICON (AI 메시지용)
+  ========================= */
+  const robotSVG = `
+    <svg viewBox="0 0 24 24">
+      <rect x="4" y="5" width="16" height="14" rx="3"></rect>
+      <circle cx="9" cy="12" r="1.3"></circle>
+      <circle cx="15" cy="12" r="1.3"></circle>
+      <path d="M9 16c1 .8 5 .8 6 0" stroke="white" stroke-width="1.5" fill="none"/>
+    </svg>
+  `;
 
   /* =========================
      RESET
@@ -283,34 +265,30 @@ document.addEventListener("DOMContentLoaded", () => {
   function showGuide(){
     body.innerHTML = `
       <div class="guideBox">
-        <div class="guideTitle">💡 이렇게 물어보면 좋아요</div>
+        <div class="guideTitle">💡 사용 예시</div>
 
-        <div class="guideItem"><span class="star">⭐</span> 손 씻기는 어떻게 하나요?</div>
-        <div class="guideItem"><span class="star">⭐</span> 감기에 안 걸리려면?</div>
-        <div class="guideItem"><span class="star">⭐</span> 횡단보도 안전하게 건너는 방법</div>
+        <div class="guideItem"><span class="star">⭐</span> 손 씻기 어떻게 해요</div>
+        <div class="guideItem"><span class="star">⭐</span> 감기 안 걸리는 방법</div>
+        <div class="guideItem"><span class="star">⭐</span> 횡단보도 안전하게 건너기</div>
       </div>
 
       <div class="guideBox">
-        <div class="guideTitle">📘 헬시키즈 사용 방법</div>
+        <div class="guideTitle">📘 이용 가이드</div>
 
         <div class="guideItem">
-          <span class="quote">"AI를 어떻게 사용해요?"</span>
-          → AI에게 질문할 수 있어요
+          "헬시키즈에서 AI를 어떻게 사용하는지 알려줘요"
         </div>
 
         <div class="guideItem">
-          <span class="quote">"메뉴는 어디 있어요?"</span>
-          → 원하는 기능을 찾을 수 있어요
+          "메뉴는 어디에 있어요"
         </div>
 
         <div class="guideItem">
-          <span class="quote">"영상은 어디서 봐요?"</span>
-          → 재미있는 영상을 볼 수 있어요
+          "영상은 어디서 봐요"
         </div>
 
         <div class="guideItem">
-          <span class="quote">"공부는 어떻게 해요?"</span>
-          → 공부 내용을 확인할 수 있어요
+          "공부는 어떻게 해요"
         </div>
 
         <a class="guideBtn" href="guide.html" target="_blank">가이드 보기</a>
@@ -328,7 +306,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if(type === "ai"){
       wrap.innerHTML = `
-        ${robotHTML}
+        <div class="robotIcon">${robotSVG}</div>
         <div class="bubble">${text}</div>
       `;
     } else {
@@ -337,22 +315,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     body.appendChild(wrap);
     body.scrollTop = body.scrollHeight;
-  }
-
-  /* =========================
-     LOADING (ChatGPT style)
-  ========================= */
-  function showTyping(){
-    const wrap = document.createElement("div");
-    wrap.className = "msg ai";
-    wrap.innerHTML = `
-      ${robotHTML}
-      <div class="bubble typing">
-        <span></span><span></span><span></span>
-      </div>
-    `;
-    body.appendChild(wrap);
-    return wrap;
   }
 
   /* =========================
@@ -366,7 +328,13 @@ document.addEventListener("DOMContentLoaded", () => {
     addMessage("user", text);
     input.value = "";
 
-    loadingNode = showTyping();
+    loadingNode = document.createElement("div");
+    loadingNode.className = "msg ai";
+    loadingNode.innerHTML = `
+      <div class="robotIcon">${robotSVG}</div>
+      <div class="bubble">찾고 있어요 😊</div>
+    `;
+    body.appendChild(loadingNode);
 
     try{
 
@@ -395,7 +363,6 @@ document.addEventListener("DOMContentLoaded", () => {
   /* =========================
      EVENTS
   ========================= */
-
   document.getElementById("send").onclick = send;
 
   input.addEventListener("keydown", (e)=>{
@@ -405,13 +372,13 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  document.getElementById("toggleBtn").onclick = () => {
-    chatApp.style.display = "flex";
+  document.getElementById("closeBtn").onclick = () => {
+    chatApp.style.display = "none";
     resetChat();
   };
 
-  document.getElementById("closeBtn").onclick = () => {
-    chatApp.style.display = "none";
+  document.getElementById("toggleBtn").onclick = () => {
+    chatApp.style.display = "flex";
     resetChat();
   };
 
