@@ -5,24 +5,22 @@ const path = require("path");
 const pdfParse = require("pdf-parse");
 const multer = require("multer");
 const Tesseract = require("tesseract.js");
-const { exec } = require("child_process");
+
+const fetch = global.fetch || require("node-fetch");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const fetch = global.fetch || require("node-fetch");
-
 /* =========================
-   KEYS
+   CONFIG
 ========================= */
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
 /* =========================
    DATA STORE
 ========================= */
-let DOCUMENTS = [];
-let VECTOR_DB = [];
+let DOCS = [];
+let VECTORS = [];
 let CACHE = new Map();
 
 /* =========================
@@ -37,136 +35,107 @@ const upload = multer({ dest: "uploads/" });
 /* =========================
    NORMALIZE
 ========================= */
-function normalize(t="") {
-  return t.toLowerCase().replace(/[^\w가-힣]/g," ").replace(/\s+/g," ").trim();
+function normalize(t = "") {
+  return t
+    .toLowerCase()
+    .replace(/[^\w가-힣]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 /* =========================
    CLEAN HTML
 ========================= */
-function stripHtml(html){
-  return html.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi,"")
-    .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi,"")
-    .replace(/<[^>]+>/g," ")
-    .replace(/\s+/g," ")
+function stripHtml(html) {
+  return html
+    .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
     .trim();
 }
 
 /* =========================
-   INTENT (AUTO FILTER)
+   SPLIT
 ========================= */
-function classifyIntent(q){
-  q=q.toLowerCase();
-  if(q.includes("손")||q.includes("씻"))return"hygiene";
-  if(q.includes("감기")||q.includes("열"))return"health";
-  if(q.includes("횡단"))return"safety";
-  return"general";
+function splitText(text) {
+  return text
+    .split(/\n\s*\n|(?<=[.!?])\s+/g)
+    .map(t => t.trim())
+    .filter(t => t.length > 30);
 }
 
 /* =========================
-   FILE LOAD (HTML + PDF + IMAGE)
+   LOAD FILES (AUTO INDEX)
 ========================= */
-async function loadFiles(){
-
-  DOCUMENTS = [];
+async function loadFiles() {
+  DOCS = [];
 
   const files = fs.readdirSync(__dirname);
 
-  for(const file of files){
+  for (const file of files) {
+    const full = path.join(__dirname, file);
 
-    const full = path.join(__dirname,file);
-
-    /* HTML */
-    if(file.endsWith(".html")){
-      const html = fs.readFileSync(full,"utf8");
+    if (file.endsWith(".html")) {
+      const html = fs.readFileSync(full, "utf8");
       const clean = stripHtml(html);
 
-      DOCUMENTS.push({
-        type:"html",
-        title:file,
-        text:clean,
-        url:"/"+file
+      splitText(clean).forEach(t => {
+        DOCS.push({
+          title: file,
+          text: t,
+          url: "/" + file,
+          type: "html"
+        });
       });
     }
 
-    /* PDF */
-    if(file.endsWith(".pdf")){
+    if (file.endsWith(".pdf")) {
       const buf = fs.readFileSync(full);
       const pdf = await pdfParse(buf);
 
-      DOCUMENTS.push({
-        type:"pdf",
-        title:file,
-        text:pdf.text,
-        url:"/"+file
+      splitText(pdf.text).forEach(t => {
+        DOCS.push({
+          title: file,
+          text: t,
+          url: "/" + file,
+          type: "pdf"
+        });
       });
     }
 
-    /* IMAGE OCR */
-    if(file.match(/\.(png|jpg|jpeg)$/)){
-      const text = await Tesseract.recognize(full,"kor+eng");
+    if (file.match(/\.(png|jpg|jpeg)$/)) {
+      const ocr = await Tesseract.recognize(full, "kor+eng");
 
-      DOCUMENTS.push({
-        type:"image",
-        title:file,
-        text:text.data.text,
-        url:"/"+file
+      splitText(ocr.data.text).forEach(t => {
+        DOCS.push({
+          title: file,
+          text: t,
+          url: "/" + file,
+          type: "image"
+        });
       });
     }
   }
 
-  console.log("📦 INDEX:",DOCUMENTS.length);
-}
-
-/* =========================
-   VIDEO PROCESSING
-========================= */
-async function videoToText(videoPath){
-
-  const audio = videoPath+".mp3";
-
-  /* 1. extract audio */
-  await new Promise((res,rej)=>{
-    exec(`ffmpeg -i "${videoPath}" -vn -acodec mp3 "${audio}"`,err=>{
-      if(err)rej(err); else res();
-    });
-  });
-
-  /* 2. whisper */
-  const file = fs.createReadStream(audio);
-
-  const form = new FormData();
-  form.append("file",file);
-  form.append("model","whisper-1");
-
-  const res = await fetch("https://api.openai.com/v1/audio/transcriptions",{
-    method:"POST",
-    headers:{
-      "Authorization":`Bearer ${OPENAI_API_KEY}`
-    },
-    body:form
-  });
-
-  const data = await res.json();
-  return data.text || "";
+  console.log("📦 INDEXED DOCS:", DOCS.length);
 }
 
 /* =========================
    EMBEDDING
 ========================= */
-async function embed(text){
+async function embed(text) {
+  if (!OPENAI_API_KEY) return [];
 
-  if(!OPENAI_API_KEY) return [];
-
-  const res = await fetch("https://api.openai.com/v1/embeddings",{
-    method:"POST",
-    headers:{
-      "Authorization":`Bearer ${OPENAI_API_KEY}`,
-      "Content-Type":"application/json"
+  const res = await fetch("https://api.openai.com/v1/embeddings", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${OPENAI_API_KEY}`,
+      "Content-Type": "application/json"
     },
-    body:JSON.stringify({
-      model:"text-embedding-3-small",
-      input:text
+    body: JSON.stringify({
+      model: "text-embedding-3-small",
+      input: text
     })
   });
 
@@ -177,150 +146,179 @@ async function embed(text){
 /* =========================
    VECTOR BUILD
 ========================= */
-async function buildVectors(){
+async function buildVectors() {
+  VECTORS = [];
 
-  VECTOR_DB=[];
-
-  for(const d of DOCUMENTS){
+  for (const d of DOCS) {
     const v = await embed(d.text);
-    VECTOR_DB.push({...d,vector:v});
+    VECTORS.push({ ...d, vector: v });
   }
 
-  console.log("🧠 VECTOR READY:",VECTOR_DB.length);
+  console.log("🧠 VECTOR READY:", VECTORS.length);
 }
 
 /* =========================
    COSINE
 ========================= */
-function cosine(a,b){
-  if(!a?.length||!b?.length)return 0;
+function cosine(a, b) {
+  if (!a?.length || !b?.length) return 0;
 
-  let dot=0,ma=0,mb=0;
+  let dot = 0, ma = 0, mb = 0;
 
-  for(let i=0;i<a.length;i++){
-    dot+=a[i]*b[i];
-    ma+=a[i]**2;
-    mb+=b[i]**2;
+  for (let i = 0; i < a.length; i++) {
+    dot += a[i] * b[i];
+    ma += a[i] ** 2;
+    mb += b[i] ** 2;
   }
 
-  return dot/(Math.sqrt(ma)*Math.sqrt(mb)+1e-9);
+  return dot / (Math.sqrt(ma) * Math.sqrt(mb) + 1e-9);
 }
 
 /* =========================
-   SEARCH CORE
+   BM25 LIGHT
 ========================= */
-async function search(query){
+function bm25(query, text) {
+  const q = normalize(query).split(" ");
+  const t = normalize(text);
 
-  if(CACHE.has(query))return CACHE.get(query);
+  let score = 0;
 
-  const intent = classifyIntent(query);
-  const qvec = await embed(query);
-
-  let results=[];
-
-  for(const d of VECTOR_DB){
-
-    if(intent!=="general"){
-      if(intent==="hygiene"&&!d.text.includes("손")&&!d.text.includes("씻"))continue;
-      if(intent==="health"&&!d.text.includes("감기")&&!d.text.includes("열"))continue;
-      if(intent==="safety"&&!d.text.includes("횡단"))continue;
-    }
-
-    const sim = cosine(qvec,d.vector);
-    let score = sim*2;
-
-    if(normalize(d.title).includes(normalize(query))) score+=2;
-
-    results.push({...d,score});
+  for (const w of q) {
+    if (t.includes(w)) score += 1;
   }
 
-  results.sort((a,b)=>b.score-a.score);
+  return score;
+}
 
-  /* dedup */
-  const seen=new Set();
-  results=results.filter(r=>{
-    const k=r.text.slice(0,50);
-    if(seen.has(k))return false;
-    seen.add(k);
-    return true;
-  });
+/* =========================
+   SEARCH ENGINE V11 CORE
+========================= */
+async function search(query) {
 
-  const top = results.slice(0,8);
+  if (CACHE.has(query)) return CACHE.get(query);
 
-  CACHE.set(query,top);
+  const qvec = await embed(query);
+
+  let results = [];
+
+  for (const d of VECTORS) {
+
+    const vecScore = cosine(qvec, d.vector);
+    const bmScore = bm25(query, d.text);
+
+    let score =
+      vecScore * 2.2 +
+      bmScore * 1.5;
+
+    // title boost
+    if (normalize(d.title).includes(normalize(query))) {
+      score += 2;
+    }
+
+    results.push({ ...d, score });
+  }
+
+  results.sort((a, b) => b.score - a.score);
+
+  /* =========================
+     SEMANTIC DEDUP (핵심)
+  ========================= */
+  const seen = new Set();
+  const dedup = [];
+
+  for (const r of results) {
+    const key = normalize(r.text).slice(0, 40);
+
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    dedup.push(r);
+  }
+
+  const top = dedup.slice(0, 8);
+
+  CACHE.set(query, top);
 
   return top;
 }
 
 /* =========================
-   ANSWER (CHATGPT)
+   ANSWER (GPT)
 ========================= */
-async function answer(query,docs){
+async function answer(query, docs) {
 
-  const context = docs.map(d=>`${d.title}:${d.text}`).join("\n").slice(0,6000);
+  const context = docs
+    .map(d => `${d.title}: ${d.text}`)
+    .join("\n")
+    .slice(0, 6000);
 
-  const res = await fetch("https://api.openai.com/v1/chat/completions",{
-    method:"POST",
-    headers:{
-      "Authorization":`Bearer ${OPENAI_API_KEY}`,
-      "Content-Type":"application/json"
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${OPENAI_API_KEY}`,
+      "Content-Type": "application/json"
     },
-    body:JSON.stringify({
-      model:"gpt-4o-mini",
-      messages:[
-        {role:"system",content:"초등학생용 AI 검색엔진. 5줄 설명."},
-        {role:"user",content:`질문:${query}\n\n${context}`}
+    body: JSON.stringify({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: "너는 Google + ChatGPT 검색 AI. 결과를 5줄 이내로 쉽게 설명"
+        },
+        {
+          role: "user",
+          content: `질문:${query}\n\n자료:${context}`
+        }
       ],
-      temperature:0.3
+      temperature: 0.3
     })
   });
 
-  const data=await res.json();
+  const data = await res.json();
   return data?.choices?.[0]?.message?.content || "검색 실패";
 }
 
 /* =========================
    API
 ========================= */
-app.post("/api/chat",async(req,res)=>{
+app.post("/api/chat", async (req, res) => {
 
-  const q=req.body.message||"";
+  const q = req.body.message || "";
 
-  const docs=await search(q);
-  const reply=await answer(q,docs);
+  const docs = await search(q);
+  const reply = await answer(q, docs);
 
   res.json({
     reply,
-    results:docs.map(d=>({
-      title:d.title,
-      url:d.url,
-      type:d.type,
-      summary:d.text.slice(0,120)
+    results: docs.map(d => ({
+      title: d.title,
+      url: d.url,
+      type: d.type,
+      summary: d.text.slice(0, 120)
     }))
   });
+});
 
+/* =========================
+   AUTO UPDATE INDEX
+========================= */
+fs.watch(__dirname, async () => {
+  console.log("🔄 REINDEXING...");
+  await loadFiles();
+  await buildVectors();
 });
 
 /* =========================
    INIT
 ========================= */
-(async()=>{
+(async () => {
   await loadFiles();
   await buildVectors();
 })();
 
 /* =========================
-   AUTO RELOAD
-========================= */
-fs.watch(__dirname,async()=>{
-  console.log("🔄 REINDEX");
-  await loadFiles();
-  await buildVectors();
-});
-
-/* =========================
    START
 ========================= */
-app.listen(PORT,()=>{
-  console.log("🚀 V10 MULTIMODAL GOOGLE RUNNING:",PORT);
+app.listen(PORT, () => {
+  console.log("🚀 V11 GOOGLE-CHAT SEARCH RUNNING:", PORT);
 });
