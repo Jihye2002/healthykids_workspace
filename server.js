@@ -8,6 +8,9 @@ const PORT = process.env.PORT || 3000;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
+/* =========================
+   DATA
+========================= */
 let DOCUMENTS = [];
 let VECTOR_DB = [];
 
@@ -24,46 +27,50 @@ function stripHtml(html) {
 }
 
 /* =========================
-   LINK PARSER
+   PARAGRAPH SPLIT (핵심)
+========================= */
+function splitParagraphs(text) {
+  return text
+    .split(/\n\s*\n|\. |\.\s/g)
+    .map(t => t.trim())
+    .filter(t => t.length > 20);
+}
+
+/* =========================
+   HTML LINK EXTRACT
 ========================= */
 function extractLinks(html) {
   const regex = /href="([^"#]+)"/g;
-  const set = new Set();
+  const links = new Set();
   let m;
 
   while ((m = regex.exec(html))) {
-    const link = m[1];
-    if (!link.startsWith("http") && !link.startsWith("mailto:")) {
-      set.add(link.split("?")[0]);
+    const url = m[1];
+    if (!url.startsWith("http") && !url.startsWith("mailto:")) {
+      links.add(url.split("?")[0]);
     }
   }
 
-  return [...set];
+  return [...links];
 }
 
 /* =========================
-   PDF → PARAGRAPH SPLIT
-========================= */
-function splitParagraph(text) {
-  return text
-    .split(/\n\s*\n/)
-    .map(t => t.replace(/\s+/g, " ").trim())
-    .filter(t => t.length > 30);
-}
-
-/* =========================
-   LOAD SITE
+   LOAD SITE (문단 단위)
 ========================= */
 async function loadSite() {
   DOCUMENTS = [];
 
-  const indexHtml = fs.readFileSync(path.join(__dirname, "index.html"), "utf-8");
+  const indexHtml = fs.readFileSync("index.html", "utf-8");
   const links = extractLinks(indexHtml);
 
-  DOCUMENTS.push({
-    title: "홈",
-    text: stripHtml(indexHtml),
-    url: "/"
+  // HOME
+  splitParagraphs(stripHtml(indexHtml)).forEach((p, i) => {
+    DOCUMENTS.push({
+      title: "홈",
+      text: p,
+      url: "/",
+      type: "html"
+    });
   });
 
   for (const link of links) {
@@ -71,40 +78,50 @@ async function loadSite() {
     if (!fs.existsSync(filePath)) continue;
 
     const html = fs.readFileSync(filePath, "utf-8");
+    const text = stripHtml(html);
 
-    DOCUMENTS.push({
-      title: link,
-      text: stripHtml(html),
-      url: "/" + link
+    splitParagraphs(text).forEach((p) => {
+      DOCUMENTS.push({
+        title: link,
+        text: p,
+        url: "/" + link,
+        type: "html"
+      });
     });
   }
+
+  console.log("📄 HTML PARAGRAPH LOADED:", DOCUMENTS.length);
 }
 
 /* =========================
-   LOAD PDF (PARAGRAPH BASED)
+   LOAD PDF (문단 + 페이지 느낌)
 ========================= */
 async function loadPdfs() {
-  const dir = path.join(__dirname, "files");
-  if (!fs.existsSync(dir)) return;
+  const pdfDir = path.join(__dirname, "files");
+  if (!fs.existsSync(pdfDir)) return;
 
-  const files = fs.readdirSync(dir);
+  const files = fs.readdirSync(pdfDir);
 
   for (const file of files) {
     if (!file.endsWith(".pdf")) continue;
 
-    const buffer = fs.readFileSync(path.join(dir, file));
+    const buffer = fs.readFileSync(path.join(pdfDir, file));
     const parsed = await pdfParse(buffer);
 
-    const paragraphs = splitParagraph(parsed.text);
+    const paragraphs = splitParagraphs(parsed.text);
 
     paragraphs.forEach((p, i) => {
       DOCUMENTS.push({
-        title: file + ` (p${i})`,
+        title: file,
         text: p,
-        url: "/files/" + file
+        url: `/files/${file}`,
+        type: "pdf",
+        page: i
       });
     });
   }
+
+  console.log("📄 PDF PARAGRAPH LOADED:", files.length);
 }
 
 /* =========================
@@ -124,19 +141,21 @@ async function embed(text) {
   });
 
   const data = await res.json();
-  return data?.data?.[0]?.embedding || [];
+  return data.data[0].embedding;
 }
 
 /* =========================
    VECTOR BUILD
 ========================= */
-async function rebuild() {
+async function rebuildVector() {
   VECTOR_DB = [];
 
   for (const d of DOCUMENTS) {
-    const v = await embed(d.title + " " + d.text);
+    const v = await embed(d.text);
     VECTOR_DB.push({ ...d, vector: v });
   }
+
+  console.log("🧠 VECTOR READY");
 }
 
 /* =========================
@@ -157,27 +176,28 @@ function cosine(a, b) {
 /* =========================
    SEARCH
 ========================= */
-async function search(q) {
-  const qv = await embed(q);
+async function search(query) {
+  const q = await embed(query);
 
   return VECTOR_DB
     .map(d => ({
       ...d,
-      score: cosine(qv, d.vector)
+      score: cosine(q, d.vector)
     }))
     .sort((a, b) => b.score - a.score)
-    .slice(0, 5);
+    .slice(0, 6);
 }
 
 /* =========================
-   AI RESPONSE (CHILD FRIENDLY)
+   AI SUMMARY (문단 기반)
 ========================= */
-async function askAI(query, results) {
-
-  const context = results.map(r =>
-`제목: ${r.title}
+async function summarize(query, results) {
+  const context = results.map(r => `
+[문서]
+제목: ${r.title}
 내용: ${r.text}
-URL: ${r.url}`).join("\n\n");
+URL: ${r.url}
+`).join("\n");
 
   const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
@@ -191,12 +211,17 @@ URL: ${r.url}`).join("\n\n");
         {
           role: "system",
           content: `
-너는 5~7세 어린이와 선생님을 위한 교육용 AI다.
+너는 어린이 교육용 검색 AI다.
 
-반드시 JSON만 출력:
+규칙:
+- 반드시 JSON만 출력
+- URL은 반드시 제공된 것만 사용
+- 문단 기반으로만 요약
+- 과장 금지
 
+형식:
 {
- "reply": "아주 쉽고 친절한 설명",
+ "reply": "",
  "results": [
    {
      "title": "",
@@ -205,17 +230,11 @@ URL: ${r.url}`).join("\n\n");
    }
  ]
 }
-
-규칙:
-- 무조건 쉬운 말
-- 친절한 말투
-- URL은 제공된 것만 사용
-- 추측 금지
           `
         },
         {
           role: "user",
-          content: `질문: ${query}\n\n문서:\n${context}`
+          content: `질문: ${query}\n\n문단:\n${context}`
         }
       ]
     })
@@ -227,7 +246,7 @@ URL: ${r.url}`).join("\n\n");
     return JSON.parse(data.choices[0].message.content);
   } catch {
     return {
-      reply: "찾은 내용을 쉽게 정리했어요 😊",
+      reply: "검색 완료",
       results
     };
   }
@@ -238,7 +257,7 @@ URL: ${r.url}`).join("\n\n");
 ========================= */
 async function pipeline(msg) {
   const results = await search(msg);
-  return await askAI(msg, results);
+  return await summarize(msg, results);
 }
 
 /* =========================
@@ -257,7 +276,8 @@ const server = http.createServer(async (req, res) => {
     return res.end();
   }
 
-  if (url === "/api/chat" && req.method === "POST") {
+  /* CHAT */
+  if (url === "/api/chat") {
     let body = "";
 
     req.on("data", c => body += c);
@@ -273,6 +293,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  /* STATIC */
   const filePath = url === "/" ? "index.html" : path.join(__dirname, url);
 
   fs.readFile(filePath, (err, data) => {
@@ -280,15 +301,19 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(404);
       return res.end("404");
     }
+
     res.writeHead(200);
     res.end(data);
   });
 });
 
+/* =========================
+   INIT
+========================= */
 (async () => {
   await loadSite();
   await loadPdfs();
-  await rebuild();
+  await rebuildVector();
 })();
 
 server.listen(PORT, () => {
