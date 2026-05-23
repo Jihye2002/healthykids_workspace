@@ -20,7 +20,7 @@ let VECTOR_DB = [];
 const UPLOAD_THRESHOLD = 0.75;
 
 /* =========================
-   TEXT CLEAN
+   CLEAN TEXT
 ========================= */
 function stripHtml(html) {
   return html
@@ -42,7 +42,7 @@ function splitParagraphs(text) {
 }
 
 /* =========================
-   LOAD HTML
+   LOAD SITE
 ========================= */
 async function loadSite() {
   DOCUMENTS = [];
@@ -112,7 +112,7 @@ async function embed(text) {
 }
 
 /* =========================
-   COSINE SIMILARITY
+   COSINE
 ========================= */
 function cosine(a, b) {
   let dot = 0, ma = 0, mb = 0;
@@ -173,7 +173,7 @@ async function search(query) {
 }
 
 /* =========================
-   AI SUMMARY (KIDS)
+   AI SUMMARY (FREE STYLE VERSION)
 ========================= */
 async function summarize(query, results) {
 
@@ -196,15 +196,17 @@ URL: ${r.url}
         {
           role: "system",
           content: `
-너는 5~7세 어린이 AI이다.
+너는 5~7세 어린이를 위한 친절한 AI야.
 
-규칙:
-- 4~6줄로 아주 쉽게 설명
-- 예시 포함 가능
+중요 규칙:
+- 아주 쉬운 말로 설명
+- 자연스럽게 4~6줄 정도로 설명 (형식 제한 없음)
+- 문장 스타일 자유롭게 작성
+- 예시를 넣어도 되고 안 넣어도 됨
 - 반드시 JSON 출력
-- URL 그대로 사용
+- URL은 그대로 사용
 
-형식:
+출력 형식:
 {
  "reply": "",
  "results": [
@@ -229,7 +231,7 @@ URL: ${r.url}
 
   try {
     return JSON.parse(data.choices[0].message.content);
-  } catch {
+  } catch (e) {
     return {
       reply: "찾은 내용을 쉽게 정리했어요!",
       results
@@ -259,21 +261,17 @@ async function addFile(file) {
 
     const text = parsed.text;
 
-    // 1. upload vector
     const fileVector = await embed(text);
-
-    // 2. similarity check
     const score = averageSimilarityToSite(fileVector);
 
     console.log("📊 업로드 유사도:", score);
 
     if (score < UPLOAD_THRESHOLD) {
       return {
-        error: "이 자료는 홈페이지 내용과 관련이 적어서 업로드할 수 없어요"
+        error: "홈페이지 내용과 관련이 적어서 업로드할 수 없어요"
       };
     }
 
-    // 3. accept file
     const paragraphs = splitParagraphs(text);
 
     paragraphs.forEach((p) => {
@@ -289,11 +287,13 @@ async function addFile(file) {
 
     return {
       ok: true,
-      message: "관련 자료로 확인되어 추가되었어요"
+      message: "관련 자료로 추가되었어요"
     };
 
   } catch (e) {
-    return { error: "파일 처리 중 오류 발생" };
+    return {
+      error: "파일 처리 중 오류가 발생했어요"
+    };
   }
 }
 
@@ -347,7 +347,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  /* STATIC FILES */
+  /* STATIC */
   const filePath = url === "/" ? "index.html" : path.join(__dirname, url);
 
   fs.readFile(filePath, (err, data) => {
