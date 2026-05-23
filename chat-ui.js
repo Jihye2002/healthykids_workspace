@@ -176,18 +176,28 @@ document.addEventListener("DOMContentLoaded", () => {
 
     #text{
       flex:1;
-      min-height:44px;
+      height:48px;
+      min-height:48px;
       max-height:120px;
+    
       resize:none;
+    
       border:1px solid #ddd;
       border-radius:10px;
-      padding:10px;
+    
+      padding:11px 10px 0 10px;
+    
       font-size:14px;
+      line-height:20px;
+    
       outline:none;
       font-family:Arial,sans-serif;
+    
       overflow-y:auto;
+    
+      box-sizing:border-box;
     }
-
+    
     #send{
       width:75px;
       border:none;
