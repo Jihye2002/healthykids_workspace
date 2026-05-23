@@ -3,7 +3,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const API_BASE = "https://healthykids-workspace.onrender.com";
 
   /* =========================
-     STYLE
+     STYLE (통일: Blue + White)
   ========================= */
   document.head.insertAdjacentHTML("beforeend", `
   <style>
@@ -14,9 +14,9 @@ document.addEventListener("DOMContentLoaded", () => {
       right:25px;
       width:420px;
       height:650px;
-      background:#f6f7fb;
+      background:#ffffff;
       border-radius:18px;
-      box-shadow:0 20px 50px rgba(0,0,0,0.2);
+      box-shadow:0 20px 50px rgba(0,0,0,0.15);
       display:none;
       flex-direction:column;
       overflow:hidden;
@@ -41,8 +41,10 @@ document.addEventListener("DOMContentLoaded", () => {
       display:flex;
       flex-direction:column;
       gap:12px;
+      background:#f6f7fb;
     }
 
+    /* guide */
     .guideBox{
       background:#fff;
       border-radius:14px;
@@ -66,6 +68,7 @@ document.addEventListener("DOMContentLoaded", () => {
       text-decoration:none;
     }
 
+    /* message */
     .msg{
       display:flex;
       gap:10px;
@@ -91,19 +94,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
     .ai .bubble{
       background:#fff;
-      border:1px solid #ddd;
+      border:1px solid #dcdcdc;
       max-width:78%;
     }
 
+    /* 🔵 ROBOT ICON (수정 핵심) */
     .robotIcon{
       width:34px;
       height:34px;
       border-radius:50%;
-      background:#2f63c7;
+      background:#2f63c7;   /* 무조건 파란색 */
       display:flex;
       align-items:center;
       justify-content:center;
       flex-shrink:0;
+      color:#fff;
+      font-weight:bold;
+      font-size:14px;
     }
 
     .resultCard{
@@ -176,6 +183,8 @@ document.addEventListener("DOMContentLoaded", () => {
       border:none;
       border-radius:50%;
       background:#2f63c7;
+      color:#fff;
+      font-size:22px;
       display:flex;
       align-items:center;
       justify-content:center;
@@ -206,25 +215,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
     </div>
 
-    <button id="toggleBtn">🤖</button>
+    <button id="toggleBtn">💬</button>
   `);
 
   const chatApp = document.getElementById("chatApp");
   const body = document.getElementById("chatBody");
   const input = document.getElementById("text");
 
-  /* =========================
-     RESET CHAT (핵심 추가)
-  ========================= */
+  let loadingNode = null;
+
+  /* reset */
   function resetChat(){
     body.innerHTML = "";
     input.value = "";
     showGuide();
   }
 
-  /* =========================
-     GUIDE
-  ========================= */
+  /* guide */
   function showGuide(){
     body.innerHTML = `
       <div class="guideBox">
@@ -236,24 +243,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
       <div class="guideBox">
         <div class="guideTitle">📘 이용 가이드</div>
-        헬시키즈 AI를 어떻게 쓰는지와  
+        헬시키즈 AI 사용 방법과  
         영상, 놀이자료를 쉽게 찾을 수 있어요 😊
-        <br>
+        <br><br>
         <a class="guideBtn" href="guide.html" target="_blank">가이드 보기</a>
       </div>
     `;
   }
 
-  /* =========================
-     MESSAGE
-  ========================= */
+  /* message */
   function addMessage(type, text){
     const wrap = document.createElement("div");
     wrap.className = `msg ${type}`;
 
     if(type === "ai"){
       wrap.innerHTML = `
-        <div class="robotIcon">🤖</div>
+        <div class="robotIcon">AI</div>
         <div class="bubble">${text}</div>
       `;
     } else {
@@ -264,30 +269,22 @@ document.addEventListener("DOMContentLoaded", () => {
     body.scrollTop = body.scrollHeight;
   }
 
-  /* =========================
-     RESULT CARD (undefined 방지)
-  ========================= */
+  /* result */
   function addResultCard(r){
-
-    const title = r?.title || "제목 없음";
-    const summary = r?.summary || "내용 없음";
-    const url = r?.url || "#";
 
     const wrap = document.createElement("div");
     wrap.className = "msg ai";
 
     wrap.innerHTML = `
-      <div class="robotIcon">🤖</div>
+      <div class="robotIcon">AI</div>
+
       <div class="resultCard">
+        <div class="resultTitle">${r?.title || "제목 없음"}</div>
+        <div class="resultSummary">${r?.summary || "내용 없음"}</div>
 
-        <div class="resultTitle">${title}</div>
-
-        <div class="resultSummary">${summary}</div>
-
-        <a class="resultBtn" href="${url}" target="_blank">
+        <a class="resultBtn" href="${r?.url || "#"}" target="_blank">
           👉 보러가기
         </a>
-
       </div>
     `;
 
@@ -295,9 +292,7 @@ document.addEventListener("DOMContentLoaded", () => {
     body.scrollTop = body.scrollHeight;
   }
 
-  /* =========================
-     SEND
-  ========================= */
+  /* send */
   async function send(){
 
     const text = input.value.trim();
@@ -306,10 +301,13 @@ document.addEventListener("DOMContentLoaded", () => {
     addMessage("user", text);
     input.value = "";
 
-    const loading = document.createElement("div");
-    loading.className = "msg ai";
-    loading.innerHTML = `<div class="robotIcon">🤖</div><div class="bubble">자료를 찾고 있어요 😊</div>`;
-    body.appendChild(loading);
+    loadingNode = document.createElement("div");
+    loadingNode.className = "msg ai";
+    loadingNode.innerHTML = `
+      <div class="robotIcon">AI</div>
+      <div class="bubble">자료를 찾고 있어요 😊</div>
+    `;
+    body.appendChild(loadingNode);
 
     try{
 
@@ -321,7 +319,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const data = await res.json();
 
-      loading.remove();
+      loadingNode?.remove();
+      loadingNode = null;
 
       addMessage("ai", data.reply || "결과를 찾았어요 😊");
 
@@ -335,15 +334,15 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch(e){
 
       console.log(e);
-      loading.remove();
+
+      loadingNode?.remove();
+      loadingNode = null;
+
       addMessage("ai", "서버 오류가 발생했어요 😢");
     }
   }
 
-  /* =========================
-     EVENT
-  ========================= */
-
+  /* events */
   document.getElementById("send").onclick = send;
 
   input.addEventListener("keydown", (e)=>{
@@ -353,17 +352,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  /* =========================
-     OPEN (버튼 클릭 → 초기화)
-  ========================= */
   document.getElementById("toggleBtn").onclick = () => {
     chatApp.style.display = "flex";
     resetChat();
   };
 
-  /* =========================
-     CLOSE (X → 닫기 + 초기화)
-  ========================= */
   document.getElementById("closeBtn").onclick = () => {
     chatApp.style.display = "none";
     resetChat();
