@@ -4,22 +4,28 @@ const fs = require("fs");
 const path = require("path");
 const pdfParse = require("pdf-parse");
 const Tesseract = require("tesseract.js");
-const ffmpeg = require("fluent-ffmpeg");
-
+const fetch = global.fetch || require("node-fetch");
 const OpenAI = require("openai");
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
 
 app.use(cors());
 app.use(express.json({ limit: "50mb" }));
 app.use(express.static(__dirname));
 
+/* =========================
+   DATA
+========================= */
 let DOCS = [];
+let CACHE = new Map();
 
 /* =========================
-   HTML CLEAN (NAV 제거)
+   HTML CLEAN
 ========================= */
 function cleanHTML(html) {
   return html
@@ -37,14 +43,14 @@ function cleanHTML(html) {
    LINK EXTRACT
 ========================= */
 function extractLinks(html) {
-  const regex = /href="(.*?)".*?>(.*?)<\/a>/g;
   const links = [];
+  const regex = /href="(.*?)".*?>(.*?)<\/a>/g;
 
-  let m;
-  while ((m = regex.exec(html))) {
+  let match;
+  while ((match = regex.exec(html))) {
     links.push({
-      url: m[1],
-      label: m[2].replace(/<[^>]+>/g, "").trim()
+      url: match[1],
+      label: match[2].replace(/<[^>]+>/g, "").trim()
     });
   }
 
@@ -52,17 +58,15 @@ function extractLinks(html) {
 }
 
 /* =========================
-   FILE LOAD (mp4 포함)
+   LOAD DOCS
 ========================= */
 async function loadFiles() {
   DOCS = [];
-
   const files = fs.readdirSync(__dirname);
 
   for (const file of files) {
     const full = path.join(__dirname, file);
 
-    /* HTML */
     if (file.endsWith(".html")) {
       const html = fs.readFileSync(full, "utf8");
 
@@ -75,7 +79,6 @@ async function loadFiles() {
       });
     }
 
-    /* PDF */
     if (file.endsWith(".pdf")) {
       const buf = fs.readFileSync(full);
       const pdf = await pdfParse(buf);
@@ -89,7 +92,6 @@ async function loadFiles() {
       });
     }
 
-    /* IMAGE OCR */
     if (file.match(/\.(png|jpg|jpeg)$/)) {
       const ocr = await Tesseract.recognize(full, "kor+eng");
 
@@ -102,31 +104,12 @@ async function loadFiles() {
       });
     }
 
-    /* =========================
-       🎥 MP4 VIDEO 처리 (핵심)
-    ========================= */
+    // mp4는 "파일 정보만"
     if (file.endsWith(".mp4")) {
-      const audioPath = full + ".wav";
-
-      await new Promise((resolve) => {
-        ffmpeg(full)
-          .noVideo()
-          .audioCodec("pcm_s16le")
-          .save(audioPath)
-          .on("end", resolve);
-      });
-
-      const transcription = await openai.audio.transcriptions.create({
-        file: fs.createReadStream(audioPath),
-        model: "whisper-1"
-      });
-
-      fs.unlinkSync(audioPath);
-
       DOCS.push({
         type: "video",
         title: file,
-        text: transcription.text,
+        text: "VIDEO_FILE_AVAILABLE",
         links: [],
         url: `/${file}`
       });
@@ -137,58 +120,57 @@ async function loadFiles() {
 }
 
 /* =========================
-   SEARCH (의미 기반)
+   SIMPLE SEARCH
 ========================= */
 function search(query) {
   const q = query.toLowerCase();
 
   return DOCS
-    .map(d => {
-      let score = 0;
-
-      if (d.text.toLowerCase().includes(q)) score += 2;
-
-      q.split(" ").forEach(k => {
-        if (d.text.toLowerCase().includes(k)) score += 0.5;
-      });
-
-      return { ...d, score };
-    })
+    .map(d => ({
+      ...d,
+      score: d.text.toLowerCase().includes(q) ? 2 : 0
+    }))
     .sort((a, b) => b.score - a.score)
-    .slice(0, 6);
+    .slice(0, 8);
 }
 
 /* =========================
-   AI RESPONSE (교육용)
+   AI CORE (핵심)
 ========================= */
 async function generateAI(query, docs) {
 
   const context = docs.map(d => `
 TYPE: ${d.type}
+TITLE: ${d.title}
 URL: ${d.url}
-TEXT:
-${d.text.slice(0, 600)}
+
+CONTENT:
+${d.text.slice(0, 500)}
+
+LINKS:
+${(d.links || []).map(l => `- ${l.label} → ${l.url}`).join("\n")}
 `).join("\n\n");
 
   const prompt = `
-너는 5~7세 어린이를 위한 교육 AI이다.
+너는 "AI 교육 검색 엔진"이다 (5~7세 대상).
 
 규칙:
-- 쉬운 말만 사용
-- 영상/문서 내용을 이해해서 설명
-- nav/footer 금지
-- 반드시 개념 기반 버튼 생성
+- 메뉴/nav/footer 절대 출력 금지
+- 오직 의미 있는 정보만 사용
+- 결과는 반드시 버튼으로 제공
+- 버튼은 반드시 URL 포함
 
-출력:
+특별 규칙:
+- video 타입이면 "영상 요약도 함께 생성"
+- 감정 표현 없이 짧고 명확하게
+
+출력 JSON:
 {
-  "answer": "쉬운 설명 1~2문장",
+  "answer": "",
   "buttons": [
-    { "label": "연관 개념", "url": "링크" }
+    { "label": "", "url": "" }
   ]
 }
-
-연관 개념 예:
-감기 → 손씻기 / 마스크 / 기침예절 / 병원 / 독감
 
 질문:
 ${query}
@@ -197,19 +179,28 @@ ${query}
 ${context}
 `;
 
-  const res = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [
-      { role: "system", content: "Return ONLY JSON." },
-      { role: "user", content: prompt }
-    ],
-    temperature: 0.2
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: "Return ONLY JSON." },
+        { role: "user", content: prompt }
+      ],
+      temperature: 0.2
+    })
   });
 
+  const data = await res.json();
+
   try {
-    return JSON.parse(res.choices[0].message.content);
+    return JSON.parse(data.choices[0].message.content);
   } catch {
-    return { answer: "이해 실패", buttons: [] };
+    return { answer: "처리 실패", buttons: [] };
   }
 }
 
@@ -218,20 +209,26 @@ ${context}
 ========================= */
 app.post("/api/chat", async (req, res) => {
 
-  const q = req.body.message;
+  const q = req.body.message || "";
+
+  if (CACHE.has(q)) return res.json(CACHE.get(q));
 
   const docs = search(q);
   const ai = await generateAI(q, docs);
 
-  res.json({
+  const result = {
+    query: q,
     answer: ai.answer,
     buttons: ai.buttons,
-    sources: docs
-  });
+    results: docs
+  };
+
+  CACHE.set(q, result);
+  res.json(result);
 });
 
 /* =========================
-   INIT
+   START
 ========================= */
 (async () => {
   await loadFiles();
