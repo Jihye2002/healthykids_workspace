@@ -196,9 +196,9 @@ document.addEventListener("DOMContentLoaded", () => {
     box1.className = "guideBox";
     box1.innerHTML = `
       🔎 <b>헬시키즈 챗봇 사용 방법</b><br><br>
-      - 궁금한 내용을 입력하면 쉽게 설명해줘요<br>
-      - 손씻기, 건강, 안전 정보를 알려줘요<br>
-      - 영상, PDF, 홈페이지 내용을 함께 찾아요
+      - 궁금한 내용을 입력하면 설명해줘요<br>
+      - 건강, 안전 정보를 알려줘요<br>
+      - 홈페이지 내용을 함께 찾아요
     `;
 
     const box2 = document.createElement("div");
@@ -206,9 +206,9 @@ document.addEventListener("DOMContentLoaded", () => {
     box2.innerHTML = `
       📘 <b>헬시키즈 전체 가이드</b><br><br>
       헬시키즈는 아이들이 건강하고 안전하게 생활할 수 있도록 돕는 서비스예요.<br>
-      손씻기, 위생, 안전, 건강 습관을 재미있게 배울 수 있어요.<br><br>
+      재미있게 배울 수 있어요.<br><br>
 
-      아래 버튼을 누르면 전체 가이드 페이지로 이동해요.
+      아래 버튼을 누르면 가이드 페이지로 이동해요.
       <br>
       <a class="guideBtn" href="guide.html">헬시키즈 가이드 보기</a>
     `;
