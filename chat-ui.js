@@ -1,7 +1,7 @@
 document.addEventListener("DOMContentLoaded", () => {
 
   /* =========================
-     STYLE (GPT / GEMINI UI)
+     STYLE
   ========================= */
   const style = document.createElement("style");
 
@@ -12,9 +12,9 @@ document.addEventListener("DOMContentLoaded", () => {
     right:20px;
     width:380px;
     height:600px;
-    background:#0f172a;
+    background:#ffffff;
     border-radius:18px;
-    box-shadow:0 20px 50px rgba(0,0,0,0.4);
+    box-shadow:0 20px 50px rgba(0,0,0,0.2);
     display:none;
     flex-direction:column;
     overflow:hidden;
@@ -23,7 +23,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   #chatHeader{
-    background:#111827;
+    background:#2f63c7;
     color:white;
     padding:14px;
     font-weight:bold;
@@ -36,68 +36,98 @@ document.addEventListener("DOMContentLoaded", () => {
     flex:1;
     padding:14px;
     overflow-y:auto;
-    background:#0b1220;
+    background:#f6f7fb;
   }
 
   .msg{
-    max-width:85%;
+    max-width:90%;
     padding:10px 12px;
     margin:8px 0;
     border-radius:12px;
     font-size:14px;
-    line-height:1.4;
     white-space:pre-wrap;
   }
 
   .user{
-    background:#2563eb;
+    background:#2f63c7;
     color:white;
     margin-left:auto;
   }
 
   .ai{
-    background:#1f2937;
-    color:#e5e7eb;
-    border:1px solid #374151;
+    background:#ffffff;
+    border:1px solid #ddd;
+  }
+
+  .card{
+    background:#fff;
+    border:1px solid #e5e5e5;
+    padding:10px;
+    border-radius:12px;
+    margin-top:8px;
+  }
+
+  .card-title{
+    font-weight:bold;
+    margin-bottom:6px;
+  }
+
+  .card-summary{
+    font-size:13px;
+    color:#555;
+    margin-bottom:8px;
+  }
+
+  .card-btn{
+    display:inline-block;
+    padding:6px 10px;
+    background:#2f63c7;
+    color:white;
+    border-radius:8px;
+    text-decoration:none;
+    font-size:12px;
   }
 
   #inputBox{
     display:flex;
     gap:6px;
     padding:10px;
-    background:#111827;
-    border-top:1px solid #1f2937;
+    border-top:1px solid #ddd;
+    background:#fff;
   }
 
   #text{
     flex:1;
     padding:10px;
     border-radius:10px;
-    border:none;
+    border:1px solid #ddd;
     outline:none;
-    background:#0b1220;
-    color:white;
   }
 
   #send{
     padding:10px 14px;
     border:none;
     border-radius:10px;
-    background:#2563eb;
+    background:#2f63c7;
     color:white;
     cursor:pointer;
+  }
+
+  #uploadBtn{
+    width:38px;
+    height:38px;
+    border-radius:50%;
+    background:#2f63c7;
+    color:white;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    font-size:18px;
   }
 
   #file{
     display:none;
-  }
-
-  #uploadBtn{
-    padding:10px 12px;
-    border-radius:10px;
-    background:#374151;
-    color:white;
-    cursor:pointer;
   }
 
   #toggleBtn{
@@ -107,51 +137,35 @@ document.addEventListener("DOMContentLoaded", () => {
     width:60px;
     height:60px;
     border-radius:50%;
-    border:none;
-    background:#2563eb;
+    background:#2f63c7;
     color:white;
+    border:none;
     font-size:22px;
     cursor:pointer;
   }
 
-  .guideBox{
-    padding:10px;
-    margin-bottom:10px;
-    background:#111827;
-    border-radius:10px;
-    color:#cbd5e1;
-    font-size:13px;
-  }
-
-  .hidden{
-    display:none !important;
-  }
-
-  .typing{
-    opacity:0.7;
-    font-style:italic;
-  }
+  .hidden{ display:none !important; }
   `;
 
   document.head.appendChild(style);
 
   /* =========================
-     UI CREATE
+     UI
   ========================= */
   document.body.insertAdjacentHTML("beforeend", `
     <div id="chatApp">
       <div id="chatHeader">
-        🧠 AI Search Assistant
+        AI 검색 엔진
         <span id="closeBtn" style="cursor:pointer;">✕</span>
       </div>
 
       <div id="chatBody"></div>
 
       <div id="inputBox">
-        <input id="text" placeholder="검색 / 질문 / 파일 업로드">
-        <button id="send">전송</button>
-        <label id="uploadBtn" for="file">📁</label>
+        <input id="text" placeholder="질문을 입력하세요 (의미 기반 검색)">
+        <label id="uploadBtn" for="file">＋</label>
         <input type="file" id="file">
+        <button id="send">검색</button>
       </div>
     </div>
 
@@ -163,23 +177,21 @@ document.addEventListener("DOMContentLoaded", () => {
   const input = document.getElementById("text");
 
   /* =========================
-     STATE RESET FUNCTION
+     RESET
   ========================= */
   function resetChat() {
     body.innerHTML = "";
 
     addMessage("ai",
-`👋 안녕하세요!
-검색 방법:
-- 질문 입력
-- 파일 업로드 가능
-- 자동 의미 검색 실행`);
+`🔎 AI 문단 검색 시스템
 
-    addMessage("ai", "📌 가이드: /guide.html 에서 확인 가능");
+- 문단 단위 의미 검색
+- PDF + 웹 자동 분석
+- 결과 클릭 시 해당 페이지 이동`);
   }
 
   /* =========================
-     MESSAGE ADD
+     MESSAGE
   ========================= */
   function addMessage(type, text) {
     const div = document.createElement("div");
@@ -190,22 +202,26 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* =========================
-     TYPING EFFECT (OPTION)
+     RESULT CARD (핵심)
   ========================= */
-  function showTyping() {
+  function addCard(r) {
     const div = document.createElement("div");
-    div.className = "msg ai typing";
-    div.innerText = "AI가 검색 중...";
-    div.id = "typing";
-    body.appendChild(div);
-  }
+    div.className = "card";
 
-  function hideTyping() {
-    document.getElementById("typing")?.remove();
+    div.innerHTML = `
+      <div class="card-title">${r.title || "결과"}</div>
+      <div class="card-summary">${r.summary || r.text || ""}</div>
+      <a class="card-btn" href="${r.url}" target="_blank">
+        이동
+      </a>
+    `;
+
+    body.appendChild(div);
+    body.scrollTop = body.scrollHeight;
   }
 
   /* =========================
-     SEND MESSAGE
+     SEND
   ========================= */
   async function send() {
     const text = input.value.trim();
@@ -214,7 +230,7 @@ document.addEventListener("DOMContentLoaded", () => {
     addMessage("user", text);
     input.value = "";
 
-    showTyping();
+    addMessage("ai", "🔍 검색 중...");
 
     try {
       const res = await fetch("/api/chat", {
@@ -225,19 +241,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const data = await res.json();
 
-      hideTyping();
+      body.lastChild.remove(); // "검색 중..." 제거
 
       addMessage("ai", data.reply || "결과 없음");
 
       if (data.results?.length) {
-        data.results.forEach(r => {
-          addMessage("ai", `📌 ${r.title}\n${r.text}`);
-        });
+        data.results.forEach(addCard);
       }
 
     } catch (e) {
-      hideTyping();
-      addMessage("ai", "서버 오류 발생");
+      addMessage("ai", "서버 오류");
     }
   }
 
@@ -251,7 +264,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const reader = new FileReader();
 
     reader.onload = async () => {
-
       addMessage("user", "📁 파일 업로드");
 
       await fetch("/api/upload", {
@@ -263,7 +275,7 @@ document.addEventListener("DOMContentLoaded", () => {
         })
       });
 
-      addMessage("ai", "📁 파일 업로드 완료 (즉시 검색 반영됨)");
+      addMessage("ai", "📄 파일이 즉시 검색에 반영되었습니다");
     };
 
     reader.readAsDataURL(file);
@@ -276,12 +288,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.getElementById("toggleBtn").onclick = () => {
     chatApp.style.display = "flex";
-    resetChat();   // 🔥 열릴 때 초기화 + 가이드 표시
+    resetChat();
   };
 
   document.getElementById("closeBtn").onclick = () => {
     chatApp.style.display = "none";
-    body.innerHTML = ""; // 🔥 닫으면 완전 초기화
+    body.innerHTML = "";
   };
 
 });
