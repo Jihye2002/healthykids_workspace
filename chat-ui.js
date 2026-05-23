@@ -201,14 +201,27 @@ document.addEventListener("DOMContentLoaded", () => {
       box-sizing:border-box;
     }
     
+    /* 검색 버튼 */
     #send{
-      width:75px;
+      width:80px;
+      height:54px;
+    
       border:none;
       border-radius:10px;
+    
       background:#2f63c7;
       color:#fff;
-      cursor:pointer;
+    
+      font-size:14px;
       font-weight:bold;
+    
+      cursor:pointer;
+    
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    
+      box-sizing:border-box;
     }
 
     /* =========================
