@@ -3,7 +3,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const API_BASE = "https://healthykids-workspace.onrender.com";
 
   /* =========================
-     STYLE (Blue + White + Robot UI)
+     STYLE
   ========================= */
   document.head.insertAdjacentHTML("beforeend", `
   <style>
@@ -58,6 +58,19 @@ document.addEventListener("DOMContentLoaded", () => {
       margin-bottom:10px;
     }
 
+    .guideItem{
+      display:flex;
+      align-items:center;
+      gap:6px;
+      margin:6px 0;
+      font-size:14px;
+    }
+
+    .star{
+      color:#f5c542;
+      font-size:14px;
+    }
+
     .guideBtn{
       display:inline-block;
       margin-top:12px;
@@ -98,7 +111,7 @@ document.addEventListener("DOMContentLoaded", () => {
       max-width:78%;
     }
 
-    /* 🔵 ROBOT ICON (완전 변경 핵심) */
+    /* ROBOT */
     .robotIcon{
       width:36px;
       height:36px;
@@ -108,7 +121,6 @@ document.addEventListener("DOMContentLoaded", () => {
       align-items:center;
       justify-content:center;
       flex-shrink:0;
-      box-shadow:0 4px 10px rgba(0,0,0,0.12);
     }
 
     .robotIcon svg{
@@ -169,6 +181,11 @@ document.addEventListener("DOMContentLoaded", () => {
       font-family:Arial;
     }
 
+    /* placeholder 가운데 느낌 */
+    #text::placeholder{
+      text-align:center;
+    }
+
     #send{
       width:80px;
       height:54px;
@@ -178,9 +195,9 @@ document.addEventListener("DOMContentLoaded", () => {
       border-radius:10px;
       font-weight:bold;
       cursor:pointer;
+      text-align:center;
     }
 
-    /* TOGGLE BUTTON */
     #toggleBtn{
       position:fixed;
       right:25px;
@@ -193,8 +210,8 @@ document.addEventListener("DOMContentLoaded", () => {
       display:flex;
       align-items:center;
       justify-content:center;
-      z-index:9999;
       cursor:pointer;
+      z-index:9999;
     }
 
   </style>
@@ -215,14 +232,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
       <div id="inputBox">
         <textarea id="text" placeholder="궁금한 걸 물어보세요 😊"></textarea>
-        <button id="send">검색</button>
+        <button id="send">찾기</button>
       </div>
 
     </div>
 
     <button id="toggleBtn">
-      <svg width="30" height="30" viewBox="0 0 24 24" fill="white">
-        <path d="M12 2a2 2 0 00-2 2v1H8a3 3 0 00-3 3v9a3 3 0 003 3h8a3 3 0 003-3V8a3 3 0 00-3-3h-2V4a2 2 0 00-2-2zm-3 9h2v2H9v-2zm6 0h2v2h-2v-2z"/>
+      <svg width="30" height="30" viewBox="0 0 24 24">
+        <path fill="white" d="M12 2a2 2 0 00-2 2v1H8a3 3 0 00-3 3v9a3 3 0 003 3h8a3 3 0 003-3V8a3 3 0 00-3-3h-2V4a2 2 0 00-2-2z"/>
       </svg>
     </button>
   `);
@@ -233,49 +250,44 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let loadingNode = null;
 
-  /* =========================
-     ROBOT SVG
-  ========================= */
+  /* ROBOT */
   const robotSVG = `
     <svg viewBox="0 0 24 24">
       <path d="M12 2a2 2 0 00-2 2v1H8a3 3 0 00-3 3v9a3 3 0 003 3h8a3 3 0 003-3V8a3 3 0 00-3-3h-2V4a2 2 0 00-2-2zm-3 9h2v2H9v-2zm6 0h2v2h-2v-2z"/>
     </svg>
   `;
 
-  /* =========================
-     RESET CHAT (핵심)
-  ========================= */
+  /* RESET */
   function resetChat(){
     body.innerHTML = "";
     input.value = "";
     showGuide();
   }
 
-  /* =========================
-     GUIDE
-  ========================= */
+  /* GUIDE */
   function showGuide(){
     body.innerHTML = `
       <div class="guideBox">
         <div class="guideTitle">💡 사용 예시</div>
-        <div>손 씻기 어떻게 해요</div>
-        <div>감기 안 걸리는 방법</div>
-        <div>횡단보도 안전하게 건너기</div>
+
+        <div class="guideItem"><span class="star">⭐</span> 손 씻기 어떻게 해요</div>
+        <div class="guideItem"><span class="star">⭐</span> 감기 안 걸리려면 어떻게 해요/div>
+        <div class="guideItem"><span class="star">⭐</span> 횡단보도 안전하게 건너기</div>
+
       </div>
 
       <div class="guideBox">
         <div class="guideTitle">📘 이용 가이드</div>
-        헬시키즈 AI 사용 방법과  
-        영상, 놀이자료를 쉽게 찾을 수 있어요 😊
+        헬시키즈에서 AI랑 메뉴 쓰는 방법을 알려줘요 😊<br>
+        영상은 어디서 보는지 알려줘요 🎥<br>
+        공부할 내용은 어떻게 보는지 알려줘요 📘
         <br><br>
         <a class="guideBtn" href="guide.html" target="_blank">가이드 보기</a>
       </div>
     `;
   }
 
-  /* =========================
-     MESSAGE
-  ========================= */
+  /* MESSAGE */
   function addMessage(type, text){
 
     const wrap = document.createElement("div");
@@ -294,9 +306,7 @@ document.addEventListener("DOMContentLoaded", () => {
     body.scrollTop = body.scrollHeight;
   }
 
-  /* =========================
-     RESULT CARD
-  ========================= */
+  /* RESULT */
   function addResultCard(r){
 
     const wrap = document.createElement("div");
@@ -304,7 +314,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     wrap.innerHTML = `
       <div class="robotIcon">${robotSVG}</div>
-
       <div class="resultCard">
         <div class="resultTitle">${r?.title || "제목 없음"}</div>
         <div class="resultSummary">${r?.summary || "내용 없음"}</div>
@@ -319,9 +328,7 @@ document.addEventListener("DOMContentLoaded", () => {
     body.scrollTop = body.scrollHeight;
   }
 
-  /* =========================
-     SEND
-  ========================= */
+  /* SEND */
   async function send(){
 
     const text = input.value.trim();
@@ -371,9 +378,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  /* =========================
-     EVENTS
-  ========================= */
+  /* EVENTS */
+
   document.getElementById("send").onclick = send;
 
   input.addEventListener("keydown", (e)=>{
@@ -381,15 +387,14 @@ document.addEventListener("DOMContentLoaded", () => {
       e.preventDefault();
       send();
     }
+    // Shift+Enter는 기본 textarea 줄바꿈 유지
   });
 
-  /* 열기 = 초기화 */
   document.getElementById("toggleBtn").onclick = () => {
     chatApp.style.display = "flex";
     resetChat();
   };
 
-  /* ✕ 닫기 = 초기화 */
   document.getElementById("closeBtn").onclick = () => {
     chatApp.style.display = "none";
     resetChat();
