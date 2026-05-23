@@ -4,23 +4,16 @@ const fs = require("fs");
 const path = require("path");
 const pdfParse = require("pdf-parse");
 const Tesseract = require("tesseract.js");
-const { exec } = require("child_process");
 
-const fetch = global.fetch || require("node-fetch");
+const fetch = global.fetch;
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-/* =========================
-   DATA
-========================= */
 let DOCS = [];
 let VECTORS = [];
 let CACHE = new Map();
 
-/* =========================
-   MIDDLEWARE
-========================= */
 app.use(cors());
 app.use(express.json({ limit: "50mb" }));
 app.use(express.static(__dirname));
@@ -29,8 +22,7 @@ app.use(express.static(__dirname));
    NORMALIZE
 ========================= */
 function normalize(t = "") {
-  return t
-    .toLowerCase()
+  return t.toLowerCase()
     .replace(/[^\w가-힣]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
@@ -43,54 +35,50 @@ function stripHtml(html) {
   return html
     .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "")
     .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, "")
-    .replace(/<[^>]*>/g, " ")
+    .replace(/<[^>]+>/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
 
 /* =========================
-   CHUNK SPLIT
+   SPLIT
 ========================= */
 function splitText(text) {
   return text
     .split(/\n\s*\n|(?<=[.!?])\s+/g)
     .map(t => t.trim())
-    .filter(t => t.length > 25);
+    .filter(t => t.length > 30);
 }
 
 /* =========================
-   VIDEO → TEXT (요약 핵심)
+   VIDEO → TEXT (SAFE VERSION)
+   👉 ffmpeg 없이 OpenAI Whisper만 사용
 ========================= */
-async function videoToText(videoPath) {
-  const audio = videoPath + ".mp3";
+async function videoToText(filePath) {
+  try {
+    const fileStream = fs.createReadStream(filePath);
 
-  await new Promise((res, rej) => {
-    exec(`ffmpeg -i "${videoPath}" -vn -acodec mp3 "${audio}"`, err => {
-      if (err) rej(err);
-      else res();
+    const form = new FormData();
+    form.append("file", fileStream);
+    form.append("model", "whisper-1");
+
+    const res = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
+      },
+      body: form
     });
-  });
 
-  const file = fs.createReadStream(audio);
-
-  const form = new FormData();
-  form.append("file", file);
-  form.append("model", "whisper-1");
-
-  const res = await fetch("https://api.openai.com/v1/audio/transcriptions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
-    },
-    body: form
-  });
-
-  const data = await res.json();
-  return data.text || "";
+    const data = await res.json();
+    return data.text || "";
+  } catch (e) {
+    return "";
+  }
 }
 
 /* =========================
-   LOAD FILES (FULL MULTIMODAL INDEX)
+   LOAD FILES
 ========================= */
 async function loadFiles() {
   DOCS = [];
@@ -100,7 +88,7 @@ async function loadFiles() {
   for (const file of files) {
     const full = path.join(__dirname, file);
 
-    /* HTML */
+    // HTML
     if (file.endsWith(".html")) {
       const html = fs.readFileSync(full, "utf8");
       const clean = stripHtml(html);
@@ -115,7 +103,7 @@ async function loadFiles() {
       });
     }
 
-    /* PDF */
+    // PDF
     if (file.endsWith(".pdf")) {
       const buf = fs.readFileSync(full);
       const pdf = await pdfParse(buf);
@@ -130,7 +118,7 @@ async function loadFiles() {
       });
     }
 
-    /* IMAGE OCR */
+    // IMAGE OCR
     if (file.match(/\.(png|jpg|jpeg)$/)) {
       const ocr = await Tesseract.recognize(full, "kor+eng");
 
@@ -144,28 +132,22 @@ async function loadFiles() {
       });
     }
 
-    /* VIDEO */
+    // VIDEO (SAFE)
     if (file.endsWith(".mp4")) {
-      try {
-        const text = await videoToText(full);
+      const text = await videoToText(full);
 
-        splitText(text).forEach((t, i) => {
-          DOCS.push({
-            type: "video",
-            title: file,
-            text: t,
-            url: `/${file}`
-          });
+      splitText(text).forEach((t, i) => {
+        DOCS.push({
+          type: "video",
+          title: file,
+          text: t,
+          url: `/${file}`
         });
-
-        console.log("🎥 VIDEO INDEXED:", file);
-      } catch (e) {
-        console.log("VIDEO ERROR:", file);
-      }
+      });
     }
   }
 
-  console.log("📦 TOTAL DOCS:", DOCS.length);
+  console.log("📦 INDEXED:", DOCS.length);
 }
 
 /* =========================
@@ -189,7 +171,7 @@ async function embed(text) {
 }
 
 /* =========================
-   VECTOR BUILD
+   BUILD VECTORS
 ========================= */
 async function buildVectors() {
   VECTORS = [];
@@ -199,11 +181,11 @@ async function buildVectors() {
     VECTORS.push({ ...d, vector: v });
   }
 
-  console.log("🧠 VECTOR READY:", VECTORS.length);
+  console.log("🧠 VECTORS READY:", VECTORS.length);
 }
 
 /* =========================
-   COSINE SIM
+   COSINE
 ========================= */
 function cosine(a, b) {
   let dot = 0, ma = 0, mb = 0;
@@ -218,16 +200,14 @@ function cosine(a, b) {
 }
 
 /* =========================
-   SEARCH ENGINE (V14 FINAL)
+   SEARCH
 ========================= */
 async function search(query) {
   if (CACHE.has(query)) return CACHE.get(query);
 
   const qvec = await embed(query);
 
-  let results = [];
-
-  for (const d of VECTORS) {
+  let results = VECTORS.map(d => {
     const sim = cosine(qvec, d.vector);
 
     let score = sim * 3;
@@ -236,23 +216,18 @@ async function search(query) {
       score += 1;
     }
 
-    results.push({ ...d, score });
-  }
+    return { ...d, score };
+  });
 
   results.sort((a, b) => b.score - a.score);
 
-  /* =========================
-     DEDUP (URL + TEXT)
-  ========================= */
+  // dedup (URL 기준)
   const seen = new Set();
   const final = [];
 
   for (const r of results) {
-    const key = r.url + r.text.slice(0, 30);
-
-    if (seen.has(key)) continue;
-    seen.add(key);
-
+    if (seen.has(r.url)) continue;
+    seen.add(r.url);
     final.push(r);
   }
 
@@ -282,15 +257,6 @@ app.post("/api/chat", async (req, res) => {
 });
 
 /* =========================
-   AUTO REINDEX
-========================= */
-fs.watch(__dirname, async () => {
-  console.log("🔄 REINDEX");
-  await loadFiles();
-  await buildVectors();
-});
-
-/* =========================
    INIT
 ========================= */
 (async () => {
@@ -302,5 +268,5 @@ fs.watch(__dirname, async () => {
    START
 ========================= */
 app.listen(PORT, () => {
-  console.log("🚀 V14 MULTIMODAL SEARCH RUNNING:", PORT);
+  console.log("🚀 V15 STABLE SEARCH ENGINE:", PORT);
 });
