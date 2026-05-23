@@ -8,14 +8,11 @@ const PORT = process.env.PORT || 3000;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
-/* =========================
-   DATA
-========================= */
 let DOCUMENTS = [];
 let VECTOR_DB = [];
 
 /* =========================
-   CLEAN HTML
+   CLEAN TEXT
 ========================= */
 function stripHtml(html) {
   return html
@@ -27,88 +24,48 @@ function stripHtml(html) {
 }
 
 /* =========================
-   BETTER PARAGRAPH SPLIT (핵심 개선)
+   PARAGRAPH SPLIT
 ========================= */
 function splitParagraphs(text) {
   return text
     .split(/\n\s*\n|(?<=[.!?])\s+/g)
     .map(t => t.trim())
-    .filter(t => t.length > 25); // 너무 짧은 것 제거 (정확도 핵심)
+    .filter(t => t.length > 20);
 }
 
 /* =========================
-   LINK EXTRACT
-========================= */
-function extractLinks(html) {
-  const regex = /href="([^"#]+)"/g;
-  const links = new Set();
-  let m;
-
-  while ((m = regex.exec(html))) {
-    const url = m[1];
-    if (!url.startsWith("http") && !url.startsWith("mailto:")) {
-      links.add(url.split("?")[0]);
-    }
-  }
-
-  return [...links];
-}
-
-/* =========================
-   LOAD SITE (HTML → 문단)
+   LOAD HTML
 ========================= */
 async function loadSite() {
   DOCUMENTS = [];
 
   const indexHtml = fs.readFileSync("index.html", "utf-8");
-  const links = extractLinks(indexHtml);
 
-  const homeParagraphs = splitParagraphs(stripHtml(indexHtml));
-
-  homeParagraphs.forEach((p, i) => {
+  splitParagraphs(stripHtml(indexHtml)).forEach((p, i) => {
     DOCUMENTS.push({
       title: "홈페이지",
       text: p,
       url: "/",
-      type: "html",
-      id: `home-${i}`
+      type: "html"
     });
   });
 
-  for (const link of links) {
-    const filePath = path.join(__dirname, link);
-    if (!fs.existsSync(filePath)) continue;
-
-    const html = fs.readFileSync(filePath, "utf-8");
-    const paragraphs = splitParagraphs(stripHtml(html));
-
-    paragraphs.forEach((p, i) => {
-      DOCUMENTS.push({
-        title: link,
-        text: p,
-        url: "/" + link,
-        type: "html",
-        id: `${link}-${i}`
-      });
-    });
-  }
-
-  console.log("📄 HTML PARAGRAPH LOADED:", DOCUMENTS.length);
+  console.log("📄 HTML LOADED");
 }
 
 /* =========================
-   LOAD PDF (문단 기반)
+   PDF LOAD (UPLOAD ONLY)
 ========================= */
-async function loadPdfs() {
-  const pdfDir = path.join(__dirname, "files");
-  if (!fs.existsSync(pdfDir)) return;
+async function loadPdfsFromUpload() {
+  const dir = path.join(__dirname, "files");
+  if (!fs.existsSync(dir)) return;
 
-  const files = fs.readdirSync(pdfDir);
+  const files = fs.readdirSync(dir);
 
   for (const file of files) {
     if (!file.endsWith(".pdf")) continue;
 
-    const buffer = fs.readFileSync(path.join(pdfDir, file));
+    const buffer = fs.readFileSync(path.join(dir, file));
     const parsed = await pdfParse(buffer);
 
     const paragraphs = splitParagraphs(parsed.text);
@@ -118,38 +75,32 @@ async function loadPdfs() {
         title: file,
         text: p,
         url: `/files/${file}`,
-        type: "pdf",
-        id: `${file}-${i}`,
-        page: i + 1
+        type: "pdf"
       });
     });
   }
 
-  console.log("📄 PDF PARAGRAPH LOADED:", files.length);
+  console.log("📄 PDF UPLOAD LOADED");
 }
 
 /* =========================
-   EMBEDDING (안정화)
+   EMBEDDING
 ========================= */
 async function embed(text) {
-  try {
-    const res = await fetch("https://api.openai.com/v1/embeddings", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${OPENAI_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: "text-embedding-3-small",
-        input: text
-      })
-    });
+  const res = await fetch("https://api.openai.com/v1/embeddings", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${OPENAI_API_KEY}`
+    },
+    body: JSON.stringify({
+      model: "text-embedding-3-small",
+      input: text
+    })
+  });
 
-    const data = await res.json();
-    return data?.data?.[0]?.embedding || [];
-  } catch (e) {
-    return [];
-  }
+  const data = await res.json();
+  return data?.data?.[0]?.embedding || [];
 }
 
 /* =========================
@@ -160,12 +111,10 @@ async function rebuildVector() {
 
   for (const d of DOCUMENTS) {
     const v = await embed(d.text);
-    if (!v.length) continue;
-
     VECTOR_DB.push({ ...d, vector: v });
   }
 
-  console.log("🧠 VECTOR READY:", VECTOR_DB.length);
+  console.log("🧠 VECTOR READY");
 }
 
 /* =========================
@@ -184,28 +133,27 @@ function cosine(a, b) {
 }
 
 /* =========================
-   SEARCH (Top 6)
+   SEARCH
 ========================= */
 async function search(query) {
-  const qVec = await embed(query);
-  if (!qVec.length) return [];
+  const q = await embed(query);
 
   return VECTOR_DB
     .map(d => ({
       ...d,
-      score: cosine(qVec, d.vector)
+      score: cosine(q, d.vector)
     }))
     .sort((a, b) => b.score - a.score)
     .slice(0, 6);
 }
 
 /* =========================
-   AI SUMMARY (JSON 안정화)
+   AI SUMMARY (아동용 쉬운 요약)
 ========================= */
 async function summarize(query, results) {
 
-  const context = results.slice(0, 5).map(r => `
-[문단]
+  const context = results.map(r => `
+[문서]
 제목: ${r.title}
 내용: ${r.text}
 URL: ${r.url}
@@ -223,27 +171,25 @@ URL: ${r.url}
         {
           role: "system",
           content: `
-너는 어린이용 검색 AI이다.
+너는 5~7세 어린이를 위한 AI다.
 
-반드시 JSON만 출력한다.
-설명 금지.
+규칙:
+- 매우 쉬운 말로 설명
+- 2~3줄 요약
+- 반드시 JSON 출력
+- URL은 반드시 그대로 사용
 
 형식:
 {
-  "reply": "쉬운 설명",
-  "results": [
-    {
-      "title": "",
-      "summary": "",
-      "url": ""
-    }
-  ]
+ "reply": "",
+ "results": [
+   {
+     "title": "",
+     "summary": "",
+     "url": ""
+   }
+ ]
 }
-
-규칙:
-- URL은 반드시 제공된 것만 사용
-- 문단 기반으로만 요약
-- 과장 금지
           `
         },
         {
@@ -258,9 +204,9 @@ URL: ${r.url}
 
   try {
     return JSON.parse(data.choices[0].message.content);
-  } catch (e) {
+  } catch {
     return {
-      reply: "검색 결과를 찾았어요",
+      reply: "찾은 내용을 쉽게 정리했어요!",
       results
     };
   }
@@ -272,6 +218,31 @@ URL: ${r.url}
 async function pipeline(msg) {
   const results = await search(msg);
   return await summarize(msg, results);
+}
+
+/* =========================
+   FILE UPLOAD (PDF ONLY)
+========================= */
+async function addFile(file) {
+  if (!file.name.endsWith(".pdf")) {
+    return { error: "PDF만 허용됩니다" };
+  }
+
+  const buffer = Buffer.from(file.content, "base64");
+  const parsed = await pdfParse(buffer);
+
+  const paragraphs = splitParagraphs(parsed.text);
+
+  paragraphs.forEach((p) => {
+    DOCUMENTS.push({
+      title: file.name,
+      text: p,
+      url: `/files/${file.name}`,
+      type: "pdf"
+    });
+  });
+
+  await rebuildVector();
 }
 
 /* =========================
@@ -291,7 +262,7 @@ const server = http.createServer(async (req, res) => {
   }
 
   /* CHAT */
-  if (url === "/api/chat" && req.method === "POST") {
+  if (url === "/api/chat") {
     let body = "";
 
     req.on("data", c => body += c);
@@ -302,6 +273,23 @@ const server = http.createServer(async (req, res) => {
 
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify(result));
+    });
+
+    return;
+  }
+
+  /* UPLOAD */
+  if (url === "/api/upload") {
+    let body = "";
+
+    req.on("data", c => body += c);
+
+    req.on("end", async () => {
+      const file = JSON.parse(body);
+      const result = await addFile(file);
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(result || { ok: true }));
     });
 
     return;
@@ -326,10 +314,10 @@ const server = http.createServer(async (req, res) => {
 ========================= */
 (async () => {
   await loadSite();
-  await loadPdfs();
+  await loadPdfsFromUpload();
   await rebuildVector();
 })();
 
 server.listen(PORT, () => {
-  console.log("🚀 RUNNING:", PORT);
+  console.log("🚀 SERVER RUNNING:", PORT);
 });
