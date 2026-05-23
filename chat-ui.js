@@ -60,30 +60,6 @@ document.addEventListener("DOMContentLoaded", () => {
     border:1px solid #ddd;
   }
 
-  /* GUIDE */
-  .guideBox, .guideBox2{
-    background:#eef3ff;
-    padding:12px;
-    border-radius:12px;
-    margin-bottom:10px;
-    font-size:13px;
-  }
-
-  .guideBox2{
-    background:#e7f0ff;
-  }
-
-  .guideBtn{
-    display:inline-block;
-    margin-top:8px;
-    padding:7px 12px;
-    background:#2f63c7;
-    color:#fff;
-    border-radius:8px;
-    text-decoration:none;
-  }
-
-  /* INPUT */
   #inputBox{
     display:flex;
     align-items:center;
@@ -125,7 +101,7 @@ document.addEventListener("DOMContentLoaded", () => {
     cursor:pointer;
   }
 
-  /* 🎙️ 녹음 버튼 */
+  /* 🎙 녹음 버튼 */
   #voiceBtn{
     width:42px;
     height:42px;
@@ -134,7 +110,6 @@ document.addEventListener("DOMContentLoaded", () => {
     color:#fff;
     border:none;
     cursor:pointer;
-    font-size:16px;
   }
 
   #voiceBtn.recording{
@@ -188,15 +163,20 @@ document.addEventListener("DOMContentLoaded", () => {
   const body = document.getElementById("chatBody");
   const input = document.getElementById("text");
 
+  let loadingMsg = null;
+
   function addMessage(type, text){
     const div = document.createElement("div");
     div.className = `msg ${type}`;
     div.innerText = text;
     body.appendChild(div);
     body.scrollTop = body.scrollHeight;
+    return div;
   }
 
   function addCard(r){
+    if (!r || !r.url) return;
+
     const div = document.createElement("div");
     div.className = "msg ai";
 
@@ -210,6 +190,7 @@ document.addEventListener("DOMContentLoaded", () => {
     `;
 
     body.appendChild(div);
+    body.scrollTop = body.scrollHeight;
   }
 
   async function send(){
@@ -219,7 +200,7 @@ document.addEventListener("DOMContentLoaded", () => {
     addMessage("user", text);
     input.value = "";
 
-    addMessage("ai", "🔍 검색 중...");
+    loadingMsg = addMessage("ai", "🔍 검색 중...");
 
     try {
       const res = await fetch(`${API_BASE}/api/chat`, {
@@ -230,14 +211,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const data = await res.json();
 
-      body.lastChild.remove();
+      if (loadingMsg) loadingMsg.remove();
 
       addMessage("ai", data.reply || "결과 없음");
 
-      (data.results || []).forEach(addCard);
+      if (Array.isArray(data.results)) {
+        data.results.forEach(addCard);
+      }
 
     } catch (e) {
-      body.lastChild.remove();
+      if (loadingMsg) loadingMsg.remove();
       addMessage("ai", "서버 연결 실패");
     }
   }
@@ -245,9 +228,9 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("send").onclick = send;
 
   /* =========================
-     VOICE (완전 수정)
+     VOICE FIXED
   ========================= */
-  let recognition = null;
+  let recognition;
   let isListening = false;
 
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
