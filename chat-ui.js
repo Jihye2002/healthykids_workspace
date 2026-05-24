@@ -278,9 +278,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
       <div class="guideBox">
         <div class="guideTitle">📘 이용 가이드</div>
-        <div class="guideItem">영상은 어떻게 보나요</div>
-        <div class="guideItem">AI는 어떻게 사용해요</div>
-        <div class="guideItem">메뉴는 어떻게 봐요</div>
+        <div class="guideItem"> "영상은 어떻게 보나요" </div>
+        <div class="guideItem"> "AI는 어떻게 사용해요" </div>
+        <div class="guideItem"> "메뉴는 어떻게 봐요" </div>
         <a class="guideBtn" href="guide.html" target="_blank">가이드 보기</a>
       </div>
     `;
