@@ -192,7 +192,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
     </div>
 
-    <button id="toggleBtn">🤖</button>
+    <button id="toggleBtn">
+      <svg viewBox="0 0 24 24">
+        <!-- 안테나 -->
+        <line x1="12" y1="4" x2="12" y2="2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"></line>
+        <circle cx="12" cy="2" r="0.7" fill="white"></circle>
+      
+        <!-- 머리 -->
+        <rect x="4" y="5" width="16" height="14" rx="4" fill="white"></rect>
+      
+        <!-- 눈 (로봇 LED 스타일) -->
+        <rect x="8" y="11" width="2.2" height="2.2" rx="0.4" fill="black"></rect>
+        <rect x="13.8" y="11" width="2.2" height="2.2" rx="0.4" fill="black"></rect>
+      
+        <!-- 입 (스피커 그릴 느낌) -->
+        <rect x="9" y="15" width="6" height="1.6" rx="0.8" fill="black"></rect>
+      
+        <!-- 머리 상단 포인트 -->
+        <circle cx="12" cy="6" r="0.6" fill="black"></circle>
+      </svg>
+    </button>
   `);
 
   const chatApp = document.getElementById("chatApp");
