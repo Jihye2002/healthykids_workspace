@@ -210,20 +210,28 @@ document.addEventListener("DOMContentLoaded", () => {
     <!-- TOGGLE BUTTON (통일 로봇) -->
     <button id="toggleBtn">
       <svg viewBox="0 0 24 24">
+        <!-- 안테나 -->
         <line x1="12" y1="4" x2="12" y2="2.5" stroke="white" stroke-width="2" stroke-linecap="round"/>
         <circle cx="12" cy="2" r="0.9" fill="white"/>
-
+    
+        <!-- 머리 -->
         <rect x="3.5" y="5" width="17" height="15" rx="5" fill="white"/>
-
+    
+        <!-- 눈 -->
         <rect x="8" y="11" width="2.5" height="2.5" rx="0.4" fill="#2f63c7"/>
         <rect x="13.5" y="11" width="2.5" height="2.5" rx="0.4" fill="#2f63c7"/>
-
-        <rect x="8.5" y="15" width="7" height="2" rx="1" fill="#2f63c7"/>
-
+    
+        <!-- 웃는 입 -->
+        <path d="M8.5 15c1.2 2 5.8 2 7 0" 
+              stroke="#2f63c7" 
+              stroke-width="1.6" 
+              fill="none" 
+              stroke-linecap="round"/>
+    
+        <!-- 포인트 -->
         <circle cx="12" cy="6" r="0.8" fill="#2f63c7"/>
       </svg>
     </button>
-  `);
 
   const chatApp = document.getElementById("chatApp");
   const body = document.getElementById("chatBody");
