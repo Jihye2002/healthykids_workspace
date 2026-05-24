@@ -32,6 +32,7 @@ document.addEventListener("DOMContentLoaded", () => {
       justify-content:space-between;
       align-items:center;
       font-weight:bold;
+      font-size:16px;
     }
 
     #chatBody{
@@ -66,7 +67,10 @@ document.addEventListener("DOMContentLoaded", () => {
       padding-left:10px;
     }
 
-    .star{ color:#f5c542; margin-right:6px; }
+    .star{
+      color:#f5c542;
+      margin-right:6px;
+    }
 
     .guideBtn{
       display:inline-block;
@@ -76,6 +80,7 @@ document.addEventListener("DOMContentLoaded", () => {
       color:#fff;
       border-radius:8px;
       text-decoration:none;
+      font-size:14px;
     }
 
     .msg{
@@ -84,7 +89,9 @@ document.addEventListener("DOMContentLoaded", () => {
       align-items:flex-start;
     }
 
-    .user{ justify-content:flex-end; }
+    .user{
+      justify-content:flex-end;
+    }
 
     .bubble{
       padding:12px 14px;
@@ -92,7 +99,7 @@ document.addEventListener("DOMContentLoaded", () => {
       font-size:14px;
       white-space:pre-wrap;
       word-break:break-word;
-      line-height:1.5;
+      line-height:1.6;
       max-width:78%;
     }
 
@@ -107,7 +114,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     /* =========================
-       ROBOT ICON (통일)
+       ROBOT ICON
     ========================= */
     .robotIcon{
       width:52px;
@@ -127,7 +134,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     /* =========================
-       INPUT AREA (세로 가운데 정렬 수정)
+       INPUT
     ========================= */
     #inputBox{
       display:flex;
@@ -143,9 +150,12 @@ document.addEventListener("DOMContentLoaded", () => {
       height:54px;
       border:1px solid #ddd;
       border-radius:10px;
-      padding:0 12px;
+      padding:14px 12px;
       font-size:14px;
       outline:none;
+      resize:none;
+      box-sizing:border-box;
+      font-family:Arial,sans-serif;
     }
 
     #send{
@@ -160,8 +170,12 @@ document.addEventListener("DOMContentLoaded", () => {
       display:flex;
       align-items:center;
       justify-content:center;
+      flex-shrink:0;
     }
 
+    /* =========================
+       TOGGLE BUTTON
+    ========================= */
     #toggleBtn{
       position:fixed;
       right:25px;
@@ -175,13 +189,29 @@ document.addEventListener("DOMContentLoaded", () => {
       align-items:center;
       justify-content:center;
       cursor:pointer;
-      z-index:9999;
+      z-index:99999;
       box-shadow:0 10px 25px rgba(0,0,0,0.25);
     }
 
     #toggleBtn svg{
-      width:40px;
-      height:40px;
+      width:42px;
+      height:42px;
+    }
+
+    .resultBtn{
+      display:inline-block;
+      margin:6px 6px 0 0;
+      padding:8px 10px;
+      background:#2f63c7;
+      color:#fff;
+      border-radius:8px;
+      text-decoration:none;
+      font-size:13px;
+      transition:0.2s;
+    }
+
+    .resultBtn:hover{
+      transform:translateY(-1px);
     }
 
   </style>
@@ -207,93 +237,205 @@ document.addEventListener("DOMContentLoaded", () => {
 
     </div>
 
-    <!-- TOGGLE BUTTON (통일 로봇) -->
     <button id="toggleBtn">
+
       <svg viewBox="0 0 24 24">
+
         <!-- 안테나 -->
-        <line x1="12" y1="4" x2="12" y2="2.5" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        <line 
+          x1="12" 
+          y1="4" 
+          x2="12" 
+          y2="2.5" 
+          stroke="white" 
+          stroke-width="2" 
+          stroke-linecap="round"
+        />
+
         <circle cx="12" cy="2" r="0.9" fill="white"/>
-    
+
         <!-- 머리 -->
-        <rect x="3.5" y="5" width="17" height="15" rx="5" fill="white"/>
-    
+        <rect 
+          x="3.5" 
+          y="5" 
+          width="17" 
+          height="15" 
+          rx="5" 
+          fill="white"
+        />
+
         <!-- 눈 -->
-        <rect x="8" y="11" width="2.5" height="2.5" rx="0.4" fill="#2f63c7"/>
-        <rect x="13.5" y="11" width="2.5" height="2.5" rx="0.4" fill="#2f63c7"/>
-    
+        <rect 
+          x="8" 
+          y="11" 
+          width="2.5" 
+          height="2.5" 
+          rx="0.4" 
+          fill="#2f63c7"
+        />
+
+        <rect 
+          x="13.5" 
+          y="11" 
+          width="2.5" 
+          height="2.5" 
+          rx="0.4" 
+          fill="#2f63c7"
+        />
+
         <!-- 웃는 입 -->
-        <path d="M8.5 15c1.2 2 5.8 2 7 0" 
-              stroke="#2f63c7" 
-              stroke-width="1.6" 
-              fill="none" 
-              stroke-linecap="round"/>
-    
+        <path 
+          d="M8.5 15c1.2 2 5.8 2 7 0"
+          stroke="#2f63c7"
+          stroke-width="1.6"
+          fill="none"
+          stroke-linecap="round"
+        />
+
         <!-- 포인트 -->
         <circle cx="12" cy="6" r="0.8" fill="#2f63c7"/>
-      </svg>
-    </button>
 
+      </svg>
+
+    </button>
+  `);
+
+  /* =========================
+     ELEMENTS
+  ========================= */
   const chatApp = document.getElementById("chatApp");
   const body = document.getElementById("chatBody");
   const input = document.getElementById("text");
 
   /* =========================
-     UNIFIED ROBOT SVG
+     ROBOT SVG
   ========================= */
   const robotSVG = `
     <svg viewBox="0 0 24 24">
-      <!-- 안테나 -->
-      <line x1="12" y1="4" x2="12" y2="2.5" stroke="white" stroke-width="2" stroke-linecap="round"/>
+
+      <line 
+        x1="12" 
+        y1="4" 
+        x2="12" 
+        y2="2.5" 
+        stroke="white" 
+        stroke-width="2" 
+        stroke-linecap="round"
+      />
+
       <circle cx="12" cy="2" r="0.9" fill="white"/>
-    
-      <!-- 머리 -->
-      <rect x="3.5" y="5" width="17" height="15" rx="5" fill="white"/>
-    
-      <!-- 눈 (밝은 느낌 유지) -->
-      <rect x="8" y="11" width="2.5" height="2.5" rx="0.4" fill="#2f63c7"/>
-      <rect x="13.5" y="11" width="2.5" height="2.5" rx="0.4" fill="#2f63c7"/>
-    
-      <!-- 웃는 입 (핵심 변경!) -->
-      <path d="M8.5 15c1.2 2 5.8 2 7 0" 
-            stroke="#2f63c7" 
-            stroke-width="1.6" 
-            fill="none" 
-            stroke-linecap="round"/>
-    
-      <!-- 포인트 -->
+
+      <rect 
+        x="3.5" 
+        y="5" 
+        width="17" 
+        height="15" 
+        rx="5" 
+        fill="white"
+      />
+
+      <rect 
+        x="8" 
+        y="11" 
+        width="2.5" 
+        height="2.5" 
+        rx="0.4" 
+        fill="#2f63c7"
+      />
+
+      <rect 
+        x="13.5" 
+        y="11" 
+        width="2.5" 
+        height="2.5" 
+        rx="0.4" 
+        fill="#2f63c7"
+      />
+
+      <path 
+        d="M8.5 15c1.2 2 5.8 2 7 0"
+        stroke="#2f63c7"
+        stroke-width="1.6"
+        fill="none"
+        stroke-linecap="round"
+      />
+
       <circle cx="12" cy="6" r="0.8" fill="#2f63c7"/>
+
     </svg>
-    `;
+  `;
+
   /* =========================
      GUIDE
   ========================= */
   function showGuide(){
+
     body.innerHTML = `
       <div class="guideBox">
-        <div class="guideTitle">💡 사용 예시</div>
-        <div class="guideItem"><span class="star">⭐</span> 손 씻기 어떻게 해요</div>
-        <div class="guideItem"><span class="star">⭐</span> 감기 안 걸리는 방법</div>
-        <div class="guideItem"><span class="star">⭐</span> 횡단보도 안전하게 건너기</div>
+
+        <div class="guideTitle">
+          💡 사용 예시
+        </div>
+
+        <div class="guideItem">
+          <span class="star">⭐</span>
+          손 씻기 어떻게 해요
+        </div>
+
+        <div class="guideItem">
+          <span class="star">⭐</span>
+          감기 안 걸리는 방법
+        </div>
+
+        <div class="guideItem">
+          <span class="star">⭐</span>
+          횡단보도 안전하게 건너기
+        </div>
+
       </div>
 
       <div class="guideBox">
-        <div class="guideTitle">📘 이용 가이드</div>
-        <div class="guideItem"> "영상은 어떻게 보나요" </div>
-        <div class="guideItem"> "AI는 어떻게 사용해요" </div>
-        <div class="guideItem"> "메뉴는 어떻게 봐요" </div>
-        <a class="guideBtn" href="guide.html" target="_blank">가이드 보기</a>
+
+        <div class="guideTitle">
+          📘 이용 가이드
+        </div>
+
+        <div class="guideItem">
+          "영상은 어떻게 보나요"
+        </div>
+
+        <div class="guideItem">
+          "AI는 어떻게 사용해요"
+        </div>
+
+        <div class="guideItem">
+          "메뉴는 어디에 있어요"
+        </div>
+
+        <a 
+          class="guideBtn" 
+          href="guide.html" 
+          target="_blank"
+        >
+          가이드 보기
+        </a>
+
       </div>
     `;
   }
 
+  /* =========================
+     RESET
+  ========================= */
   function resetChat(){
+
     body.innerHTML = "";
     input.value = "";
     showGuide();
   }
 
   /* =========================
-     MESSAGE
+     ADD MESSAGE
   ========================= */
   function addMessage(type, text){
 
@@ -301,12 +443,24 @@ document.addEventListener("DOMContentLoaded", () => {
     wrap.className = `msg ${type}`;
 
     if(type === "ai"){
+
       wrap.innerHTML = `
-        <div class="robotIcon">${robotSVG}</div>
-        <div class="bubble">${text}</div>
+        <div class="robotIcon">
+          ${robotSVG}
+        </div>
+
+        <div class="bubble">
+          ${text}
+        </div>
       `;
+
     } else {
-      wrap.innerHTML = `<div class="bubble">${text}</div>`;
+
+      wrap.innerHTML = `
+        <div class="bubble">
+          ${text}
+        </div>
+      `;
     }
 
     body.appendChild(wrap);
@@ -319,62 +473,146 @@ document.addEventListener("DOMContentLoaded", () => {
   async function send(){
 
     const text = input.value.trim();
+
     if(!text) return;
 
     addMessage("user", text);
+
     input.value = "";
 
+    /* 로딩 */
     const loadingNode = document.createElement("div");
+
     loadingNode.className = "msg ai";
+
     loadingNode.innerHTML = `
-      <div class="robotIcon">${robotSVG}</div>
-      <div class="bubble">찾고 있어요 😊</div>
+      <div class="robotIcon">
+        ${robotSVG}
+      </div>
+
+      <div class="bubble">
+        찾고 있어요 😊
+      </div>
     `;
+
     body.appendChild(loadingNode);
+    body.scrollTop = body.scrollHeight;
 
     try{
 
       const res = await fetch(`${API_BASE}/api/chat`, {
         method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({ message: text })
+        headers:{
+          "Content-Type":"application/json"
+        },
+        body: JSON.stringify({
+          message:text
+        })
       });
 
       const data = await res.json();
 
       loadingNode.remove();
 
-      addMessage("ai", data?.answer || "찾았어요 😊");
+      const answer =
+        data.answer ||
+        data.reply ||
+        "찾았어요 😊";
 
-    } catch(e){
+      const buttons =
+        data.buttons || [];
+
+      const buttonsHTML = buttons.map(btn => `
+        <a
+          href="${btn.url}"
+          target="_blank"
+          class="resultBtn"
+        >
+          ${btn.label}
+        </a>
+      `).join("");
+
+      const wrap = document.createElement("div");
+
+      wrap.className = "msg ai";
+
+      wrap.innerHTML = `
+        <div class="robotIcon">
+          ${robotSVG}
+        </div>
+
+        <div class="bubble">
+
+          ${answer}
+
+          ${
+            buttons.length
+            ? `
+              <div style="margin-top:10px;">
+                ${buttonsHTML}
+              </div>
+            `
+            : ""
+          }
+
+        </div>
+      `;
+
+      body.appendChild(wrap);
+
+      body.scrollTop = body.scrollHeight;
+
+    } catch(error){
+
+      console.error(error);
 
       loadingNode.remove();
-      addMessage("ai", "서버 오류가 발생했어요 😢");
+
+      addMessage(
+        "ai",
+        "처리 실패 😢"
+      );
     }
   }
 
   /* =========================
      EVENTS
   ========================= */
-  document.getElementById("send").onclick = send;
+
+  document
+    .getElementById("send")
+    .onclick = send;
 
   input.addEventListener("keydown", (e)=>{
-    if(e.key === "Enter" && !e.shiftKey){
+
+    if(
+      e.key === "Enter" &&
+      !e.shiftKey
+    ){
       e.preventDefault();
       send();
     }
   });
 
-  document.getElementById("closeBtn").onclick = () => {
-    chatApp.style.display = "none";
-    resetChat();
-  };
+  document
+    .getElementById("closeBtn")
+    .onclick = ()=>{
 
-  document.getElementById("toggleBtn").onclick = () => {
-    chatApp.style.display = "flex";
-    resetChat();
-  };
+      chatApp.style.display = "none";
+      resetChat();
+    };
 
+  document
+    .getElementById("toggleBtn")
+    .onclick = ()=>{
+
+      chatApp.style.display = "flex";
+      resetChat();
+    };
+
+  /* =========================
+     INIT
+  ========================= */
   showGuide();
 
 });
