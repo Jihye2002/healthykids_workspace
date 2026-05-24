@@ -106,30 +106,36 @@ document.addEventListener("DOMContentLoaded", () => {
       border:1px solid #e3e3e3;
     }
 
+    /* =========================
+       ROBOT ICON (통일)
+    ========================= */
     .robotIcon{
-      width:38px;
-      height:38px;
-      border-radius:12px;
-      background:#3d6fe0;
+      width:52px;
+      height:52px;
+      border-radius:16px;
+      background:#2f63c7;
       display:flex;
       align-items:center;
       justify-content:center;
       flex-shrink:0;
-      box-shadow:0 4px 10px rgba(0,0,0,0.12);
+      box-shadow:0 8px 18px rgba(0,0,0,0.15);
     }
 
     .robotIcon svg{
-      width:22px;
-      height:22px;
-      fill:#fff;
+      width:34px;
+      height:34px;
     }
 
+    /* =========================
+       INPUT AREA (세로 가운데 정렬 수정)
+    ========================= */
     #inputBox{
       display:flex;
       gap:8px;
       padding:10px;
       background:#fff;
       border-top:1px solid #ddd;
+      align-items:center;
     }
 
     #text{
@@ -151,14 +157,17 @@ document.addEventListener("DOMContentLoaded", () => {
       border-radius:10px;
       font-weight:bold;
       cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
     }
 
     #toggleBtn{
       position:fixed;
       right:25px;
       bottom:25px;
-      width:70px;
-      height:70px;
+      width:72px;
+      height:72px;
       border:none;
       border-radius:50%;
       background:#2f63c7;
@@ -167,6 +176,12 @@ document.addEventListener("DOMContentLoaded", () => {
       justify-content:center;
       cursor:pointer;
       z-index:9999;
+      box-shadow:0 10px 25px rgba(0,0,0,0.25);
+    }
+
+    #toggleBtn svg{
+      width:40px;
+      height:40px;
     }
 
   </style>
@@ -192,24 +207,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
     </div>
 
+    <!-- TOGGLE BUTTON (통일 로봇) -->
     <button id="toggleBtn">
       <svg viewBox="0 0 24 24">
-        <!-- 안테나 -->
-        <line x1="12" y1="4" x2="12" y2="2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"></line>
-        <circle cx="12" cy="2" r="0.7" fill="white"></circle>
-      
-        <!-- 머리 -->
-        <rect x="4" y="5" width="16" height="14" rx="4" fill="white"></rect>
-      
-        <!-- 눈 (로봇 LED 스타일) -->
-        <rect x="8" y="11" width="2.2" height="2.2" rx="0.4" fill="black"></rect>
-        <rect x="13.8" y="11" width="2.2" height="2.2" rx="0.4" fill="black"></rect>
-      
-        <!-- 입 (스피커 그릴 느낌) -->
-        <rect x="9" y="15" width="6" height="1.6" rx="0.8" fill="black"></rect>
-      
-        <!-- 머리 상단 포인트 -->
-        <circle cx="12" cy="6" r="0.6" fill="black"></circle>
+        <line x1="12" y1="4" x2="12" y2="2.5" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="12" cy="2" r="0.9" fill="white"/>
+
+        <rect x="3.5" y="5" width="17" height="15" rx="5" fill="white"/>
+
+        <rect x="8" y="11" width="2.5" height="2.5" rx="0.4" fill="#2f63c7"/>
+        <rect x="13.5" y="11" width="2.5" height="2.5" rx="0.4" fill="#2f63c7"/>
+
+        <rect x="8.5" y="15" width="7" height="2" rx="1" fill="#2f63c7"/>
+
+        <circle cx="12" cy="6" r="0.8" fill="#2f63c7"/>
       </svg>
     </button>
   `);
@@ -218,28 +229,24 @@ document.addEventListener("DOMContentLoaded", () => {
   const body = document.getElementById("chatBody");
   const input = document.getElementById("text");
 
+  /* =========================
+     UNIFIED ROBOT SVG
+  ========================= */
   const robotSVG = `
-    <svg viewBox="0 0 24 24">
-      <!-- 안테나 -->
-      <line x1="12" y1="4" x2="12" y2="2.5" stroke="white" stroke-width="1.5" stroke-linecap="round"></line>
-      <circle cx="12" cy="2" r="0.7" fill="white"></circle>
-    
-      <!-- 머리 -->
-      <rect x="4" y="5" width="16" height="14" rx="4" fill="white"></rect>
-    
-      <!-- 눈 (로봇 LED 스타일) -->
-      <rect x="8" y="11" width="2.2" height="2.2" rx="0.4" fill="black"></rect>
-      <rect x="13.8" y="11" width="2.2" height="2.2" rx="0.4" fill="black"></rect>
-    
-      <!-- 입 (스피커 그릴 느낌) -->
-      <rect x="9" y="15" width="6" height="1.6" rx="0.8" fill="black"></rect>
-    
-      <!-- 머리 상단 포인트 -->
-      <circle cx="12" cy="6" r="0.6" fill="black"></circle>
-    </svg>
-  `;
+  <svg viewBox="0 0 24 24">
+    <line x1="12" y1="4" x2="12" y2="2.5" stroke="white" stroke-width="2" stroke-linecap="round"/>
+    <circle cx="12" cy="2" r="0.9" fill="white"/>
 
-  let loadingNode = null;
+    <rect x="3.5" y="5" width="17" height="15" rx="5" fill="white"/>
+
+    <rect x="8" y="11" width="2.5" height="2.5" rx="0.4" fill="#2f63c7"/>
+    <rect x="13.5" y="11" width="2.5" height="2.5" rx="0.4" fill="#2f63c7"/>
+
+    <rect x="8.5" y="15" width="7" height="2" rx="1" fill="#2f63c7"/>
+
+    <circle cx="12" cy="6" r="0.8" fill="#2f63c7"/>
+  </svg>
+  `;
 
   /* =========================
      GUIDE
@@ -300,7 +307,7 @@ document.addEventListener("DOMContentLoaded", () => {
     addMessage("user", text);
     input.value = "";
 
-    loadingNode = document.createElement("div");
+    const loadingNode = document.createElement("div");
     loadingNode.className = "msg ai";
     loadingNode.innerHTML = `
       <div class="robotIcon">${robotSVG}</div>
@@ -318,53 +325,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const data = await res.json();
 
-      loadingNode?.remove();
-      loadingNode = null;
+      loadingNode.remove();
 
-      const answer = data?.answer || "찾았어요 😊";
-      const buttons = Array.isArray(data?.buttons) ? data.buttons : [];
-
-      const buttonsHTML = buttons.length
-        ? `
-          <div style="margin-top:10px; display:flex; flex-wrap:wrap;">
-            ${buttons.map(b => `
-              <a href="${b.url || '#'}" target="_blank"
-                style="
-                  display:inline-block;
-                  margin:6px 6px 0 0;
-                  padding:8px 10px;
-                  background:#2f63c7;
-                  color:#fff;
-                  border-radius:8px;
-                  text-decoration:none;
-                  font-size:13px;
-                ">
-                ${b.label || '보기'}
-              </a>
-            `).join("")}
-          </div>
-        `
-        : "";
-
-      const wrap = document.createElement("div");
-      wrap.className = "msg ai";
-
-      wrap.innerHTML = `
-        <div class="robotIcon">${robotSVG}</div>
-        <div class="bubble">
-          ${answer}
-          ${buttonsHTML}
-        </div>
-      `;
-
-      body.appendChild(wrap);
-      body.scrollTop = body.scrollHeight;
+      addMessage("ai", data?.answer || "찾았어요 😊");
 
     } catch(e){
 
-      loadingNode?.remove();
-      loadingNode = null;
-
+      loadingNode.remove();
       addMessage("ai", "서버 오류가 발생했어요 😢");
     }
   }
@@ -391,7 +358,6 @@ document.addEventListener("DOMContentLoaded", () => {
     resetChat();
   };
 
-  /* init */
   showGuide();
 
 });
