@@ -27,7 +27,8 @@
         // 1. 서버에서 설정값을 받아와 Supabase를 초기화하는 함수
         async function initSupabase() {
             try {
-                const response = await fetch('/api/config');
+                // 요청 주소를 바꾼 이름으로 수정
+                const response = await fetch('/get-config');
                 const config = await response.json();
                 
                 // 2. Supabase 클라이언트 생성 및 window 객체에 저장
