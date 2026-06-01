@@ -14,17 +14,8 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-// 프론트엔드가 Supabase 키를 물어볼 때 알려주는 API
-app.get("/api/config", (req, res) => {
-    res.json({
-        SUPABASE_URL: process.env.SUPABASE_URL,
-        SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY
-    });
-});
-
 app.use(cors());
 app.use(express.json({ limit: "50mb" }));
-app.use(express.static(__dirname));
 
 /* =========================
    DATA
@@ -212,6 +203,14 @@ ${context}
   }
 }
 
+// 프론트엔드가 Supabase 키를 물어볼 때 알려주는 API
+app.get("/api/config", (req, res) => {
+    res.json({
+        SUPABASE_URL: process.env.SUPABASE_URL,
+        SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY
+    });
+});
+
 /* =========================
    API
 ========================= */
@@ -234,6 +233,8 @@ app.post("/api/chat", async (req, res) => {
   CACHE.set(q, result);
   res.json(result);
 });
+
+app.use(express.static(__dirname));
 
 /* =========================
    START
