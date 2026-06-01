@@ -27,7 +27,7 @@
 
         // 서버에서 키를 받아와서 초기화
         async function init() {
-            const res = await fetch('/api/config');
+            const res = await fetch('/get-config');
             const { SUPABASE_URL, SUPABASE_ANON_KEY } = await res.json();
             supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         }
