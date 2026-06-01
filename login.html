@@ -28,8 +28,8 @@
         document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const { data, error } = await supabase.auth.signInWithPassword({
-                email: document.getElementById('email').value,
-                password: document.getElementById('password').value,
+                email: document.getElementById('login-email').value,
+                password: document.getElementById('login-password').value,
             });
             if (error) alert("로그인 실패: " + error.message);
             else {
