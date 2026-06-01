@@ -14,41 +14,31 @@
         <button type="submit">로그인</button>
     </form>
     <hr>
-    <button onclick="socialLogin('google')">Google로 로그인</button>
-    <button onclick="socialLogin('kakao')">Kakao로 로그인</button>
-    <button onclick="socialLogin('naver')">Naver로 로그인</button>
-    
-    <p>계정이 없으신가요? <a href="signup.html">회원가입하기</a></p>
-
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="icon" href="https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/favicon.ico">
-    <title>헬시키즈 로그인</title>
-</head>
-<body>
-    <h2>로그인|LOGIN</h2>
-    <form id="login-form">
-        <input type="email" id="login-email" placeholder="이메일" required><br>
-        <input type="password" id="login-password" placeholder="비밀번호" required><br>
-        <button type="submit">로그인</button>
-    </form>
-    <hr>
-    <button onclick="socialLogin('google')">Google로 로그인</button>
-    <button onclick="socialLogin('kakao')">Kakao로 로그인</button>
-    <button onclick="socialLogin('naver')">Naver로 로그인</button>
+    <button id="google-btn">Google로 로그인</button>
+    <button id="kakao-btn">Kakao로 로그인</button>
+    <button id="naver-btn">Naver로 로그인</button>
     
     <p>계정이 없으신가요? <a href="signup.html">회원가입하기</a></p>
 
     <script type="module">
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-        const supabase = createClient('SUPABASE_URL' , 'SUPABASE_ANON_KEY')
+        
+        let supabase = null;
+
+        // 서버에서 키를 받아와서 초기화
+        async function init() {
+            const res = await fetch('/api/config');
+            const { SUPABASE_URL, SUPABASE_ANON_KEY } = await res.json();
+            supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        }
+
+        init(); // 실행
 
         // 이메일 로그인
         document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
+            if (!supabase) return alert("연결 중입니다. 잠시만 기다려주세요.");
+            
             const { data, error } = await supabase.auth.signInWithPassword({
                 email: document.getElementById('login-email').value,
                 password: document.getElementById('login-password').value,
@@ -56,14 +46,19 @@
             if (error) alert("로그인 실패: " + error.message);
             else {
                 alert("로그인 성공!");
-                window.location.href = '/index.html'; // 성공 후 메인 페이지 이동
+                window.location.href = '/index.html';
             }
         });
 
-        // 소셜 로그인
-        window.socialLogin = async (provider) => {
+        // 소셜 로그인 처리 (이벤트 리스너 활용)
+        const socialLogin = async (provider) => {
+            if (!supabase) return alert("연결 중입니다.");
             await supabase.auth.signInWithOAuth({ provider });
         };
+
+        document.getElementById('google-btn').addEventListener('click', () => socialLogin('google'));
+        document.getElementById('kakao-btn').addEventListener('click', () => socialLogin('kakao'));
+        document.getElementById('naver-btn').addEventListener('click', () => socialLogin('naver'));
     </script>
 </body>
 </html>
