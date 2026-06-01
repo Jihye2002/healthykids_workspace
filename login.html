@@ -7,7 +7,12 @@
     <title>헬시키즈 로그인</title>
 </head>
 <body>
-    <h2>로그인|LOGIN</h2>
+    <h2>로그인 | LOGIN</h2>
+    
+    <div id="welcome-area" style="display:none;">
+        <h3 id="welcome-message"></h3>
+    </div>
+
     <form id="login-form">
         <input type="email" id="login-email" placeholder="이메일" required><br>
         <input type="password" id="login-password" placeholder="비밀번호" required><br>
@@ -21,51 +26,67 @@
     <p>계정이 없으신가요? <a href="signup.html">회원가입하기</a></p>
 
     <script type="module">
-        import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+        import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
         
         let supabase = null;
 
-        // 1. 서버에서 설정값 받아오기
+        // 1. Supabase 초기화
         async function initSupabase() {
             try {
+                // 실제 서버 환경이 아니라면 여기 URL과 KEY를 직접 넣으셔도 됩니다.
                 const res = await fetch('/get-config');
                 const config = await res.json();
                 window.supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
                 supabase = window.supabase;
-                console.log("Supabase 초기화 완료");
-                setupEventListeners(); // 초기화 후 이벤트 연결
+                
+                checkAuthState(); // 초기화 후 로그인 상태 확인
             } catch (err) {
                 console.error("초기화 실패:", err);
             }
         }
 
-        // 2. 이벤트 리스너 설정
+        // 2. 환영 문구 및 로그인 상태 확인
+        async function checkAuthState() {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                const userName = session.user.email.split('@')[0];
+                document.getElementById('login-form').style.display = 'none';
+                document.getElementById('welcome-area').style.display = 'block';
+                document.getElementById('welcome-message').innerText = `${userName}님 환영합니다!`;
+            }
+        }
+
+        // 3. 이벤트 리스너 설정
         function setupEventListeners() {
             // 이메일 로그인
             document.getElementById('login-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const { data, error } = await supabase.auth.signInWithPassword({
+                const { error } = await supabase.auth.signInWithPassword({
                     email: document.getElementById('login-email').value,
                     password: document.getElementById('login-password').value,
                 });
                 if (error) alert("로그인 실패: " + error.message);
-                else {
-                    alert("로그인 성공!");
-                    window.location.href = '/index.html';
-                }
+                else window.location.href = '/index.html';
             });
 
-            // 소셜 로그인
+            // 소셜 로그인 (필수: redirectTo 추가)
             const socialLogin = async (provider) => {
-                await supabase.auth.signInWithOAuth({ provider });
+                const { error } = await supabase.auth.signInWithOAuth({
+                    provider: provider,
+                    options: {
+                        redirectTo: 'https://healthykids-workspace.onrender.com/index.html'
+                    }
+                });
+                if (error) alert("로그인 실패: " + error.message);
             };
 
             document.getElementById('google-btn').addEventListener('click', () => socialLogin('google'));
             document.getElementById('kakao-btn').addEventListener('click', () => socialLogin('kakao'));
-            document.getElementById('naver-btn').addEventListener('click', () => socialLogin('naver'));
+            document.getElementById('naver-btn').addEventListener('click', () => socialLogin('custom:naver-login'));
         }
 
-        initSupabase(); // 실행
+        // 실행
+        initSupabase().then(setupEventListeners);
     </script>
 </body>
 </html>
