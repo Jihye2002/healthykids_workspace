@@ -22,7 +22,7 @@
 
     <script type="module">
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-        const supabase = createClient('SUPABASE_URL', 'SUPABASE_ANON_KEY')
+        const supabase = createClient('SUPABASE_ANON_KEY' , 'SUPABASE_URL')
 
         // 이메일 로그인
         document.getElementById('login-form').addEventListener('submit', async (e) => {
