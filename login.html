@@ -23,7 +23,7 @@
     <button id="kakao-btn">Kakao로 로그인</button>
     <button id="naver-btn">Naver로 로그인</button>
     
-    <p>계정이 없으신가요? <a href="signup.html">회원가입하기</a></p>
+    <p>아직 아이디와 비밀번호가 없으신가요? <a href="signup.html">회원가입하기</a></p>
 
     <script type="module">
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -52,32 +52,44 @@
                 const userName = session.user.email.split('@')[0];
                 document.getElementById('login-form').style.display = 'none';
                 document.getElementById('welcome-area').style.display = 'block';
-                document.getElementById('welcome-message').innerText = `${userName}님 환영합니다!`;
+                document.getElementById('welcome-message').innerText = `${userName}님 환영해요!`;
             }
         }
 
         // 3. 이벤트 리스너 설정
         function setupEventListeners() {
-            // 이메일 로그인
+            // 1. 아이디 기반 로그인 로직
             document.getElementById('login-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
+                const userId = document.getElementById('login-id').value;
+                const password = document.getElementById('login-password').value;
+                const email = `${userId}@healthykids.com`; // 가상 이메일 생성
+
                 const { error } = await supabase.auth.signInWithPassword({
-                    email: document.getElementById('login-email').value,
-                    password: document.getElementById('login-password').value,
+                    email: email,
+                    password: password,
                 });
-                if (error) alert("로그인 실패: " + error.message);
-                else window.location.href = '/index.html';
+
+                if (error) {
+                    // 에러 메시지 상세화
+                    if (error.message.includes("Invalid login credentials")) {
+                        alert("아이디나 비밀번호(암호)가 틀린 것 같아요. 다시 한번 확인해볼까요?");
+                    } else if (error.message.includes("User not found")) {
+                        alert("그런 이름을 가진 사용자를 찾을 수 없어요");
+                    } else {
+                        alert("로그인 중 문제가 생겼어요: " + error.message);
+                    }
+                } else {
+                    window.location.href = '/index.html';
+                }
             });
 
-            // 소셜 로그인 (필수: redirectTo 추가)
+            // 2. 소셜 로그인
             const socialLogin = async (provider) => {
-                const { error } = await supabase.auth.signInWithOAuth({
+                await supabase.auth.signInWithOAuth({
                     provider: provider,
-                    options: {
-                        redirectTo: 'https://healthykids-workspace.onrender.com/index.html'
-                    }
+                    options: { redirectTo: 'https://healthykids-workspace.onrender.com/index.html' }
                 });
-                if (error) alert("로그인 실패: " + error.message);
             };
 
             document.getElementById('google-btn').addEventListener('click', () => socialLogin('google'));
@@ -85,7 +97,6 @@
             document.getElementById('naver-btn').addEventListener('click', () => socialLogin('custom:naver-login'));
         }
 
-        // 실행
         initSupabase().then(setupEventListeners);
     </script>
 </body>
