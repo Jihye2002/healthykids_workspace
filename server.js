@@ -10,26 +10,18 @@ const OpenAI = require("openai");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// 미들웨어 설정
+// 1. 미들웨어 설정
 app.use(cors());
 app.use(express.json({ limit: "50mb" }));
 
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY
-});
-
-/* =========================
-   API 라우트 (가장 먼저 정의)
-========================= */
-// 환경 변수 설정값 전달
+// 2. API 라우트 (정적 파일보다 무조건 위에 있어야 합니다)
 app.get("/get-config", (req, res) => {
     res.json({
-        SUPABASE_URL: process.env.SUPABASE_URL,
-        SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY
+        SUPABASE_URL: process.env.SUPABASE_URL || "",
+        SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || ""
     });
 });
 
-// AI 검색 API
 app.post("/api/chat", async (req, res) => {
     const q = req.body.message || "";
     if (CACHE.has(q)) return res.json(CACHE.get(q));
@@ -48,14 +40,11 @@ app.post("/api/chat", async (req, res) => {
     res.json(result);
 });
 
-/* =========================
-   정적 파일 서빙 (API 아래에 배치)
-========================= */
+// 3. 정적 파일 서빙 (이제 안전합니다)
 app.use(express.static(__dirname));
 
-/* =========================
-   DATA & 로직
-========================= */
+// 4. 데이터 및 로직 정의
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 let DOCS = [];
 let CACHE = new Map();
 
@@ -134,9 +123,7 @@ async function generateAI(query, docs) {
     catch { return { answer: "처리 실패", buttons: [] }; }
 }
 
-/* =========================
-   START
-========================= */
+// 5. 서버 시작
 (async () => {
     await loadFiles();
 })();
