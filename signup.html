@@ -9,16 +9,11 @@
 <body>
     <h2>회원가입 | SIGN-UP</h2>
     <form id="signup-form">
-        <input type="text" id="signup-id" placeholder="아이디를 입력해주세요!" required><br>
-        <input type="password" id="signup-password" 
-           placeholder="암호를 입력해주세요!" 
-           pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[^a-zA-Z0-9]).{12,}" 
-           title="암호는 12글자보다 길어야 하고, 알파벳 대문자/소문자, 숫자, 기호를 모두 사용해서 만들어주세요!"
-           required>
-
-        <p style="font-size: 13px; color: #555; margin-top: 5px;">
-            💡 암호는 12글자보다 길게, 대문자/소문자/숫자/기호를 섞어서 만들어주세요!
-        </p>
+        <input type="text" id="signup-id" placeholder="어떤 아이디를 사용할까요?" required><br>
+        <input type="text" id="signup-nickname" placeholder="별명을 적어주세요!" required><br>
+        <input type="password" id="signup-password" placeholder="암호를 만들어주세요!" 
+               pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[^a-zA-Z0-9]).{12,}" required>
+        <p style="font-size: 12px; color: #666;">💡 암호는 12글자보다 길어야 하고, 알파벳 대문자/소문자, 숫자, 기호를 모두 사용해서 만들어주세요!</p>
         <button type="submit">가입하기</button>
     </form>
     
@@ -31,54 +26,38 @@
 
     <script type="module">
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
         async function initSupabase() {
-            try {
-                const response = await fetch('/get-config');
-                const config = await response.json();
-                window.supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
-                setupEventListeners();
-            } catch (err) {
-                console.error("초기화 실패:", err);
-            }
+            const res = await fetch('/get-config');
+            const config = await res.json();
+            window.supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
         }
 
-        function setupEventListeners() {
-            // 1. 아이디 기반 회원가입 로직
-            document.getElementById('signup-form').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const userId = document.getElementById('signup-id').value;
-                const password = document.getElementById('signup-password').value;
-                
-                // 아이디를 이메일 형식으로 변환 (가상 이메일)
-                const email = `${userId}@healthykids.com`;
-                
-                const { error } = await window.supabase.auth.signUp({ email, password });
-                
-                if (error) {
-                    alert("가입 실패: " + error.message);
-                } else {
-                    alert("가입 성공! 로그인 페이지로 이동해요");
-                    window.location.href = 'login.html';
-                }
+        document.getElementById('signup-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const userId = document.getElementById('signup-id').value;
+            const nickname = document.getElementById('signup-nickname').value;
+            const password = document.getElementById('signup-password').value;
+            const email = `${userId}@healthykids.com`;
+
+            // 별명 중복 확인
+            const { data: existing } = await supabase.from('users').select('nickname').eq('nickname', nickname).single();
+            if (existing) {
+                alert("이미 있는 별명이에요. 다른 별명을 만들어 주세요!");
+                document.getElementById('signup-nickname').style.border = "2px solid red";
+                return;
+            }
+
+            const { error } = await supabase.auth.signUp({
+                email, password, options: { data: { full_name: nickname } }
             });
 
-            // 2. 소셜 로그인 함수
-            const socialLogin = async (provider) => {
-                const { error } = await window.supabase.auth.signInWithOAuth({
-                    provider: provider,
-                    options: {
-                        redirectTo: 'https://healthykids-workspace.onrender.com/index.html'
-                    }
-                });
-                if (error) alert("로그인 실패: " + error.message);
-            };
-        
-            document.getElementById('google-btn').addEventListener('click', () => socialLogin('google'));
-            document.getElementById('kakao-btn').addEventListener('click', () => socialLogin('kakao'));
-            document.getElementById('naver-btn').addEventListener('click', () => socialLogin('custom:naver-login'));
-        }
-
+            if (error) alert("가입 실패: " + error.message);
+            else {
+                await supabase.from('users').insert([{ email, nickname }]);
+                alert("가입 성공! 이제 여기서 만든 아이디와 비밀번호(암호)를 다시 입력해주세요!");
+                window.location.href = 'login.html';
+            }
+        });
         initSupabase();
     </script>
 </body>
