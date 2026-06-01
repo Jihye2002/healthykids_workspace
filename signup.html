@@ -23,14 +23,14 @@
 
     <script type="module">
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-        const supabase = createClient('SUPABASE_ANON_KEY' , 'SUPABASE_URL')
+        const supabase = createClient('SUPABASE_URL' , 'SUPABASE_ANON_KEY')
 
         // 이메일 가입
         document.getElementById('signup-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const { data, error } = await supabase.auth.signUp({
-                email: document.getElementById('email').value,
-                password: document.getElementById('password').value,
+                email: document.getElementById('signup-email').value,
+                password: document.getElementById('signup-password').value,
             });
             if (error) alert(error.message);
             else alert("가입 성공! 이메일을 확인하세요.");
@@ -41,7 +41,5 @@
             await supabase.auth.signInWithOAuth({ provider });
         };
     </script>
-</body>
-</html>
 </body>
 </html>
