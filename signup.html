@@ -13,6 +13,35 @@
         <input type="password" id="signup-password" placeholder="비밀번호" required><br>
         <button type="submit">가입하기</button>
     </form>
-    <p>이미 계정이 있으신가요? <a href="login.html">로그인</a></p>
+    
+    <hr>
+    <button onclick="socialLogin('google')">Google로 가입</button>
+    <button onclick="socialLogin('kakao')">Kakao로 가입</button>
+    <button onclick="socialLogin('naver')">Naver로 가입</button>
+    
+    <p>이미 계정이 있으신가요? <a href="login.html">로그인하기</a></p>
+
+    <script type="module">
+        import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+        const supabase = createClient('YOUR_SUPABASE_URL', 'YOUR_SUPABASE_ANON_KEY')
+
+        // 이메일 가입
+        document.getElementById('signup-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const { data, error } = await supabase.auth.signUp({
+                email: document.getElementById('email').value,
+                password: document.getElementById('password').value,
+            });
+            if (error) alert(error.message);
+            else alert("가입 성공! 이메일을 확인하세요.");
+        });
+
+        // 소셜 가입(로그인과 동일 로직)
+        window.socialLogin = async (provider) => {
+            await supabase.auth.signInWithOAuth({ provider });
+        };
+    </script>
+</body>
+</html>
 </body>
 </html>
