@@ -58,7 +58,15 @@
 
             // 소셜 로그인 함수 정의
             const socialLogin = async (provider) => {
-                const { error } = await window.supabase.auth.signInWithOAuth({ provider });
+                const { error } = await window.supabase.auth.signInWithOAuth({
+                    provider: provider,
+                    options: {
+                        // 여기가 핵심! 
+                        // 로그인 완료 후 네이버가 최종적으로 Supabase Callback URL로 
+                        // 연결해주도록 명시적으로 설정합니다.
+                        redirectTo: 'https://fdsnqpuwebnbovkpsrrs.supabase.co/auth/v1/callback'
+                    }
+                });
                 if (error) alert("로그인 실패: " + error.message);
             };
 
