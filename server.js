@@ -203,11 +203,12 @@ ${context}
   }
 }
 
-// 프론트엔드가 Supabase 키를 물어볼 때 알려주는 API
+// [수정] 경로 앞에 슬래시(/)를 확인하세요
 app.get("/api/config", (req, res) => {
+    console.log("Config requested!"); // 서버 로그에 찍히는지 확인용
     res.json({
-        SUPABASE_URL: process.env.SUPABASE_URL,
-        SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY
+        SUPABASE_URL: process.env.SUPABASE_URL || "NOT_SET",
+        SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || "NOT_SET"
     });
 });
 
