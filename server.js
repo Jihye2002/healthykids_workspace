@@ -237,3 +237,11 @@ app.post("/api/chat", async (req, res) => {
 app.listen(PORT, () => {
   console.log("AI ENGINE RUNNING:", PORT);
 });
+
+// 프론트엔드가 Supabase 키를 물어볼 때 알려주는 API
+app.get("/api/config", (req, res) => {
+    res.json({
+        SUPABASE_URL: process.env.SUPABASE_URL,
+        SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY
+    });
+});
