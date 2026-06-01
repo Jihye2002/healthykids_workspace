@@ -203,12 +203,11 @@ ${context}
   }
 }
 
-// [수정] 경로 앞에 슬래시(/)를 확인하세요
-app.get("/api/config", (req, res) => {
-    console.log("Config requested!"); // 서버 로그에 찍히는지 확인용
+// /api/config 대신 /get-config 로 이름을 바꿔보세요
+app.get("/get-config", (req, res) => {
     res.json({
-        SUPABASE_URL: process.env.SUPABASE_URL || "NOT_SET",
-        SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || "NOT_SET"
+        SUPABASE_URL: process.env.SUPABASE_URL,
+        SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY
     });
 });
 
