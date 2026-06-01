@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="icon" href="https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/favicon.ico">
+    <title>헬시키즈 | 아이디와 비밀번호 찾</title>
+    <style>
+        body { font-family: 'Arial', sans-serif; text-align: center; padding: 50px; background-color: #f9f9f9; }
+        .find-container { display: flex; justify-content: center; gap: 40px; margin-top: 30px; }
+        .box { border: 2px solid #2f63c7; border-radius: 20px; padding: 30px; width: 350px; background: white; }
+        h2 { color: #2f63c7; }
+        input { width: 80%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; }
+        button { background-color: #2f63c7; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
+        .back-link { margin-top: 30px; display: block; }
+    </style>
+</head>
+<body>
+
+    <h1>계정 찾기</h1>
+    <p>잊어버린 아이디나 비밀번호(암호)를 여기서 찾아보세요!</p>
+
+    <div class="find-container">
+        <div class="box">
+            <h2>아이디 찾기</h2>
+            <input type="text" id="find-id-nickname" placeholder="가입한 별명을 입력해요!">
+            <br>
+            <button onclick="findId()">아이디 찾기</button>
+        </div>
+
+        <div class="box">
+            <h2>암호 찾기</h2>
+            <input type="text" id="find-pw-id" placeholder="처음 만들었던 아이디를 입력해요!">
+            <p style="font-size: 12px; color: #888;">아이디만 적어주세요!</p>
+            <button onclick="findPw()">암호 재설정</button>
+        </div>
+    </div>
+
+    <a href="login.html" class="back-link">← 다시 로그인하러 가기</a>
+
+    <script type="module">
+        import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+    
+        // Supabase 초기화
+        async function init() {
+            const res = await fetch('/get-config');
+            const config = await res.json();
+            window.supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+        }
+        init();
+    
+        // 1. 아이디 찾기: 별명을 입력받아 아이디를 찾아주고, 비밀번호 찾기창에 넣어줍니다.
+        window.findId = async () => {
+            const nickname = document.getElementById('find-id-nickname').value;
+            const { data, error } = await window.supabase
+                .from('users')
+                .select('email')
+                .eq('nickname', nickname)
+                .single();
+    
+            if (error || !data) {
+                alert("별명 찾을 수 없어요.. 다시 한번 확인해볼까요?");
+            } else {
+                const foundId = data.email.split('@')[0];
+                alert(`찾았다! 아이디는 '${foundId}'예요!`);
+                // 비밀번호 찾기 입력창에 자동으로 아이디를 넣어줌 (친절한 배려!)
+                document.getElementById('find-pw-id').value = foundId;
+            }
+        };
+    
+        // 2. 비밀번호 찾기: 입력된 아이디로 바로 변경 페이지로 이동하게 함
+        window.findPw = async () => {
+            const userId = document.getElementById('find-pw-id').value;
+            if(!userId) { alert("먼저 아이디를 찾아보거나 입력해주세요!"); return; }
+            
+            // 아이들이 이해하기 쉽게 바로 변경 페이지로 안내
+            const confirmGo = confirm(`아이디 '${userId}'의 암호를 바꾸러 갈까요?`);
+            if (confirmGo) {
+                // 실제 변경 페이지로 이동 (여기에 아이디를 함께 넘겨주면 더 좋아요)
+                window.location.href = `update-password.html?id=${userId}`;
+            }
+        };
+    </script>
+</body>
+</html>
