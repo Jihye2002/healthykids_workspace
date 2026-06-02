@@ -123,6 +123,21 @@
                     }
                 }
             });
+
+            const socialSignup = async (provider) => {
+                // 소셜 로그인 시 자동으로 이동할 주소
+                await supabase.auth.signInWithOAuth({
+                    provider: provider,
+                    options: { 
+                        redirectTo: '/login.html' 
+                    }
+                });
+            };
+            
+            // 버튼 ID에 맞춰서 이벤트 리스너 연결
+            document.getElementById('google-signup').addEventListener('click', () => socialSignup('google'));
+            document.getElementById('kakao-signup').addEventListener('click', () => socialSignup('kakao'));
+            document.getElementById('naver-signup').addEventListener('click', () => socialSignup('custom:naver-login'));
     </script>
 </body>
 </html>
