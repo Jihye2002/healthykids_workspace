@@ -7,11 +7,37 @@
     <title>헬시키즈 로그인</title>
     <style>
             body { font-family: 'Arial', sans-serif; text-align: center; padding: 50px; background-color: #f0f7ff; }
-            .box { background: white; border-radius: 20px; padding: 40px; width: 350px; margin: auto; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-            .input-box { width: 90%; padding: 12px; margin: 8px 0; border: 2px solid #ddd; border-radius: 10px; transition: border 0.3s; }
+            /* border-radius를 모두 0으로 바꾸면 각진 디자인이 됩니다 */
+            .box { 
+                background: white; 
+                border-radius: 0px; 
+                padding: 40px; 
+                width: 350px; 
+                margin: auto; 
+                border: 2px solid #2f63c7; /* 테두리를 주면 더 명확해져요 */
+                box-shadow: none; /* 그림자도 없애면 더 딱딱한 느낌이 납니다 */
+            }
+            
+            .input-box { 
+                width: 90%; 
+                padding: 12px; 
+                margin: 8px 0; 
+                border: 2px solid #ddd; 
+                border-radius: 0px; /* 각지게 수정 */
+            }
+            
+            button { 
+                background-color: #2f63c7; 
+                color: white; 
+                border: none; 
+                padding: 12px 20px; 
+                border-radius: 0px; /* 각지게 수정 */
+                cursor: pointer; 
+                width: 90%; 
+                font-weight: bold; 
+            }    
             .error-border { border: 2px solid #ff4d4d !important; }
             .error-text { font-size: 13px; color: #ff4d4d; margin-top: -5px; margin-bottom: 10px; display: none; text-align: left; padding-left: 5%; }
-            button { background-color: #2f63c7; color: white; border: none; padding: 12px 20px; border-radius: 10px; cursor: pointer; width: 90%; font-weight: bold; }
         </style>
     </head>
 <body>
