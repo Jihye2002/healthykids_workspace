@@ -69,47 +69,60 @@
 
     <script type="module">
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-        async function initSupabase() {
-            const res = await fetch('/get-config');
-            const config = await res.json();
-            window.supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
-        }
-
-        document.getElementById('signup-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const userId = document.getElementById('signup-id').value;
-            const nickname = document.getElementById('signup-nickname').value;
-            const password = document.getElementById('signup-password').value;
-            const hintQ = document.getElementById('hint-question').value;
-            const hintA = document.getElementById('hint-answer').value;
-            const email = `${userId}@healthykids.com`;
-
-            // 별명 중복 확인
-            const { data: existing } = await supabase.from('users').select('nickname').eq('nickname', nickname).single();
-            if (existing) {
-                alert("이미 있는 별명이에요. 다른 별명을 만들어 주세요!");
-                document.getElementById('signup-nickname').style.border = "2px solid red";
-                return;
+    
+            let supabase = null;
+        
+            async function initSupabase() {
+                const res = await fetch('/get-config');
+                const config = await res.json();
+                supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
             }
-
-            const { error } = await supabase.auth.signUp({
-                email, password, options: { data: { full_name: nickname } }
+            
+            // 페이지 로딩 시 초기화 실행
+            initSupabase();
+        
+            document.getElementById('signup-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                // supabase 초기화 전 버튼 클릭 방지
+                if (!supabase) { alert("잠시만 기다려주세요!"); return; }
+        
+                const userId = document.getElementById('signup-id').value;
+                const nickname = document.getElementById('signup-nickname').value;
+                const password = document.getElementById('signup-password').value;
+                const hintQ = document.getElementById('hint-question').value;
+                const hintA = document.getElementById('hint-answer').value;
+                const email = `${userId}@healthykids.com`;
+        
+                // 1. 별명 중복 확인 (보안을 위해 닉네임 유니크 설정 권장)
+                const { data: existing } = await supabase.from('users').select('nickname').eq('nickname', nickname).maybeSingle();
+                if (existing) {
+                    alert("이미 있는 별명이에요. 다른 별명을 만들어 주세요!");
+                    document.getElementById('signup-nickname').style.border = "2px solid red";
+                    return;
+                }
+        
+                // 2. 계정 생성
+                const { data: authData, error: authError } = await supabase.auth.signUp({
+                    email, password, options: { data: { full_name: nickname } }
+                });
+        
+                if (authError) {
+                    alert("가입 실패: " + authError.message);
+                } else {
+                    // 3. 별도의 users 테이블에 정보 저장
+                    const { error: dbError } = await supabase.from('users').insert([{ 
+                        email, nickname, hint_question: hintQ, hint_answer: hintA 
+                    }]);
+        
+                    if (dbError) {
+                        console.error("DB 저장 오류:", dbError);
+                        alert("계정은 만들어졌지만 정보 저장하는 데 실패했어요.");
+                    } else {
+                        alert("가입 성공! 이제 로그인해보세요.");
+                        window.location.href = '/login.html';
+                    }
+                }
             });
-
-            if (error) alert("가입 실패: " + error.message);
-            else {
-                // 3. 사용자 정보 저장 (질문과 답 포함)
-                await supabase.from('users').insert([{ 
-                    email, 
-                    nickname, 
-                    hint_question: hintQ, 
-                    hint_answer: hintA 
-                }]);
-                alert("가입 성공! 이제 로그인해보세요.");
-                window.location.href = 'login.html';
-            }
-        });
-        initSupabase();
     </script>
 </body>
 </html>
