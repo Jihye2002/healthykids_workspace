@@ -509,5 +509,34 @@
     </div>
 </footer>
     <script src="chat-ui.js"></script>
+    <script type="module">
+        import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+    
+        // 1. Supabase 초기화 (설정 파일을 가져옵니다)
+        async function init() {
+            const res = await fetch('/get-config');
+            const config = await res.json();
+            const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+    
+            // 2. 로그인 상태 체크
+            const { data: { session } } = await supabase.auth.getSession();
+            
+            if (session) {
+                // 로그인 상태일 때
+                const nickname = session.user.user_metadata.full_name || session.user.email.split('@')[0];
+                document.getElementById('before-login').style.display = 'none';
+                document.getElementById('after-login').style.display = 'block';
+                document.getElementById('welcome-message').innerText = nickname;
+    
+                // 로그아웃 처리
+                document.getElementById('logout-btn').addEventListener('click', async () => {
+                    await supabase.auth.signOut();
+                    window.location.reload();
+                });
+            }
+        }
+    
+        init();
+    </script>
 </body>
 </html>
