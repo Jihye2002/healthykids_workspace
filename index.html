@@ -510,18 +510,18 @@
 </footer>
     <script type="module">
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-    
+        
         async function init() {
             try {
                 const res = await fetch('/get-config');
                 const config = await res.json();
                 const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
-                window.supabase = supabase; // 다른 곳에서도 쓰기 위해 전역 할당
+                window.supabase = supabase; // chat-ui.js 등 다른 곳에서 사용 가능하도록 전역 할당
     
-                // 1. 세션 가져오기 (소셜 로그인 후 돌아왔을 때 이 함수가 토큰을 해석합니다)
+                // 1. 세션 가져오기
                 const { data: { session } } = await supabase.auth.getSession();
                 
-                // 2. 소셜 로그인 후 URL에 붙은 # 토큰 깔끔하게 제거
+                // 2. 소셜 로그인 후 URL에 붙은 # 토큰 정리
                 if (session && window.location.hash) {
                     window.history.replaceState(null, null, window.location.pathname);
                 }
@@ -529,12 +529,13 @@
                 // 3. UI 업데이트
                 updateUI(session);
     
-                // 4. 로그아웃 이벤트 (로그인 상태일 때만 리스너 등록)
-                if (session) {
-                    document.getElementById('logout-btn').addEventListener('click', async (e) => {
+                // 4. 로그아웃 이벤트 (항상 리스너 등록, 버튼이 없을 경우 에러 방지)
+                const logoutBtn = document.getElementById('logout-btn');
+                if (logoutBtn) {
+                    logoutBtn.addEventListener('click', async (e) => {
                         e.preventDefault();
                         await supabase.auth.signOut();
-                        window.location.href = 'index.html'; // 메인으로 새로고침
+                        window.location.href = 'index.html'; // 메인으로 새로고침하여 로그인 상태 갱신
                     });
                 }
             } catch (err) {
@@ -546,11 +547,18 @@
             const beforeLogin = document.getElementById('before-login');
             const afterLogin = document.getElementById('after-login');
             
+            // 요소가 존재하는지 확인 후 스타일 변경 (에러 방지)
+            if (!beforeLogin || !afterLogin) return;
+    
             if (session) {
-                const nickname = session.user.user_metadata.full_name || session.user.email.split('@')[0];
+                const nickname = session.user.user_metadata.full_name || 
+                                 (session.user.email ? session.user.email.split('@')[0] : "사용자");
+                
                 beforeLogin.style.display = 'none';
                 afterLogin.style.display = 'block';
-                document.getElementById('welcome-message').innerText = nickname;
+                
+                const welcomeMsg = document.getElementById('welcome-message');
+                if (welcomeMsg) welcomeMsg.innerText = nickname;
             } else {
                 beforeLogin.style.display = 'block';
                 afterLogin.style.display = 'none';
