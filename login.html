@@ -71,14 +71,16 @@
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
         
         let supabase = null;
-        let failCount = 0; // 실패 횟수 변수를 함수 밖으로 뺍니다.
+        let failCount = 0;
     
         async function initSupabase() {
             try {
                 const res = await fetch('/get-config');
                 const config = await res.json();
-                window.supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
-                supabase = window.supabase;
+                supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+                window.supabase = supabase;
+                
+                // 페이지 로드 시 로그인 상태 체크 및 소셜 자동 가입 처리
                 checkAuthState();
             } catch (err) {
                 console.error("초기화 실패:", err);
@@ -87,69 +89,81 @@
     
         async function checkAuthState() {
             const { data: { session } } = await supabase.auth.getSession();
-            if (session) {
-                // 메타데이터에서 별명(full_name)을 우선적으로 가져옵니다.
-                const nickname = session.user.user_metadata.full_name || session.user.email.split('@')[0];
-                document.getElementById('login-form').style.display = 'none';
-                document.getElementById('welcome-area').style.display = 'block';
-                document.getElementById('welcome-message').innerText = `${nickname}님 환영해요!`;
-            }
-        }
+            if (!session) return;
     
-        function setupEventListeners() {
-            // 1. 아이디 기반 로그인 로직 (중복 제거 완료)
-            document.getElementById('login-form').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const userIdInput = document.getElementById('login-id');
-                const passwordInput = document.getElementById('login-password');
-                const errorDiv = document.getElementById('login-error');
-                
-                const userId = userIdInput.value;
-                const password = passwordInput.value;
-                const email = `${userId}@healthykids.com`;
-                
-                const { error } = await supabase.auth.signInWithPassword({ email, password });
-            
-                if (error) {
-                    failCount++;
-                    
-                    // 1. 박스 테두리 빨갛게 변신
-                    userIdInput.classList.add('error-border');
-                    passwordInput.classList.add('error-border');
-                    
-                    // 2. 빨간 안내 문구 보여주기
-                    errorDiv.style.display = 'block';
-            
-                    if (failCount >= 3) {
-                        alert("'아이디와 비밀번호(암호)를 잊어버렸어요!'를 눌러주세요!");
-                        window.location.href = 'find-account.html';
-                        return;
-                    }
-                    
-                    // 3. 메시지 갱신 (횟수 표시)
-                    errorDiv.innerText = `아이디나 암호가 틀린 것 같아요. (${failCount}/3) 다시 확인해볼까요?`;
-                    
+            // --- 소셜 로그인 후 자동 가입/정보 저장 로직 ---
+            const userEmail = session.user.email;
+            const { data: existingUser } = await supabase
+                .from('users')
+                .select('*')
+                .eq('email', userEmail)
+                .maybeSingle();
+    
+            if (!existingUser) {
+                const provider = session.user.app_metadata.provider;
+                let nickname = "";
+    
+                // 구글/카카오/네이버 별명 추출
+                if (provider === 'google') {
+                    nickname = userEmail.split('@')[0];
                 } else {
-                    // 성공 시 오류 표시 초기화
-                    errorDiv.style.display = 'none';
-                    window.location.href = '/index.html';
+                    nickname = session.user.user_metadata.full_name || 
+                               session.user.user_metadata.name || 
+                               userEmail.split('@')[0];
                 }
-            });
     
-            // 2. 소셜 로그인
-            const socialLogin = async (provider) => {
-                await supabase.auth.signInWithOAuth({
-                    provider: provider,
-                    options: { redirectTo: 'https://healthykids-workspace.onrender.com/index.html' }
-                });
-            };
+                // users 테이블에 데이터 저장
+                await supabase.from('users').insert([{
+                    email: userEmail,
+                    nickname: nickname,
+                    hint_question: "소셜가입",
+                    hint_answer: "없음"
+                }]);
+            }
     
-            document.getElementById('google-btn').addEventListener('click', () => socialLogin('google'));
-            document.getElementById('kakao-btn').addEventListener('click', () => socialLogin('kakao'));
-            document.getElementById('naver-btn').addEventListener('click', () => socialLogin('custom:naver-login'));
+            // 로직 완료 후 메인으로 이동
+            window.location.href = '/index.html';
         }
     
-        initSupabase().then(setupEventListeners);
-</script>
+        // 일반 로그인 이벤트
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const userIdInput = document.getElementById('login-id');
+            const passwordInput = document.getElementById('login-password');
+            const errorDiv = document.getElementById('login-error');
+            
+            const email = `${userIdInput.value}@healthykids.com`;
+            const { error } = await supabase.auth.signInWithPassword({ email, password: passwordInput.value });
+    
+            if (error) {
+                failCount++;
+                userIdInput.classList.add('error-border');
+                passwordInput.classList.add('error-border');
+                errorDiv.style.display = 'block';
+                
+                if (failCount >= 3) {
+                    alert("로그인 실패 3회! 비밀번호 찾기 페이지로 이동합니다.");
+                    window.location.href = 'find-account.html';
+                    return;
+                }
+                errorDiv.innerText = `아이디나 암호가 틀린 것 같아요. (${failCount}/3) 다시 확인해볼까요?`;
+            } else {
+                window.location.href = '/index.html';
+            }
+        });
+    
+        // 소셜 로그인 버튼 이벤트
+        document.getElementById('google-btn').addEventListener('click', () => 
+            supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: 'https://healthykids-workspace.onrender.com/login.html' } })
+        );
+        document.getElementById('kakao-btn').addEventListener('click', () => 
+            supabase.auth.signInWithOAuth({ provider: 'kakao', options: { redirectTo: 'https://healthykids-workspace.onrender.com/login.html' } })
+        );
+        document.getElementById('naver-btn').addEventListener('click', () => 
+            supabase.auth.signInWithOAuth({ provider: 'custom:naver-login', options: { redirectTo: 'https://healthykids-workspace.onrender.com/login.html' } })
+        );
+    
+        initSupabase();
+    </script>
 </body>
 </html>
