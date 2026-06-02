@@ -75,23 +75,30 @@
     
         async function initSupabase() {
             try {
+                // 1. 설정 가져오기
                 const res = await fetch('/get-config');
                 const config = await res.json();
                 supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
                 window.supabase = supabase;
                 
-                // 페이지 로드 시 로그인 상태 체크 및 소셜 자동 가입 처리
-                checkAuthState();
+                // 2. 초기화 완료 후 인증 상태 체크
+                await checkAuthState();
             } catch (err) {
                 console.error("초기화 실패:", err);
             }
         }
     
         async function checkAuthState() {
-            const { data: { session } } = await supabase.auth.getSession();
+            // 세션 확인
+            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
             if (!session) return;
     
-            // --- 소셜 로그인 후 자동 가입/정보 저장 로직 ---
+            // URL에 붙은 # 토큰 정리 (가독성 및 깔끔한 주소 유지)
+            if (window.location.hash) {
+                window.history.replaceState(null, null, window.location.pathname);
+            }
+    
+            // 3. 소셜 로그인 후 자동 가입/정보 저장 로직
             const userEmail = session.user.email;
             const { data: existingUser } = await supabase
                 .from('users')
@@ -101,27 +108,24 @@
     
             if (!existingUser) {
                 const provider = session.user.app_metadata.provider;
-                let nickname = "";
-    
-                // 구글/카카오/네이버 별명 추출
-                if (provider === 'google') {
-                    nickname = userEmail.split('@')[0];
-                } else {
-                    nickname = session.user.user_metadata.full_name || 
+                let nickname = session.user.user_metadata.full_name || 
                                session.user.user_metadata.name || 
                                userEmail.split('@')[0];
-                }
     
-                // users 테이블에 데이터 저장
-                await supabase.from('users').insert([{
+                const { error: insertError } = await supabase.from('users').insert([{
                     email: userEmail,
                     nickname: nickname,
                     hint_question: "소셜가입",
                     hint_answer: "없음"
                 }]);
+    
+                if (insertError) {
+                    console.error("자동 가입 저장 오류:", insertError);
+                    return; // 에러 시 이동 중단
+                }
             }
     
-            // 로직 완료 후 메인으로 이동
+            // 4. 로직 완료 후 메인으로 이동
             window.location.href = '/index.html';
         }
     
@@ -133,7 +137,10 @@
             const errorDiv = document.getElementById('login-error');
             
             const email = `${userIdInput.value}@healthykids.com`;
-            const { error } = await supabase.auth.signInWithPassword({ email, password: passwordInput.value });
+            const { error } = await supabase.auth.signInWithPassword({ 
+                email, 
+                password: passwordInput.value 
+            });
     
             if (error) {
                 failCount++;
@@ -152,17 +159,20 @@
             }
         });
     
-        // 소셜 로그인 버튼 이벤트
-        document.getElementById('google-btn').addEventListener('click', () => 
-            supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: 'https://healthykids-workspace.onrender.com/login.html' } })
-        );
-        document.getElementById('kakao-btn').addEventListener('click', () => 
-            supabase.auth.signInWithOAuth({ provider: 'kakao', options: { redirectTo: 'https://healthykids-workspace.onrender.com/login.html' } })
-        );
-        document.getElementById('naver-btn').addEventListener('click', () => 
-            supabase.auth.signInWithOAuth({ provider: 'custom:naver-login', options: { redirectTo: 'https://healthykids-workspace.onrender.com/login.html' } })
-        );
+        // 소셜 로그인 버튼 연결 함수
+        const handleSocialLogin = (provider) => {
+            if (!supabase) { alert("잠시만 기다려주세요!"); return; }
+            supabase.auth.signInWithOAuth({ 
+                provider: provider, 
+                options: { redirectTo: 'https://healthykids-workspace.onrender.com/login.html' } 
+            });
+        };
     
+        document.getElementById('google-btn').addEventListener('click', () => handleSocialLogin('google'));
+        document.getElementById('kakao-btn').addEventListener('click', () => handleSocialLogin('kakao'));
+        document.getElementById('naver-btn').addEventListener('click', () => handleSocialLogin('custom:naver-login'));
+        
+        // 페이지 로드 시 초기화 실행
         initSupabase();
     </script>
 </body>
