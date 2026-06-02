@@ -66,13 +66,25 @@
             }
         };
     
+        // find-account.html의 window.findPw 함수 수정 예시
         window.findPw = async () => {
             const userId = document.getElementById('find-pw-id').value;
-            if(!userId) { alert("먼저 아이디를 찾아보거나 입력해주세요!"); return; }
-            
-            const confirmGo = confirm(`아이디 '${userId}'의 암호를 바꾸러 갈까요?`);
-            if (confirmGo) {
-                window.location.href = `update-password.html?id=${userId}`;
+            if(!userId) { alert("먼저 아이디를 입력해주세요!"); return; }
+        
+            // 1. 유저의 질문을 DB에서 가져옴
+            const { data, error } = await window.supabase
+                .from('users')
+                .select('hint_question, hint_answer')
+                .eq('email', `${userId}@healthykids.com`)
+                .single();
+        
+            if (data) {
+                const answer = prompt(`질문: ${data.hint_question}\n답을 입력해주세요!`);
+                if (answer === data.hint_answer) {
+                    window.location.href = `update-password.html?id=${userId}`;
+                } else {
+                    alert("답이 틀렸어요... ㅠㅠ 답을 다시 입력해주실래요?");
+                }
             }
         };
     </script>
