@@ -167,10 +167,18 @@
                 options: { redirectTo: 'https://healthykids-workspace.onrender.com/index.html' } 
             });
         };
+
+        const handleNaverLogin = () => {
+            if (!supabase) { alert("잠시만 기다려주세요!"); return; }
+            supabase.auth.signInWithOAuth({ 
+                provider: 'custom:naver', // Supabase 대시보드에 설정된 정확한 식별자
+                options: { redirectTo: 'https://healthykids-workspace.onrender.com/index.html' } 
+            });
+        };
     
         document.getElementById('google-btn').addEventListener('click', () => handleSocialLogin('google'));
         document.getElementById('kakao-btn').addEventListener('click', () => handleSocialLogin('kakao'));
-        document.getElementById('naver-btn').addEventListener('click', () => handleSocialLogin('custom:naver'));
+        document.getElementById('naver-btn').addEventListener('click', handleNaverLogin);
         
         // 페이지 로드 시 초기화 실행
         initSupabase();
