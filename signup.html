@@ -108,10 +108,20 @@
                 options: { redirectTo: 'https://healthykids-workspace.onrender.com/login.html' }
             });
         };
+
+        const naverSignup = async () => {
+            if (!supabase) { alert("초기화 중입니다. 잠시만요!"); return; }
+            await supabase.auth.signInWithOAuth({
+                provider: 'custom:naver', // Supabase에서 설정한 정확한 식별자
+                options: { 
+                    redirectTo: 'https://healthykids-workspace.onrender.com/login.html' 
+                }
+            });
+        };
     
         document.getElementById('google-signup').addEventListener('click', () => socialSignup('google'));
         document.getElementById('kakao-signup').addEventListener('click', () => socialSignup('kakao'));
-        document.getElementById('naver-signup').addEventListener('click', () => socialSignup('custom:naver'));
+        document.getElementById('naver-signup').addEventListener('click', naverSignup);
     </script>
 </body>
 </html>
