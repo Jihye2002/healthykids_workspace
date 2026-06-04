@@ -139,7 +139,7 @@
                 const res = await fetch('/get-config');
                 const config = await res.json();
                 const clientId = config.NAVER_CLIENT_ID;
-                const callbackUrl = encodeURIComponent("https://healthykids-workspace.onrender.com/callback.js");
+                const callbackUrl = encodeURIComponent("https://healthykids-workspace.onrender.com/callback.html");
                 const state = Math.random().toString(36).substring(7);
                 window.location.href = `https://nid.naver.com/oauth2.0/authorize?response_type=token&client_id=${clientId}&redirect_uri=${callbackUrl}&state=${state}`;
             } catch (err) {
