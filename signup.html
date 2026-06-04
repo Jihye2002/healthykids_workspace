@@ -95,6 +95,9 @@
                 document.getElementById('signup-id').value = email.split('@')[0];
                 // 다른 입력창들에 값 자동 채우기 (HTML의 ID가 signup-name 등이라고 가정)
                 if(document.getElementById('signup-name')) document.getElementById('signup-name').value = name;
+
+                document.getElementById('email').value = email;
+                document.getElementById('name').value = decodeURIComponent(name);
             }
         };
     
