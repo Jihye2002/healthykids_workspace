@@ -18,7 +18,8 @@ app.use(express.json({ limit: "50mb" }));
 app.get("/get-config", (req, res) => {
     res.json({
         SUPABASE_URL: process.env.SUPABASE_URL || "",
-        SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || ""
+        SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || "",
+        NAVER_CLIENT_ID: process.env.NAVER_CLIENT_ID || "" // 이 줄을 추가하세요!
     });
 });
 
