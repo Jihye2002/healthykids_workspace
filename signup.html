@@ -129,7 +129,7 @@
             if (!supabase) { alert("초기화 중입니다. 잠시만요!"); return; }
             await supabase.auth.signInWithOAuth({
                 provider: provider,
-                options: { redirectTo: 'https://healthykids-workspace.onrender.com/callback.html' }
+                options: { redirectTo: 'https://healthykids-workspace.onrender.com/login.html' }
             });
         };
     
