@@ -509,63 +509,70 @@
     </div>
 </footer>
     <script type="module">
-        import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-        
         async function init() {
             try {
                 const res = await fetch('/get-config');
                 const config = await res.json();
-                const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
-                window.supabase = supabase; // chat-ui.js 등 다른 곳에서 사용 가능하도록 전역 할당
-    
-                // 1. 세션 가져오기
-                const { data: { session } } = await supabase.auth.getSession();
+                window.supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
                 
-                // 2. 소셜 로그인 후 URL에 붙은 # 토큰 정리
+                // 1. Supabase 세션 확인
+                const { data: { session } } = await window.supabase.auth.getSession();
+                
+                // 2. 토큰 정리
                 if (session && window.location.hash) {
                     window.history.replaceState(null, null, window.location.pathname);
                 }
-    
-                // 3. UI 업데이트
-                updateUI(session);
-    
-                // 4. 로그아웃 이벤트 (항상 리스너 등록, 버튼이 없을 경우 에러 방지)
+
+                // 3. UI 업데이트 (세션이 있든 없든 일단 실행)
+                await updateUI(session);
+
+                // 4. 로그아웃 이벤트
                 const logoutBtn = document.getElementById('logout-btn');
                 if (logoutBtn) {
                     logoutBtn.addEventListener('click', async (e) => {
                         e.preventDefault();
-                        await supabase.auth.signOut();
-                        window.location.href = 'index.html'; // 메인으로 새로고침하여 로그인 상태 갱신
+                        await window.supabase.auth.signOut();
+                        localStorage.removeItem('user_email');
+                        // 네이버 로그아웃을 위해 서버에 별도 로그아웃 요청이 필요하다면 여기서 추가
+                        window.location.href = 'index.html'; 
                     });
                 }
             } catch (err) {
-                console.error("초기화 중 오류:", err);
+                console.error("초기화 오류:", err);
             }
         }
-    
-        function updateUI(session) {
+
+        async function updateUI(session) {
             const beforeLogin = document.getElementById('before-login');
             const afterLogin = document.getElementById('after-login');
+            const welcomeMsg = document.getElementById('welcome-message');
             
-            // 요소가 존재하는지 확인 후 스타일 변경 (에러 방지)
-            if (!beforeLogin || !afterLogin) return;
-    
-            if (session) {
-                const nickname = session.user.user_metadata.full_name || 
-                                 (session.user.email ? session.user.email.split('@')[0] : "사용자");
-                
-                beforeLogin.style.display = 'none';
-                afterLogin.style.display = 'block';
-                
-                const welcomeMsg = document.getElementById('welcome-message');
-                if (welcomeMsg) welcomeMsg.innerText = nickname;
+            // 1. 세션에서 이메일 추출
+            let email = session?.user?.email;
+        
+            // 2. 세션이 없다면 로컬스토리지에서 이메일 확인 (네이버 로그인 시 저장해둘 것임)
+            if (!email) {
+                email = localStorage.getItem('user_email');
+            }
+        
+            if (email) {
+                // 이메일로 해당 유저의 정보만 정확히 조회
+                const { data: userProfile } = await window.supabase
+                    .from('users')
+                    .select('name')
+                    .eq('email', email)
+                    .single();
+        
+                if (userProfile) {
+                    beforeLogin.style.display = 'none';
+                    afterLogin.style.display = 'block';
+                    if (welcomeMsg) welcomeMsg.innerText = `${userProfile.name}님, 환영합니다!`;
+                }
             } else {
                 beforeLogin.style.display = 'block';
                 afterLogin.style.display = 'none';
             }
         }
-    
-        init();
     </script>
     <script src="chat-ui.js"></script>
 </body>
