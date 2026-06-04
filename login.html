@@ -69,47 +69,35 @@
 
     <script type="module">
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-    
-        async function handleCallback() {
-            const hash = window.location.hash.substring(1);
-            const params = new URLSearchParams(hash);
-            const accessToken = params.get('access_token');
-    
-            if (!accessToken) {
-                alert("로그인 실패: 토큰이 없습니다.");
-                window.location.href = '/login.html';
-                return;
-            }
-    
-            // 1. 네이버 API를 직접 호출 (Supabase 서버를 거치지 않음)
-            const naverRes = await fetch('https://openapi.naver.com/v1/nid/me', {
-                headers: { 'Authorization': `Bearer ${accessToken}` }
-            });
-            const data = await naverRes.json();
-            const email = data.response.email;
-    
-            // 2. Supabase DB 연결
+
+        // 1. Supabase 초기화
+        async function init() {
             const res = await fetch('/get-config');
             const config = await res.json();
-            const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
-    
-            // 3. 우리 DB에 유저가 있는지 확인
-            const { data: user, error } = await supabase
-                .from('users') // 반드시 Supabase에 'users' 테이블을 만드세요!
-                .select('*')
-                .eq('email', email)
-                .maybeSingle();
-    
-            if (!user) {
-                // 없으면 새로 생성
-                await supabase.from('users').insert([{ email: email, name: data.response.name }]);
-            }
-    
-            // 4. 로그인 성공 처리
-            alert("로그인 성공!");
-            window.location.href = '/index.html';
+            window.supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
         }
-        handleCallback();
+        init();
+
+        // 2. 구글/카카오 로그인 (Supabase 정식 기능)
+        const socialLogin = async (provider) => {
+            await window.supabase.auth.signInWithOAuth({
+                provider: provider,
+                options: { redirectTo: 'https://healthykids-workspace.onrender.com/index.html' }
+            });
+        };
+
+        // 3. 네이버 로그인 (수동 방식)
+        const handleNaverLogin = async () => {
+            const res = await fetch('/get-config');
+            const config = await res.json();
+            const callbackUrl = encodeURIComponent("https://healthykids-workspace.onrender.com/callback.html");
+            window.location.href = `https://nid.naver.com/oauth2.0/authorize?response_type=token&client_id=${config.NAVER_CLIENT_ID}&redirect_uri=${callbackUrl}&state=RANDOM`;
+        };
+
+        // 이벤트 연결
+        document.getElementById('google-btn').addEventListener('click', () => socialLogin('google'));
+        document.getElementById('kakao-btn').addEventListener('click', () => socialLogin('kakao'));
+        document.getElementById('naver-btn').addEventListener('click', handleNaverLogin);
     </script>
 </body>
 </html>
