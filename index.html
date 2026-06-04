@@ -548,15 +548,9 @@
             const welcomeMsg = document.getElementById('welcome-message');
             
             // 1. 세션에서 이메일 추출
-            let email = session?.user?.email;
-        
-            // 2. 세션이 없다면 로컬스토리지에서 이메일 확인 (네이버 로그인 시 저장해둘 것임)
-            if (!email) {
-                email = localStorage.getItem('user_email');
-            }
-        
+            let email = session?.user?.email || localStorage.getItem('user_email');
+
             if (email) {
-                // 이메일로 해당 유저의 정보만 정확히 조회
                 const { data: userProfile } = await window.supabase
                     .from('users')
                     .select('name')
@@ -566,9 +560,10 @@
                 if (userProfile) {
                     beforeLogin.style.display = 'none';
                     afterLogin.style.display = 'block';
-                    if (welcomeMsg) welcomeMsg.innerText = `${userProfile.name}님, 환영합니다!`;
+                    if (welcomeMsg) welcomeMsg.innerText = `${userProfile.name}님 환영해요!`;
                 }
-            } else {
+            }
+        } else {
                 beforeLogin.style.display = 'block';
                 afterLogin.style.display = 'none';
             }
