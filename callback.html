@@ -21,20 +21,25 @@
                 return;
             }
     
-            // 1. 네이버 프로필 정보 가져오기
-            const naverRes = await fetch('https://openapi.naver.com/v1/nid/me', {
-                headers: { 'Authorization': `Bearer ${accessToken}` }
-            });
-            const result = await naverRes.json();
-            const p = result.response; // 네이버 응답 데이터
+            // 1. 서버를 통해 안전하게 네이버 프로필 정보 가져오기 (CORS 에러 해결)
+            const response = await fetch(`/get-naver-profile?token=${accessToken}`);
+            const data = await response.json();
+            
+            // 데이터가 없는 경우 처리
+            if (!data.response) {
+                console.error("데이터 가져오기 실패:", data);
+                alert("사용자 정보를 가져올 수 없습니다.");
+                return;
+            }
+    
+            const p = data.response; // 네이버에서 전달된 실제 사용자 정보
     
             // 2. Supabase 연결
             const res = await fetch('/get-config');
             const config = await res.json();
             const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
     
-            // 3. 사용자 정보 저장 및 업데이트 (UPSERT 방식)
-            // email을 기준으로 이미 있으면 업데이트, 없으면 신규 생성합니다.
+            // 3. Supabase DB에 정보 저장 (Upsert)
             const { error } = await supabase
                 .from('users')
                 .upsert({
@@ -42,10 +47,10 @@
                     name: p.name,
                     nickname: p.nickname,
                     profile_image: p.profile_image,
-                    gender: p.gender,         // 선택 항목
-                    birthday: p.birthday,     // 선택 항목
+                    gender: p.gender,
+                    birthday: p.birthday,
                     birthyear: p.birthyear
-                }, { onConflict: 'email' }); // email이 중복되면 업데이트
+                }, { onConflict: 'email' });
     
             if (error) {
                 console.error("DB 저장 오류:", error);
