@@ -90,7 +90,7 @@
         const handleNaverLogin = async () => {
             const res = await fetch('/get-config');
             const config = await res.json();
-            const callbackUrl = encodeURIComponent("https://healthykids-workspace.onrender.com/callback.html");
+            const callbackUrl = encodeURIComponent("https://healthykids-workspace.onrender.com/callback.js");
             window.location.href = `https://nid.naver.com/oauth2.0/authorize?response_type=token&client_id=${config.NAVER_CLIENT_ID}&redirect_uri=${callbackUrl}&state=RANDOM`;
         };
 
