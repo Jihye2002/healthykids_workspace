@@ -82,7 +82,7 @@
         const socialLogin = async (provider) => {
             await window.supabase.auth.signInWithOAuth({
                 provider: provider,
-                options: { redirectTo: 'https://healthykids-workspace.onrender.com/login.html' }
+                options: { redirectTo: 'https://healthykids-workspace.onrender.com/index.html' }
             });
         };
 
