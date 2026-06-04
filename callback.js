@@ -1,52 +1,89 @@
-<script type="module">
-        import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-    
-        async function handleCallback() {
-            const hash = window.location.hash.substring(1);
-            const params = new URLSearchParams(hash);
-            const accessToken = params.get('access_token');
-    
-            if (!accessToken) {
-                alert("로그인 정보가 없습니다.");
-                window.location.href = '/login.html';
-                return;
-            }
-    
-            // 1. 네이버 프로필 정보 가져오기
-            const response = await fetch(`/get-naver-profile?token=${accessToken}`);
-            const data = await response.json();
-            
-            if (!data.response) {
-                console.error("데이터 가져오기 실패:", data);
-                alert("사용자 정보를 가져올 수 없습니다.");
-                return;
-            }
-    
-            const p = data.response;
-    
-            // 2. Supabase 연결
-            const res = await fetch('/get-config');
-            const config = await res.json();
-            const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
-            window.supabase = supabase;
-    
-            // 3. [핵심] 가입 여부 확인 및 분기 처리
-            const { data: existingUser } = await supabase
-                .from('users')
-                .select('email')
-                .eq('email', p.email)
-                .maybeSingle();
-    
-            if (!existingUser) {
-                // [신규 유저] 회원가입 페이지로 정보 전달하며 이동
-                // encodeURIComponent를 사용하여 특수문자 깨짐 방지
-                window.location.replace(`/signup.html?email=${p.email}&name=${encodeURIComponent(p.name)}`);
-            } else {
-                localStorage.setItem('user_email', p.email);
-                window.location.replace('/index.html');
-            }
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: 'Pretendard', sans-serif;
+            background-color: #f9f9f9;
         }
-    
-        handleCallback();
-</script>
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #e0e0e0;
+            border-top: 5px solid #03c75a; /* 네이버의 상징색 */
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        h2 { color: #333; font-weight: 500; font-size: 18px; }
+    </style>
+</head>
+        <body>
+            <div class="spinner"></div>
+            <h2>로그인 정보를 확인하고 있습니다...</h2>
+
+                <script type="module">
+                        import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+                    
+                        async function handleCallback() {
+                            const hash = window.location.hash.substring(1);
+                            const params = new URLSearchParams(hash);
+                            const accessToken = params.get('access_token');
+                    
+                            if (!accessToken) {
+                                alert("로그인 정보가 없습니다.");
+                                window.location.href = '/login.html';
+                                return;
+                            }
+                    
+                            // 1. 네이버 프로필 정보 가져오기
+                            const response = await fetch(`/get-naver-profile?token=${accessToken}`);
+                            const data = await response.json();
+                            
+                            if (!data.response) {
+                                console.error("데이터 가져오기 실패:", data);
+                                alert("사용자 정보를 가져올 수 없습니다.");
+                                return;
+                            }
+                    
+                            const p = data.response;
+                    
+                            // 2. Supabase 연결
+                            const res = await fetch('/get-config');
+                            const config = await res.json();
+                            const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+                            window.supabase = supabase;
+                    
+                            // 3. [핵심] 가입 여부 확인 및 분기 처리
+                            const { data: existingUser } = await supabase
+                                .from('users')
+                                .select('email')
+                                .eq('email', p.email)
+                                .maybeSingle();
+                    
+                            if (!existingUser) {
+                                // [신규 유저] 회원가입 페이지로 정보 전달하며 이동
+                                // encodeURIComponent를 사용하여 특수문자 깨짐 방지
+                                window.location.replace(`/signup.html?email=${p.email}&name=${encodeURIComponent(p.name)}`);
+                            } else {
+                                localStorage.setItem('user_email', p.email);
+                                window.location.replace('/index.html');
+                            }
+                        }
+                    
+                        handleCallback();
+                </script>
+        </body>
+</html>
 
