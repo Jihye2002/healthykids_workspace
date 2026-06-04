@@ -77,14 +77,27 @@
                 const res = await fetch('/get-config');
                 const config = await res.json();
                 supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
-                window.supabase = supabase; // 전역으로 사용
+                window.supabase = supabase;
             } catch (err) {
                 console.error("초기화 실패:", err);
             }
         }
     
-        // 페이지 로드 시 초기화
-        initSupabase();
+        // [핵심] 페이지 로드 시 URL 파라미터 확인 (자동 채우기)
+        window.onload = () => {
+            initSupabase();
+            const urlParams = new URLSearchParams(window.location.search);
+            const email = urlParams.get('email');
+            const name = urlParams.get('name');
+    
+            if (email) {
+                // 이메일 앞부분만 따서 ID 칸에 넣기 (필요시 수정)
+                document.getElementById('signup-id').value = email.split('@')[0];
+                // 다른 입력창들에 값 자동 채우기 (HTML의 ID가 signup-name 등이라고 가정)
+                if(document.getElementById('signup-name')) document.getElementById('signup-name').value = name;
+                alert("소셜 계정 정보를 불러왔습니다. 나머지 정보를 입력 후 가입해주세요!");
+            }
+        };
     
         // 회원가입 폼 제출
         document.getElementById('signup-form').addEventListener('submit', async (e) => {
@@ -96,37 +109,38 @@
             const password = document.getElementById('signup-password').value;
             const email = `${userId}@healthykids.com`;
     
-            // 별명 중복 체크 후 가입/저장 로직...
-            // (기존 작성하신 로직 그대로 사용하시면 됩니다)
+            // DB 가입 로직 수행 (이미 구현하신 로직 사용)
+            const { error } = await supabase.from('users').insert({
+                email: email,
+                name: document.getElementById('signup-name').value,
+                nickname: nickname
+            });
+    
+            if (!error) {
+                alert("회원가입이 완료되었습니다! 로그인해주세요.");
+                window.location.href = '/login.html'; // 로그인 페이지로 이동
+            } else {
+                alert("가입 중 오류가 발생했습니다: " + error.message);
+            }
         });
     
-        // 소셜 가입 이벤트
+        // 소셜 가입 이벤트 (redirectTo를 callback.html로 변경!)
         const socialSignup = async (provider) => {
             if (!supabase) { alert("초기화 중입니다. 잠시만요!"); return; }
             await supabase.auth.signInWithOAuth({
                 provider: provider,
-                options: { redirectTo: 'https://healthykids-workspace.onrender.com/login.html' }
+                options: { redirectTo: 'https://healthykids-workspace.onrender.com/callback.html' }
             });
         };
-
-        // signup.html 스크립트 부분
+    
         const handleNaverSignup = async () => {
             if (!supabase) { alert("잠시만 기다려주세요!"); return; }
-        
             try {
                 const res = await fetch('/get-config');
                 const config = await res.json();
                 const clientId = config.NAVER_CLIENT_ID;
-        
-                if (!clientId) {
-                    alert("가입 설정을 불러올 수 없습니다.");
-                    return;
-                }
-        
                 const callbackUrl = encodeURIComponent("https://healthykids-workspace.onrender.com/callback.html");
                 const state = Math.random().toString(36).substring(7);
-                
-                // 네이버로 이동
                 window.location.href = `https://nid.naver.com/oauth2.0/authorize?response_type=token&client_id=${clientId}&redirect_uri=${callbackUrl}&state=${state}`;
             } catch (err) {
                 console.error("네이버 가입 오류:", err);
