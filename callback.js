@@ -1,13 +1,4 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <title>로그인 처리 중...</title>
-</head>
-<body>
-    <h2>로그인 처리 중입니다. 잠시만 기다려주세요...</h2>
-    
-    <script type="module">
+<script type="module">
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
     
         async function handleCallback() {
@@ -57,6 +48,5 @@
         }
     
         handleCallback();
-    </script>
-</body>
-</html>
+</script>
+
