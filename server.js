@@ -23,6 +23,20 @@ app.get("/get-config", (req, res) => {
     });
 });
 
+// server.js 추가 부분
+app.get('/get-naver-profile', async (req, res) => {
+    const token = req.query.token;
+    try {
+        const response = await fetch('https://openapi.naver.com/v1/nid/me', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+        res.json(data);
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to fetch naver profile' });
+    }
+});
+
 app.post("/api/chat", async (req, res) => {
     const q = req.body.message || "";
     if (CACHE.has(q)) return res.json(CACHE.get(q));
