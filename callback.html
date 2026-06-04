@@ -51,15 +51,16 @@
                     birthyear: p.birthyear
                 }, { onConflict: 'email' });
 
+            // callback.html의 DB 저장 성공 부분
             if (error) {
                 console.error("DB 저장 오류:", error);
-                alert("회원 정보 저장 중 오류가 발생했습니다.");
             } else {
-                alert(p.name + "님, 환영합니다!");
-                // [수정 포인트] replace를 사용하여 기록을 지우고 깔끔하게 이동합니다.
+                // [추가] 이메일을 로컬 스토리지에 저장하여 index.html에서 읽을 수 있게 함
+                localStorage.setItem('user_email', p.email);
+                
+                alert(p.name + "님, 환영해요!");
                 window.location.replace('/index.html');
             }
-        }
 
         handleCallback();
     </script>
