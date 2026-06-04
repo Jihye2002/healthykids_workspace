@@ -9,36 +9,35 @@
     
     <script type="module">
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-    
+
         async function handleCallback() {
             const hash = window.location.hash.substring(1);
             const params = new URLSearchParams(hash);
             const accessToken = params.get('access_token');
-    
+
             if (!accessToken) {
                 alert("로그인 정보가 없습니다.");
                 window.location.href = '/login.html';
                 return;
             }
-    
-            // 1. 서버를 통해 안전하게 네이버 프로필 정보 가져오기 (CORS 에러 해결)
+
+            // 1. 서버를 통해 안전하게 네이버 프로필 정보 가져오기
             const response = await fetch(`/get-naver-profile?token=${accessToken}`);
             const data = await response.json();
             
-            // 데이터가 없는 경우 처리
             if (!data.response) {
                 console.error("데이터 가져오기 실패:", data);
                 alert("사용자 정보를 가져올 수 없습니다.");
                 return;
             }
-    
-            const p = data.response; // 네이버에서 전달된 실제 사용자 정보
-    
+
+            const p = data.response;
+
             // 2. Supabase 연결
             const res = await fetch('/get-config');
             const config = await res.json();
             const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
-    
+
             // 3. Supabase DB에 정보 저장 (Upsert)
             const { error } = await supabase
                 .from('users')
@@ -51,16 +50,17 @@
                     birthday: p.birthday,
                     birthyear: p.birthyear
                 }, { onConflict: 'email' });
-    
+
             if (error) {
                 console.error("DB 저장 오류:", error);
                 alert("회원 정보 저장 중 오류가 발생했습니다.");
             } else {
                 alert(p.name + "님, 환영합니다!");
-                window.location.href = '/index.html';
+                // [수정 포인트] replace를 사용하여 기록을 지우고 깔끔하게 이동합니다.
+                window.location.replace('/index.html');
             }
         }
-    
+
         handleCallback();
     </script>
 </body>
