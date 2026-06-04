@@ -515,25 +515,23 @@
                 const config = await res.json();
                 window.supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
                 
-                // 1. Supabase 세션 확인
+                // 1. [핵심] 로그인 상태가 변경될 때마다 자동으로 UI 업데이트
+                window.supabase.auth.onAuthStateChange(async (event, session) => {
+                    console.log("로그인 상태 변경 감지:", event);
+                    await updateUI(session);
+                });
+        
+                // 2. 초기 로드 시 세션 확인
                 const { data: { session } } = await window.supabase.auth.getSession();
-                
-                // 2. 토큰 정리
-                if (session && window.location.hash) {
-                    window.history.replaceState(null, null, window.location.pathname);
-                }
-
-                // 3. UI 업데이트 (세션이 있든 없든 일단 실행)
                 await updateUI(session);
-
-                // 4. 로그아웃 이벤트
+        
+                // 3. 로그아웃 이벤트
                 const logoutBtn = document.getElementById('logout-btn');
                 if (logoutBtn) {
                     logoutBtn.addEventListener('click', async (e) => {
                         e.preventDefault();
                         await window.supabase.auth.signOut();
                         localStorage.removeItem('user_email');
-                        // 네이버 로그아웃을 위해 서버에 별도 로그아웃 요청이 필요하다면 여기서 추가
                         window.location.href = 'index.html'; 
                     });
                 }
@@ -547,7 +545,9 @@
             const afterLogin = document.getElementById('after-login');
             const welcomeMsg = document.getElementById('welcome-message');
             
+            // updateUI 안의 상단
             let email = session?.user?.email || localStorage.getItem('user_email');
+            console.log("updateUI가 확인한 이메일 주소:", email);
             
             if (email) {
                 const { data: userProfile } = await window.supabase
