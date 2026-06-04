@@ -89,15 +89,18 @@
             const urlParams = new URLSearchParams(window.location.search);
             const email = urlParams.get('email');
             const name = urlParams.get('name');
-    
+            
             if (email) {
-                // 이메일 앞부분만 따서 ID 칸에 넣기 (필요시 수정)
-                document.getElementById('signup-id').value = email.split('@')[0];
-                // 다른 입력창들에 값 자동 채우기 (HTML의 ID가 signup-name 등이라고 가정)
-                if(document.getElementById('signup-name')) document.getElementById('signup-name').value = name;
-
-                document.getElementById('email').value = email;
-                document.getElementById('name').value = decodeURIComponent(name);
+                // ID가 존재하는지 체크하는 함수를 활용하거나 간결하게 처리
+                const setEmail = document.getElementById('email');
+                const setName = document.getElementById('name');
+                const setSignupId = document.getElementById('signup-id');
+                const setSignupName = document.getElementById('signup-name');
+        
+                if (setEmail) setEmail.value = email;
+                if (setName) setName.value = decodeURIComponent(name || '');
+                if (setSignupId) setSignupId.value = email.split('@')[0];
+                if (setSignupName) setSignupName.value = decodeURIComponent(name || '');
             }
         };
     
