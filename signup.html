@@ -109,19 +109,33 @@
             });
         };
 
-        const naverSignup = async () => {
-            if (!supabase) { alert("초기화 중입니다. 잠시만요!"); return; }
-            await supabase.auth.signInWithOAuth({
-                provider: 'custom:naver', // Supabase에서 설정한 정확한 식별자
-                options: { 
-                    redirectTo: 'https://healthykids-workspace.onrender.com/login.html' 
+        // signup.html 스크립트 부분
+        const handleNaverSignup = async () => {
+            if (!supabase) { alert("잠시만 기다려주세요!"); return; }
+        
+            try {
+                const res = await fetch('/get-config');
+                const config = await res.json();
+                const clientId = config.NAVER_CLIENT_ID;
+        
+                if (!clientId) {
+                    alert("가입 설정을 불러올 수 없습니다.");
+                    return;
                 }
-            });
+        
+                const callbackUrl = encodeURIComponent("https://healthykids-workspace.onrender.com/callback.html");
+                const state = Math.random().toString(36).substring(7);
+                
+                // 네이버로 이동
+                window.location.href = `https://nid.naver.com/oauth2.0/authorize?response_type=token&client_id=${clientId}&redirect_uri=${callbackUrl}&state=${state}`;
+            } catch (err) {
+                console.error("네이버 가입 오류:", err);
+            }
         };
     
         document.getElementById('google-signup').addEventListener('click', () => socialSignup('google'));
         document.getElementById('kakao-signup').addEventListener('click', () => socialSignup('kakao'));
-        document.getElementById('naver-signup').addEventListener('click', naverSignup);
+        document.getElementById('naver-signup').addEventListener('click', handleNaverSignup);
     </script>
 </body>
 </html>
