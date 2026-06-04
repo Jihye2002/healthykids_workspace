@@ -548,26 +548,25 @@
             const welcomeMsg = document.getElementById('welcome-message');
             
             let email = session?.user?.email || localStorage.getItem('user_email');
-    
+            
             if (email) {
-                // DB에서 이름 가져오기
                 const { data: userProfile } = await window.supabase
                     .from('users')
                     .select('name')
                     .eq('email', email)
                     .single();
-        
+            
                 if (userProfile) {
                     beforeLogin.style.display = 'none';
-                    afterLogin.style.display = 'block'; // 여기서 block으로 변경됨
-                    if (welcomeMsg) welcomeMsg.innerText = `${userProfile.name}님`;
+                    // 여기를 block이 아닌 flex로 변경
+                    afterLogin.style.display = 'flex'; 
+                    if (welcomeMsg) welcomeMsg.innerText = `${userProfile.name}`;
                 } else {
-                    // 이메일은 있는데 DB에 이름이 없다면(가입 정보 누락) 로그아웃 처리
-                    beforeLogin.style.display = 'block';
+                    beforeLogin.style.display = 'flex'; // 여기도 flex로 통일
                     afterLogin.style.display = 'none';
                 }
             } else {
-                beforeLogin.style.display = 'block';
+                beforeLogin.style.display = 'flex';
                 afterLogin.style.display = 'none';
             }
         }
