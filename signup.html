@@ -87,45 +87,46 @@
         window.onload = () => {
             initSupabase();
             const urlParams = new URLSearchParams(window.location.search);
-            const email = urlParams.get('email');
-            const name = urlParams.get('name');
-            
-            if (email) {
-                // ID가 존재하는지 체크하는 함수를 활용하거나 간결하게 처리
-                const setEmail = document.getElementById('email');
-                const setName = document.getElementById('name');
-                const setSignupId = document.getElementById('signup-id');
-                const setSignupName = document.getElementById('signup-name');
+            const email = urlParams.get('email'); // 예: hanhae705@naver.com
+            const name = urlParams.get('name');   // 예: 한지혜
         
-                if (setEmail) setEmail.value = email;
-                if (setName) setName.value = decodeURIComponent(name || '');
-                if (setSignupId) setSignupId.value = email.split('@')[0];
-                if (setSignupName) setSignupName.value = decodeURIComponent(name || '');
+            if (email) {
+                // 아이디 부분(골뱅이 앞)만 추출
+                const idPart = email.split('@')[0];
+                const idEl = document.getElementById('signup-id');
+                if (idEl) idEl.value = idPart;
+        
+                // 이름 입력창이 없으므로, 필요하다면 콘솔에만 찍거나 
+                // 별도의 숨겨진 필드에 저장하도록 처리합니다.
+                console.log("자동 입력된 이름:", decodeURIComponent(name || ''));
             }
         };
-    
-        // 회원가입 폼 제출
+        
         document.getElementById('signup-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             if (!supabase) { alert("잠시만 기다려주세요!"); return; }
-    
+        
             const userId = document.getElementById('signup-id').value;
             const nickname = document.getElementById('signup-nickname').value;
-            const password = document.getElementById('signup-password').value;
-            const email = `${userId}@healthykids.com`;
-    
-            // DB 가입 로직 수행 (이미 구현하신 로직 사용)
+            // URL에서 가져온 name을 사용하거나, 별도의 이름 입력창이 있다면 거기서 가져오세요
+            const urlParams = new URLSearchParams(window.location.search);
+            const name = decodeURIComponent(urlParams.get('name') || '');
+            
+            // 최종 이메일 조합
+            const finalEmail = `${userId}@healthykids.com`;
+        
             const { error } = await supabase.from('users').insert({
-                email: email,
-                name: document.getElementById('signup-name').value,
+                email: finalEmail,
+                name: name, // URL에서 넘어온 이름 사용
                 nickname: nickname
             });
-    
+        
             if (!error) {
-                alert("회원가입이 완료되었습니다! 로그인해주세요.");
-                window.location.href = '/login.html'; // 로그인 페이지로 이동
+                alert("회원가입이 완료되었습니다!");
+                window.location.href = '/login.html';
             } else {
-                alert("가입 중 오류가 발생했습니다: " + error.message);
+                console.error("DB 저장 에러:", error);
+                alert("가입 중 오류 발생: " + error.message);
             }
         });
     
