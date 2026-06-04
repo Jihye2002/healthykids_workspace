@@ -51,8 +51,6 @@
                 // encodeURIComponent를 사용하여 특수문자 깨짐 방지
                 window.location.replace(`/signup.html?email=${p.email}&name=${encodeURIComponent(p.name)}`);
             } else {
-                // [기존 유저] 로그인 처리 후 메인 이동
-                alert(p.name + "님 환영해요!");
                 localStorage.setItem('user_email', p.email);
                 window.location.replace('/index.html');
             }
