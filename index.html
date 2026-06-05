@@ -20,10 +20,14 @@
         .search-bar button { background-color: #fff; border: none; cursor: pointer; flex-shrink: 0; width: 30px; }
         .user-menu {
             display: flex;
-            align-items: center; /* 핵심: 모든 요소를 세로 중앙에 정렬 */
-            gap: 8px;            /* 요소들 사이의 간격 */
+            align-items: center;
+            justify-content: flex-end; 
+            white-space: nowrap;
+            flex-shrink: 0;
             font-size: 15px;
             font-weight: 600;
+            margin-left: 20px; 
+            padding-right: 10px; 
         }
         
         #before-login {
@@ -32,20 +36,24 @@
         }
         
         .user-menu a {
+            white-space: nowrap;
             text-decoration: none;
             color: #6d6d6d;
-            line-height: 1;      /* 줄 간격 초기화 */
-            display: flex;
+            padding: 0 5px; 
+            display: flex; /* 링크 안의 텍스트도 정렬 유지 */
             align-items: center;
         }
         
-        .divider {
-            color: #6d6d6d;
-            display: flex;
-            align-items: center;
-            line-height: 1;      /* 기호의 줄 높이 고정 */
+        .user-menu a:hover {
+            color: #000000; 
         }
-
+        
+        .divider {
+            margin: 0 8px;
+            color: #6d6d6d;
+            display: flex;       /* 추가: 수평 정렬을 위해 */
+            align-items: center; /* 추가: 수평 정렬을 위해 */
+        }
         /* --- 내비게이션 --- */
         /* --- 네비게이션바 전체 설정 --- */
         .navbar { 
