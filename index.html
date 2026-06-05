@@ -544,14 +544,14 @@
 </footer>
     <script type="module">
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-    
+
         async function init() {
             try {
                 const res = await fetch('/get-config');
                 const config = await res.json();
                 window.supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
                 
-                // 1. 로그인 상태 변경 감지
+                // 1. 인증 상태 변경 감지
                 window.supabase.auth.onAuthStateChange(async (event, session) => {
                     await updateUI(session);
                 });
@@ -566,9 +566,7 @@
                     logoutBtn.addEventListener('click', async (e) => {
                         e.preventDefault();
                         await window.supabase.auth.signOut();
-                        localStorage.removeItem('user_email');
-                        localStorage.removeItem('user_name');
-                        localStorage.removeItem('login_type');
+                        localStorage.clear(); // 전체 삭제하여 깔끔하게 로그아웃
                         window.location.href = '/index.html';
                     });
                 }
@@ -582,25 +580,30 @@
             const afterLogin = document.getElementById('after-login');
             const welcomeMsg = document.getElementById('welcome-message');
         
-            // 세션(구글/카카오) 또는 로컬스토리지(네이버)에서 이메일 가져오기
-            let email = session?.user?.email || localStorage.getItem('user_email');
+            // 세션(구글/카카오) 우선 확인, 없으면 로컬(네이버) 확인
+            const email = session?.user?.email || localStorage.getItem('user_email');
             
             if (email) {
-                // DB에서 사용자 이름 조회
-                const { data: userProfile } = await window.supabase
+                // UI를 먼저 보여주어 사용자 경험 향상
+                beforeLogin.style.display = 'none';
+                afterLogin.style.display = 'flex';
+        
+                // DB에서 이름 조회 (네이버/소셜 모두 적용)
+                const { data: userProfile, error } = await window.supabase
                     .from('users')
                     .select('name')
                     .eq('email', email)
                     .maybeSingle();
         
                 if (userProfile) {
-                    beforeLogin.style.display = 'none';
-                    afterLogin.style.display = 'flex';
                     if (welcomeMsg) welcomeMsg.innerText = `${userProfile.name}님 환영해요!`;
+                    // 로컬 스토리지 갱신 (혹시 바뀔 수 있는 이름 대비)
+                    localStorage.setItem('user_name', userProfile.name);
                 } else {
-                    // DB에 정보가 없는 경우(가입 페이지 이동 유도)
-                    beforeLogin.style.display = 'flex';
+                    // DB에 정보가 없는 경우(비정상 상태) 로그아웃 처리
+                    console.warn("DB에 등록되지 않은 사용자입니다.");
                     afterLogin.style.display = 'none';
+                    beforeLogin.style.display = 'flex';
                 }
             } else {
                 beforeLogin.style.display = 'flex';
