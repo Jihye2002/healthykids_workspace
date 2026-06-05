@@ -18,9 +18,33 @@
         .search-bar { display: flex; align-items: center; margin-left: 20px; flex: 1 1 auto; max-width: 1280px; gap: 8px; }
         .search-bar input { flex: 1 1 auto; padding: 10px; font-size: 15px; border: 1px solid #316ef4; min-width: 50px; border-radius: 5px; }
         .search-bar button { background-color: #fff; border: none; cursor: pointer; flex-shrink: 0; width: 30px; }
-        .user-menu { margin-left: auto; display: flex; align-items: center; white-space: nowrap; flex-shrink: 0; font-size: 15px; font-weight: 600;}
-        .user-menu a { white-space: nowrap; text-decoration: none; color: #6d6d6d; }
-        .divider { margin: 0 8px; color: #6d6d6d; }
+        .user-menu {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end; /* 우측 정렬 강제 */
+            white-space: nowrap;
+            flex-shrink: 0;
+            font-size: 15px;
+            font-weight: 600;
+            margin-left: 20px; /* 검색창과의 간격을 명시적으로 확보 */
+            padding-right: 10px; /* 화면 끝에서 약간 띄움 */
+        }
+        
+        .user-menu a {
+            white-space: nowrap;
+            text-decoration: none;
+            color: #6d6d6d;
+            padding: 0 5px; /* 링크 사이 여백 확보 */
+        }
+        
+        .user-menu a:hover {
+            color: #2f63c7; /* 마우스 올렸을 때 색상 변화 추가 */
+        }
+        
+        .divider {
+            margin: 0 8px;
+            color: #6d6d6d;
+        }
 
         /* --- 내비게이션 --- */
         /* --- 네비게이션바 전체 설정 --- */
