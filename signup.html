@@ -89,9 +89,10 @@
             if (email && idEl) idEl.value = email.split('@')[0];
         };
     
-        // 3. 회원가입 폼 제출
+        // 3. 회원가입 폼 제출 (디버깅 모드 강화)
         document.getElementById('signup-form').addEventListener('submit', async (e) => {
             e.preventDefault(); 
+            console.log("폼 제출 이벤트 시작");
 
             const params = new URLSearchParams(window.location.search);
             const email = params.get('email');
@@ -99,31 +100,40 @@
             const nickname = document.getElementById('signup-nickname').value;
 
             if (!email) {
-                alert("로그인 정보가 없습니다.");
+                alert("이메일 정보가 없습니다. 다시 로그인해주세요.");
                 return;
             }
 
-            // [핵심] 모든 컬럼에 값을 넣어주어야 합니다.
-            // 빈 값은 '' 또는 null로 설정하세요.
-            const { error } = await window.supabase.from('users').insert([
-                { 
-                    email: email, 
-                    name: name, 
-                    nickname: nickname,
-                    profile_image: '', // 초기값 빈 문자열
-                    gender: '',        // 나중에 수정할 수 있게 비워둠
-                    birthday: '', 
-                    age: '0',          // 숫자형 컬럼이라면 '0' 또는 null
-                    birthyear: '0' 
-                }
-            ]);
+            console.log("DB 저장 시도 데이터:", { email, name, nickname });
 
-            if (error) {
-                console.error("DB 저장 에러:", error);
-                alert("가입 실패: " + error.message);
-            } else {
-                alert("회원가입 성공!");
-                window.location.href = '/login.html';
+            try {
+                // DB Insert 시도
+                const { data, error } = await window.supabase.from('users').insert([
+                    { 
+                        email: email, 
+                        name: name, 
+                        nickname: nickname,
+                        profile_image: '', 
+                        gender: '',        
+                        birthday: '', 
+                        age: '0',          
+                        birthyear: '0' 
+                    }
+                ]);
+
+                if (error) {
+                    console.error("Supabase 상세 에러:", error);
+                    // [중요] 정확히 어떤 에러인지 화면에 띄웁니다.
+                    alert("가입 실패! 에러 내용:\n" + error.message + "\n힌트: " + (error.hint || "없음"));
+                } else {
+                    console.log("저장 성공:", data);
+                    alert("회원가입 성공!");
+                    localStorage.setItem('user_email', email);
+                    window.location.href = '/login.html';
+                }
+            } catch (err) {
+                console.error("예외 발생:", err);
+                alert("알 수 없는 오류가 발생했습니다: " + err.message);
             }
         });
     
