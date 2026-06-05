@@ -34,38 +34,34 @@
     </style>
 </head>
 <body>
-    <div class="box">
+    <div class="box" style="width: 480px; margin: 50px auto; padding: 40px; border: 1px solid #ccc; text-align: center; border-radius: 8px;">
         <h2>회원가입 | SIGN-UP</h2>
+        
         <form id="signup-form">
-        <div style="display: flex; align-items: center; justify-content: center; gap: 5px;">
-            <input type="text" id="signup-id" class="input-box" placeholder="어떤 아이디를 사용할까요?" style="width: 50%;" required>
-            <span style="font-size: 14px; color: #555;">@healthykids.com</span>
-        </div>
-        <div id="id-error" class="error-text">아이디를 입력해주세요!</div>
-    
-        <input type="text" id="signup-nickname" class="input-box" placeholder="특별한 별명을 만들어주세요!" required>
-        <div id="nickname-error" class="error-text">별명을 입력해주세요!</div>
-    
-        <input type="password" id="signup-password" class="input-box" placeholder="암호를 만들어주세요!" required onkeyup="validatePassword()">
-        <div id="pw-error" class="error-text">💡 암호는 8글자보다 길어야 하고, 알파벳 대문자/소문자, 숫자, 기호를 모두 사용해서 만들어주세요!</div>
+            <input type="text" id="signup-email" class="input-box" placeholder="이메일" style="width: 340px;" readonly>
+            <input type="text" id="signup-name" class="input-box" placeholder="이름" style="width: 340px;" readonly>
+            
+            <input type="text" id="signup-nickname" class="input-box" placeholder="특별한 별명을 만들어주세요!" style="width: 340px;" required>
+            
+            <select id="hint-question" class="input-box" style="width: 340px; padding: 10px;">
+                <option value="가장 좋아하는 동물은?">가장 좋아하는 동물은?</option>
+                <option value="내가 태어난 곳은?">내가 태어난 곳은?</option>
+                <option value="가장 좋아하는 음식은?">가장 좋아하는 음식은?</option>
+            </select>
+            
+            <input type="text" id="hint-answer" class="input-box" placeholder="질문에 대한 답 (나만 알기!)" style="width: 340px;" required>
+            
+            <button type="submit" class="input-box" style="width: 340px; background-color: #2f63c7; color: white; border: none; cursor: pointer; font-weight: bold; margin-top: 10px;">가입하기</button>
+        </form>
         
-        <select id="hint-question" class="input-box">
-            <option value="가장 좋아하는 동물은?">가장 좋아하는 동물은?</option>
-            <option value="내가 태어난 곳은?">내가 태어난 곳은?</option>
-            <option value="가장 좋아하는 음식은?">가장 좋아하는 음식은?</option>
-        </select>
+        <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
         
-        <input type="text" id="hint-answer" class="input-box" placeholder="질문에 대한 답 (나만 알기!)" required>
+        <button id="google-signup" style="width: 340px; background:#4285f4; color:white; border:none; padding:10px; margin-bottom:5px; cursor:pointer;">Google로 가입하기</button>
+        <button id="kakao-signup" style="width: 340px; background:#fee500; color:#000; border:none; padding:10px; margin-bottom:5px; cursor:pointer;">Kakao로 가입하기</button>
+        <button id="naver-signup" style="width: 340px; background:#03c75a; color:white; border:none; padding:10px; margin-bottom:5px; cursor:pointer;">Naver로 가입하기</button>
         
-        <button type="submit" class="input-box" style="background-color: #2f63c7; color: white; border: none; cursor: pointer; font-weight: bold;">가입하기</button>
-    </form>
-    
-    <hr>
-    <button id="google-signup">Google로 가입하기</button>
-    <button id="kakao-signup">Kakao로 가입하기</button>
-    <button id="naver-signup">Naver로 가입하기</button>
-    
-    <p>이미 아이디와 비밀번호(암호)가 있으신가요? <a href="login.html">로그인하기</a></p>
+        <p style="margin-top: 20px;">이미 아이디와 비밀번호(암호)가 있으신가요? <a href="login.html">로그인하기</a></p>
+    </div>
 
     <script type="module">
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
