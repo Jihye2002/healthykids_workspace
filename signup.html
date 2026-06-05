@@ -103,26 +103,28 @@
         };
         
         document.getElementById('signup-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            if (!supabase) { alert("잠시만 기다려주세요!"); return; }
+            e.preventDefault(); // [필수] 기본 폼 동작(새로고침) 차단
+            
+            if (!window.supabase) { alert("잠시만 기다려주세요!"); return; }
         
             const userId = document.getElementById('signup-id').value;
             const nickname = document.getElementById('signup-nickname').value;
-            // URL에서 가져온 name을 사용하거나, 별도의 이름 입력창이 있다면 거기서 가져오세요
-            const urlParams = new URLSearchParams(window.location.search);
-            const name = decodeURIComponent(urlParams.get('name') || '');
             
-            // 최종 이메일 조합
-            const finalEmail = `${userId}@healthykids.com`;
+            // URL 파라미터에서 정보 재확인
+            const urlParams = new URLSearchParams(window.location.search);
+            const email = urlParams.get('email'); // URL에 있는 원본 이메일 사용
+            const name = decodeURIComponent(urlParams.get('name') || '');
         
-            const { error } = await supabase.from('users').insert({
-                email: finalEmail,
-                name: name, // URL에서 넘어온 이름 사용
+            // DB 저장 시도
+            const { error } = await window.supabase.from('users').insert({
+                email: email, // 조합하지 말고 전달받은 email 그대로 저장하세요!
+                name: name,
                 nickname: nickname
             });
         
             if (!error) {
                 alert("회원가입이 완료되었습니다!");
+                // 강제로 이동시킴
                 window.location.href = '/login.html';
             } else {
                 console.error("DB 저장 에러:", error);
