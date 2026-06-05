@@ -20,34 +20,30 @@
         .search-bar button { background-color: #fff; border: none; cursor: pointer; flex-shrink: 0; width: 30px; }
         .user-menu {
             display: flex;
-            align-items: center;
-            justify-content: flex-end; 
-            white-space: nowrap;
-            flex-shrink: 0;
+            align-items: center; /* 핵심: 모든 요소를 세로 중앙에 정렬 */
+            gap: 8px;            /* 요소들 사이의 간격 */
             font-size: 15px;
             font-weight: 600;
-            margin-left: 10px; 
-            padding-right: 10px; 
+        }
+        
+        #before-login {
+            display: flex;
+            align-items: center; /* 로그인, |, 회원가입을 한 줄로 정렬 */
         }
         
         .user-menu a {
-            white-space: nowrap;
             text-decoration: none;
             color: #6d6d6d;
-            padding: 0 5px; 
-            display: flex; /* 링크 안의 텍스트도 정렬 유지 */
+            line-height: 1;      /* 줄 간격 초기화 */
+            display: flex;
             align-items: center;
         }
         
-        .user-menu a:hover {
-            color: #000000; 
-        }
-        
         .divider {
-            margin: 0 4px;
             color: #6d6d6d;
-            display: flex;       /* 추가: 수평 정렬을 위해 */
-            align-items: center; /* 추가: 수평 정렬을 위해 */
+            display: flex;
+            align-items: center;
+            line-height: 1;      /* 기호의 줄 높이 고정 */
         }
 
         /* --- 내비게이션 --- */
