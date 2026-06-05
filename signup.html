@@ -91,31 +91,35 @@
     
         // 3. 회원가입 폼 제출
         document.getElementById('signup-form').addEventListener('submit', async (e) => {
-            e.preventDefault(); // 페이지 새로고침 차단
-    
+            e.preventDefault(); 
+
             const params = new URLSearchParams(window.location.search);
             const email = params.get('email');
             const name = decodeURIComponent(params.get('name') || '');
             const nickname = document.getElementById('signup-nickname').value;
-            const password = document.getElementById('signup-password').value; // 필요시 활용
-    
+
             if (!email) {
-                alert("로그인 정보가 없습니다. 다시 로그인해주세요.");
+                alert("로그인 정보가 없습니다.");
                 return;
             }
-    
-            // DB Insert
+
+            // [핵심] 모든 컬럼에 값을 넣어주어야 합니다.
+            // 빈 값은 '' 또는 null로 설정하세요.
             const { error } = await window.supabase.from('users').insert([
                 { 
                     email: email, 
                     name: name, 
-                    nickname: nickname 
+                    nickname: nickname,
+                    profile_image: '', // 초기값 빈 문자열
+                    gender: '',        // 나중에 수정할 수 있게 비워둠
+                    birthday: '', 
+                    age: '0',          // 숫자형 컬럼이라면 '0' 또는 null
+                    birthyear: '0' 
                 }
             ]);
-    
+
             if (error) {
                 console.error("DB 저장 에러:", error);
-                // 테이블의 특정 컬럼이 NOT NULL인데 값을 안 넣었을 경우 여기서 잡힙니다.
                 alert("가입 실패: " + error.message);
             } else {
                 alert("회원가입 성공!");
