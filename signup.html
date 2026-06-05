@@ -95,9 +95,9 @@
         }
         init();
     
-        // 2. 폼 제출 (저장 확인 후 이동)
+        // 2. 폼 제출 (가입 후 login.html로 이동)
         document.getElementById('signup-form').addEventListener('submit', async (e) => {
-            e.preventDefault(); 
+            e.preventDefault();
             
             const params = new URLSearchParams(window.location.search);
             const email = params.get('email');
@@ -109,33 +109,21 @@
                 return;
             }
     
-            // 저장 시도
             const { error } = await window.supabase.from('users').insert([
-                { 
-                    email: email, 
-                    name: name, 
-                    nickname: nickname,
-                    profile_image: '', 
-                    gender: '',        
-                    birthday: '', 
-                    age: '0',          
-                    birthyear: '0' 
-                }
+                { email, name, nickname, profile_image: '', gender: '', birthday: '', age: '0', birthyear: '0' }
             ]);
     
             if (error) {
                 console.error("저장 에러:", error);
                 alert("가입 실패: " + error.message);
             } else {
-                // [중요] 저장 성공 확인 후 로컬스토리지에 저장하여 로그인 상태로 간주
-                localStorage.setItem('user_email', email);
-                localStorage.setItem('user_name', name);
-                alert("회원가입 성공!");
-                window.location.href = '/index.html'; 
+                // [수정됨] 로그인 페이지로 보내서 인증 흐름을 타게 함
+                alert("회원가입 성공! 로그인 페이지로 이동합니다.");
+                window.location.href = '/login.html'; 
             }
         });
     
-        // 3. 소셜 버튼 리스너
+        // 3. 소셜 버튼 리스너 (기존과 동일)
         document.getElementById('google-signup').addEventListener('click', () => {
             window.supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: 'https://healthykids-workspace.onrender.com/login.html' }});
         });
