@@ -72,7 +72,7 @@
     
         let supabase = null;
     
-        // 1. 초기화가 완료될 때까지 버튼 비활성화
+        // 1. 초기화
         const signupBtn = document.querySelector('button[type="submit"]');
         if (signupBtn) {
             signupBtn.disabled = true;
@@ -89,71 +89,53 @@
                     signupBtn.disabled = false;
                     signupBtn.innerText = "가입하기";
                 }
-                console.log("Supabase 초기화 완료");
             } catch (err) {
                 console.error("초기화 실패:", err);
-                alert("서버 연결 실패. 페이지를 새로고침하세요.");
             }
         }
         init();
     
-        // 2. 페이지 로드
-        window.onload = () => {
-            const params = new URLSearchParams(window.location.search);
-            const email = params.get('email');
-            const idEl = document.getElementById('signup-id');
-            if (email && idEl) idEl.value = email.split('@')[0];
-        };
-    
-        // 3. 폼 제출 이벤트
+        // 2. 폼 제출 (저장 확인 후 이동)
         document.getElementById('signup-form').addEventListener('submit', async (e) => {
             e.preventDefault(); 
-            console.log("폼 제출 시작");
-    
-            if (!window.supabase) {
-                alert("연결 중입니다. 잠시만 기다려주세요.");
-                return;
-            }
-    
+            
             const params = new URLSearchParams(window.location.search);
             const email = params.get('email');
             const name = decodeURIComponent(params.get('name') || '');
             const nickname = document.getElementById('signup-nickname').value;
     
             if (!email) {
-                alert("이메일 정보가 없습니다. 다시 로그인해주세요.");
+                alert("로그인 정보가 없습니다.");
                 return;
             }
     
-            try {
-                const { error } = await window.supabase.from('users').insert([
-                    { 
-                        email: email, 
-                        name: name, 
-                        nickname: nickname,
-                        profile_image: '', 
-                        gender: '',        
-                        birthday: '', 
-                        age: '0',          
-                        birthyear: '0' 
-                    }
-                ]);
-    
-                if (error) {
-                    console.error("저장 에러:", error);
-                    alert("가입 실패: " + error.message);
-                } else {
-                    alert("회원가입 성공!");
-                    localStorage.setItem('user_email', email);
-                    window.location.href = '/index.html'; 
+            // 저장 시도
+            const { error } = await window.supabase.from('users').insert([
+                { 
+                    email: email, 
+                    name: name, 
+                    nickname: nickname,
+                    profile_image: '', 
+                    gender: '',        
+                    birthday: '', 
+                    age: '0',          
+                    birthyear: '0' 
                 }
-            } catch (err) {
-                console.error("예외:", err);
-                alert("오류 발생: " + err.message);
+            ]);
+    
+            if (error) {
+                console.error("저장 에러:", error);
+                alert("가입 실패: " + error.message);
+            } else {
+                // [중요] 저장 성공 확인 후 로컬스토리지에 저장하여 로그인 상태로 간주
+                localStorage.setItem('user_email', email);
+                localStorage.setItem('user_name', name);
+                alert("회원가입 성공!");
+                window.location.href = '/index.html'; 
             }
         });
     
-        // 4. 소셜 가입
+        // 3. 소셜 버튼 리스너
         document.getElementById('google-signup').addEventListener('click', () => {
             window.supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: 'https://healthykids-workspace.onrender.com/login.html' }});
         });
