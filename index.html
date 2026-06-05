@@ -509,13 +509,15 @@
     </div>
 </footer>
     <script type="module">
+        import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
         async function init() {
             try {
                 const res = await fetch('/get-config');
                 const config = await res.json();
                 window.supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
-                
-                // 1. [핵심] 로그인 상태가 변경될 때마다 자동으로 UI 업데이트
+        
+                // 1. 로그인 상태 변경 감지
                 window.supabase.auth.onAuthStateChange(async (event, session) => {
                     console.log("로그인 상태 변경 감지:", event);
                     await updateUI(session);
@@ -525,51 +527,57 @@
                 const { data: { session } } = await window.supabase.auth.getSession();
                 await updateUI(session);
         
-                // 3. 로그아웃 이벤트
+                // 3. 로그아웃 이벤트 (네이버 로컬스토리지 정보까지 함께 삭제)
                 const logoutBtn = document.getElementById('logout-btn');
                 if (logoutBtn) {
                     logoutBtn.addEventListener('click', async (e) => {
                         e.preventDefault();
                         await window.supabase.auth.signOut();
                         localStorage.removeItem('user_email');
-                        window.location.href = 'index.html'; 
+                        localStorage.removeItem('user_name');
+                        localStorage.removeItem('login_type');
+                        window.location.href = 'index.html';
                     });
                 }
             } catch (err) {
                 console.error("초기화 오류:", err);
             }
         }
-
+        
         async function updateUI(session) {
             const beforeLogin = document.getElementById('before-login');
             const afterLogin = document.getElementById('after-login');
             const welcomeMsg = document.getElementById('welcome-message');
-            
-            // updateUI 안의 상단
+        
+            // 세션(구글/카카오) 또는 로컬스토리지(네이버)에서 이메일 가져오기
             let email = session?.user?.email || localStorage.getItem('user_email');
-            console.log("updateUI가 확인한 이메일 주소:", email);
-            
+            console.log("현재 UI 업데이트를 위해 확인된 이메일:", email);
+        
             if (email) {
+                // DB에서 사용자 이름 조회 (.maybeSingle() 사용으로 에러 방지)
                 const { data: userProfile } = await window.supabase
                     .from('users')
                     .select('name')
                     .eq('email', email)
-                    .single();
-            
+                    .maybeSingle();
+        
                 if (userProfile) {
                     beforeLogin.style.display = 'none';
-                    // 여기를 block이 아닌 flex로 변경
-                    afterLogin.style.display = 'flex'; 
-                    if (welcomeMsg) welcomeMsg.innerText = `${userProfile.name}`;
+                    afterLogin.style.display = 'flex';
+                    if (welcomeMsg) welcomeMsg.innerText = `${userProfile.name}님 환영해요!`;
                 } else {
-                    beforeLogin.style.display = 'flex'; // 여기도 flex로 통일
+                    // 이메일은 있으나 DB에 등록되지 않은 경우 (보통 가입 페이지로 이동시켜야 함)
+                    beforeLogin.style.display = 'flex';
                     afterLogin.style.display = 'none';
                 }
             } else {
+                // 로그인 정보 없음
                 beforeLogin.style.display = 'flex';
                 afterLogin.style.display = 'none';
             }
         }
+        
+        init();
     </script>
     <script src="chat-ui.js"></script>
 </body>
