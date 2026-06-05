@@ -21,29 +21,33 @@
         .user-menu {
             display: flex;
             align-items: center;
-            justify-content: flex-end; /* 우측 정렬 강제 */
+            justify-content: flex-end; 
             white-space: nowrap;
             flex-shrink: 0;
             font-size: 15px;
             font-weight: 600;
-            margin-left: 20px; /* 검색창과의 간격을 명시적으로 확보 */
-            padding-right: 10px; /* 화면 끝에서 약간 띄움 */
+            margin-left: 20px; 
+            padding-right: 10px; 
         }
         
         .user-menu a {
             white-space: nowrap;
             text-decoration: none;
             color: #6d6d6d;
-            padding: 0 5px; /* 링크 사이 여백 확보 */
+            padding: 0 5px; 
+            display: flex; /* 링크 안의 텍스트도 정렬 유지 */
+            align-items: center;
         }
         
         .user-menu a:hover {
-            color: #000000; /* 마우스 올렸을 때 색상 변화 추가 */
+            color: #000000; 
         }
         
         .divider {
             margin: 0 8px;
             color: #6d6d6d;
+            display: flex;       /* 추가: 수평 정렬을 위해 */
+            align-items: center; /* 추가: 수평 정렬을 위해 */
         }
 
         /* --- 내비게이션 --- */
@@ -417,7 +421,9 @@
         </form>
         <div class="user-menu" id="user-menu">
             <div id="before-login">
-                <a href="login.html">로그인</a> & " | " & <a href="signup.html">회원가입</a>
+                <a href="login.html">로그인</a>
+                <span class="divider">|</span>
+                <a href="signup.html">회원가입</a>
             </div>
             <div id="after-login" style="display:none;">
                 <span id="welcome-message"></span>님, 환영해요! 
