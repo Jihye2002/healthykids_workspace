@@ -197,7 +197,7 @@
             }
         }
     
-        // 입력 시 에러 초기화
+        // 입력 시 에러 초기화 (입력 시작하면 에러 자동 숨김)
         document.querySelectorAll('input').forEach(input => {
             input.addEventListener('input', () => {
                 input.classList.remove('error-border');
@@ -209,63 +209,57 @@
         // 메인 가입 로직
         document.getElementById('signup-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+    
+            // 0. 에러 초기화 (새로 검사할 때 기존 에러 모두 제거)
+            document.querySelectorAll('.error-text').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.input-box, .id-input-group').forEach(el => el.classList.remove('error-border'));
+    
+            // 데이터 가져오기
             const userId = document.getElementById('user-id').value.trim().toLowerCase();
             const password = document.getElementById('password').value;
             const name = document.getElementById('name').value.trim();
             const nickname = document.getElementById('nickname').value.trim();
             const answer = document.getElementById('answer').value.trim();
-            
+    
             const idRegex = /^[a-z0-9]{3,12}$/;
             const nameRegex = /^[a-zA-Z가-힣\s]{2,12}$/;
             const koreanRegex = /^[가-힣]+$/;
-            
-            // 에러 초기화
-            document.querySelectorAll('.error-text').forEach(el => el.style.display = 'none');
-            document.querySelectorAll('.input-box, .id-input-group').forEach(el => el.classList.remove('error-border'));
-
-            let isValid = true; // 에러가 발생하면 false로 바뀜
-            
-            // 유효성 검사
+    
+            let isValid = true;
+    
+            // 1. 클라이언트 유효성 검사
             if (!nameRegex.test(name)) { showError('name', "이름은 2~12자의 한글 또는 영문!"); isValid = false; }
             if (!idRegex.test(userId)) { showError('user-id', "아이디는 3~12자의 영문/숫자!"); isValid = false; }
             if (password.length < 8) { showError('password', "비밀번호는 8자 이상!"); isValid = false; }
             if (nickname.length === 0) { showError('nickname', "별명을 입력해 주세요!"); isValid = false; }
             if (!koreanRegex.test(answer)) { showError('answer', "답은 한글로만!"); isValid = false; }
-        
-            // 에러가 하나라도 있으면 서버 통신 안 함
-            if (!isValid) return;
     
-            const supabase = await initSupabase();
-            const virtualEmail = `${userId}@healthykids.com`;
+            if (!isValid) return; // 에러가 있으면 가입 중단
     
+            // 2. 서버 통신
             const supabase = await initSupabase();
-            const { error: authErr } = await supabase.auth.signUp({ email: `${userId}@healthykids.com`, password });
-            
-            // 2. 일단 아래 코드는 주석 처리하거나, 에러 메시지를 보고 조건을 수정하세요.
+            const { error: authErr } = await supabase.auth.signUp({
+                email: `${userId}@healthykids.com`,
+                password: password
+            });
+    
+            // 3. 인증 에러 처리
             if (authErr) {
                 const msg = authErr.message;
-                
-                // 1. 아이디 중복 처리
                 if (msg.includes("already registered")) {
-                    showError('user-id', "이미 사용 중인 아이디예요! 다른 아이디를 골라볼까요?");
-                } 
-                // 2. 비밀번호 복잡성 에러 (Supabase가 보내는 메시지 확인)
-                else if (msg.includes("weak") || msg.includes("at least one")) {
-                    showError('password', "비밀번호는 대문자, 소문자, 숫자, 기호를 섞어 8자 이상 써주세요!");
-                } 
-                // 3. 기타 예기치 못한 에러
-                else {
-                    showError('password', "가입 오류: 다시 시도해 주세요.");
-                    console.error("Supabase Error Detail:", msg); // 개발자용 로그
+                    showError('user-id', "이미 사용 중인 아이디예요!");
+                } else if (msg.includes("weak") || msg.includes("at least one")) {
+                    showError('password', "대문자, 소문자, 숫자, 기호를 섞어 8자 이상 써주세요!");
+                } else {
+                    showError('password', "가입 오류: " + msg);
                 }
-                return; // 여기서 멈춰야 나머지 로직(별명 체크 등)이 실행되지 않습니다.
+                return;
             }
     
-            // 2. 별명 중복 체크
+            // 4. 별명 중복 체크
             const { data: existingUser } = await supabase.from('users').select('nickname').eq('nickname', nickname).maybeSingle();
             if (existingUser) {
-                showError('nickname', "이미 사용 중인 별명이에요! 다른 별명을 만들어 볼까요?");
+                showError('nickname', "이미 사용 중인 별명이에요!");
                 return;
             }
     
