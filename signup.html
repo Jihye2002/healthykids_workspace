@@ -224,7 +224,7 @@
             // 유효성 검사
             if (!nameRegex.test(name)) { showError('name', "이름은 2~12자의 한글 또는 영문으로 입력해 주세요!"); return; }
             if (!idRegex.test(userId)) { showError('user-id', "아이디는 3~12자의 영문 소문자와 숫자만 가능해요!"); return; }
-            if (password.length < 8) { showError('password', "비밀번호는 8자 이상으로 만들어 주세요!"); return; }
+            if (password.length < 8) { showError('password', "비밀번호는 알파벳 대소문자·숫자·기호를 섞어 8글자 이상 만들어 주세요!"); return; }
             if (nickname.length === 0) { showError('nickname', "별명을 입력해 주세요!"); return; }
             if (!koreanRegex.test(answer)) { showError('answer', "답은 한글로만 입력해 주세요!"); return; }
     
