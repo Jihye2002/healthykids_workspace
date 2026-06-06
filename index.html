@@ -556,7 +556,10 @@
             const afterLogin = document.getElementById('after-login');
             const welcomeMsg = document.getElementById('welcome-message');
         
-            if (!session) {
+            // Supabase 세션 또는 localStorage(네이버)에서 이름 가져오기
+            const userName = session?.user?.user_metadata?.full_name || localStorage.getItem('user_name');
+        
+            if (!userName) {
                 beforeLogin.style.display = 'flex';
                 afterLogin.style.display = 'none';
                 return;
@@ -564,34 +567,34 @@
         
             beforeLogin.style.display = 'none';
             afterLogin.style.display = 'flex';
-            
-            // 이제 welcomeMsg는 이름만 표시합니다.
-            const name = session.user.user_metadata?.full_name || "사용자";
-            welcomeMsg.textContent = name; 
+            welcomeMsg.textContent = userName; // 이름만 표시 (HTML에 "님 환영해요!" 존재)
         }
-    
+        
         // 2. 로그아웃 함수
         async function handleLogout() {
+            // 1. Supabase 로그아웃
             await window.supabase.auth.signOut();
-            // 로그아웃 후 브라우저 캐시 문제를 방지하기 위해 새로고침
+            // 2. 네이버 로그인 정보(localStorage) 삭제
+            localStorage.removeItem('user_name');
+            // 3. 화면 새로고침
             window.location.reload();
         }
-    
+        
         // 3. 초기화 함수
         async function init() {
             const res = await fetch('/get-config');
             const config = await res.json();
             window.supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
-    
+        
             // 로그아웃 버튼 이벤트 연결
             document.getElementById('logout-btn')?.addEventListener('click', handleLogout);
-    
-            // 인증 상태 변화 감지
+        
+            // 인증 상태 변화 감지 (구글/카카오용)
             window.supabase.auth.onAuthStateChange((event, session) => {
                 updateUI(session);
             });
-    
-            // 현재 상태 확인
+        
+            // 현재 상태 확인 (페이지 로드 시)
             const { data: { session } } = await window.supabase.auth.getSession();
             updateUI(session);
         }
