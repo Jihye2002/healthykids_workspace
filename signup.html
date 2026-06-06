@@ -47,18 +47,18 @@
         <h2>회원가입 | SIGN-UP</h2>
         
         <form id="signup-form">
-            <input type="text" id="signup-email" class="input-box" placeholder="이메일" style="width: 340px;" readonly>
-            <input type="text" id="signup-name" class="input-box" placeholder="이름" style="width: 340px;" readonly>
+            <input type="text" id="email" class="input-box" placeholder="이메일" style="width: 340px;" readonly>
+            <input type="text" id="name" class="input-box" placeholder="이름" style="width: 340px;" readonly>
             
-            <input type="text" id="signup-nickname" class="input-box" placeholder="특별한 별명을 만들어주세요!" style="width: 340px;" required>
+            <input type="text" id="nickname" class="input-box" placeholder="특별한 별명을 만들어주세요!" style="width: 340px;" required>
             
-            <select id="hint-question" class="input-box">
+            <select id="question" class="input-box">
                 <option value="가장 좋아하는 동물은?">가장 좋아하는 동물은?</option>
                 <option value="내가 태어난 곳은?">내가 태어난 곳은?</option>
                 <option value="가장 좋아하는 음식은?">가장 좋아하는 음식은?</option>
             </select>
             
-            <input type="text" id="hint-answer" class="input-box" placeholder="질문에 대한 답 (나만 알기!)" style="width: 340px;" required>
+            <input type="text" id="answer" class="input-box" placeholder="질문에 대한 답 (나만 알기!)" style="width: 340px;" required>
             
             <button type="submit" class="input-box" style="width: 340px; background-color: #2f63c7; color: white; border: none; cursor: pointer; font-weight: bold; margin-top: 10px;">가입하기</button>
         </form>
@@ -74,42 +74,67 @@
 
     <script type="module">
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-    
+
         async function initSupabase() {
             const res = await fetch('/get-config');
             const config = await res.json();
             return createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
         }
     
-        // [중요] 페이지 로드 시 가입 이력 체크
+        // 1. 이미 가입된 유저가 들어올 경우 차단
         document.addEventListener('DOMContentLoaded', () => {
             if (localStorage.getItem('user_name')) {
                 showAuthModal(`${localStorage.getItem('user_name')}님은 이미 가입되어 있어요! 이제 로그인을 해주시면 좋을 것 같아요!`);
             }
         });
     
-        // 모달 표시 함수 (signup.html에도 필요)
         function showAuthModal(message) {
             const modal = document.getElementById('auth-modal');
             const msgElement = document.getElementById('modal-message');
             if (!modal || !msgElement) return;
-    
             msgElement.textContent = message;
             modal.style.display = 'flex';
-    
-            const timer = setTimeout(() => {
-                window.location.href = 'login.html';
-            }, 3000);
-    
+            
+            const timer = setTimeout(() => { window.location.href = 'login.html'; }, 3000);
             const btn = modal.querySelector('button');
             btn?.addEventListener('click', () => clearTimeout(timer));
         }
     
-        // 1. 일반 회원가입
+        // 2. 일반 회원가입 (ID 매칭 확인 완료)
+        <script type="module">
+        import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+        async function initSupabase() {
+            const res = await fetch('/get-config');
+            const config = await res.json();
+            return createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+        }
+    
+        // 1. 이미 가입된 유저가 들어올 경우 차단
+        document.addEventListener('DOMContentLoaded', () => {
+            if (localStorage.getItem('user_name')) {
+                showAuthModal(`${localStorage.getItem('user_name')}님은 이미 가입되어 있어요! 이제 로그인을 해주시면 좋을 것 같아요!`);
+            }
+        });
+    
+        function showAuthModal(message) {
+            const modal = document.getElementById('auth-modal');
+            const msgElement = document.getElementById('modal-message');
+            if (!modal || !msgElement) return;
+            msgElement.textContent = message;
+            modal.style.display = 'flex';
+            
+            const timer = setTimeout(() => { window.location.href = 'login.html'; }, 3000);
+            const btn = modal.querySelector('button');
+            btn?.addEventListener('click', () => clearTimeout(timer));
+        }
+    
+        // 2. 일반 회원가입 (ID 매칭 확인 완료)
         document.getElementById('signup-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const supabase = await initSupabase();
             
+            // HTML의 ID들과 정확히 일치시켰습니다.
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             const name = document.getElementById('name').value;
@@ -127,10 +152,31 @@
             if (dbErr) alert("DB 저장 실패: " + dbErr.message);
             else { 
                 alert("가입 완료!"); 
-                localStorage.setItem('user_name', name); // 가입 성공 시 이름 저장
+                localStorage.setItem('user_name', name); 
                 window.location.href = 'login.html'; 
             }
         });
+    
+        // 2. 소셜 가입 로직
+        const socialSignUp = async (provider) => {
+            const supabase = await initSupabase();
+            await supabase.auth.signInWithOAuth({
+                provider: provider,
+                options: { redirectTo: 'https://healthykids-workspace.onrender.com/login.html' }
+            });
+        };
+    
+        document.getElementById('google-signup')?.addEventListener('click', () => socialSignUp('google'));
+        document.getElementById('kakao-signup')?.addEventListener('click', () => socialSignUp('kakao'));
+    
+        const naverBtn = document.getElementById('naver-signup');
+        naverBtn?.addEventListener('click', async () => {
+            const res = await fetch('/get-config');
+            const config = await res.json();
+            const callbackUrl = encodeURIComponent("https://healthykids-workspace.onrender.com/callback.html");
+            window.location.href = `https://nid.naver.com/oauth2.0/authorize?response_type=token&client_id=${config.NAVER_CLIENT_ID}&redirect_uri=${callbackUrl}&state=RANDOM`;
+        });
+    </script>
     
         // 2. 소셜 가입 로직
         const socialSignUp = async (provider) => {
