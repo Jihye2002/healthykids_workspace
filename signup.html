@@ -86,14 +86,24 @@
 
     <script type="module">
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-    
+
+        // 1. Supabase 초기화 함수
         async function initSupabase() {
             const res = await fetch('/get-config');
             const config = await res.json();
             return createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
         }
-    
-        // 1. 에러 표시 공통 함수
+        
+        // 2. 페이지 로드 시 로그인 체크
+        document.addEventListener('DOMContentLoaded', async () => {
+            const supabase = await initSupabase();
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                window.location.href = 'index.html';
+            }
+        });
+        
+        // 3. 에러 표시 공통 함수
         function showError(inputId, message) {
             const input = document.getElementById(inputId);
             const errorDiv = document.getElementById(inputId + '-error');
@@ -103,33 +113,28 @@
                 errorDiv.style.display = 'block';
             }
         }
-    
-        // 2. 이미 가입된 유저 차단 (페이지 로드 시)
-        document.addEventListener('DOMContentLoaded', () => {
-            if (localStorage.getItem('user_name')) {
-                showAuthModal(`${localStorage.getItem('user_name')}님은 이미 가입되어 있어요!`);
-            }
-            
-            // 입력 시 에러 자동 초기화 설정
-            document.querySelectorAll('.input-box').forEach(input => {
-                input.addEventListener('input', () => {
-                    input.classList.remove('error-border');
-                    const errorDiv = document.getElementById(input.id + '-error');
-                    if (errorDiv) errorDiv.style.display = 'none';
-                });
+        
+        // 4. 입력 시 에러 자동 초기화
+        document.querySelectorAll('.input-box').forEach(input => {
+            input.addEventListener('input', () => {
+                input.classList.remove('error-border');
+                const errorDiv = document.getElementById(input.id + '-error');
+                if (errorDiv) errorDiv.style.display = 'none';
             });
         });
-    
-        function showAuthModal(message) {
-            const modal = document.getElementById('auth-modal');
-            const msgElement = document.getElementById('modal-message');
-            if (!modal || !msgElement) return;
-            msgElement.textContent = message;
-            modal.style.display = 'flex';
-            setTimeout(() => { window.location.href = 'login.html'; }, 3000);
+        
+        // 5. 사용자 존재 여부 확인 함수
+        async function checkUserExists(supabase, name, nickname, email) {
+            const { data } = await supabase
+                .from('users')
+                .select('*')
+                .eq('name', name)
+                .eq('nickname', nickname)
+                .maybeSingle();
+            return !!data;
         }
-    
-        // 3. 회원가입 제출 처리
+        
+        // 6. 회원가입 제출 처리
         document.getElementById('signup-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const supabase = await initSupabase();
@@ -142,17 +147,24 @@
             const virtualEmail = `${name.replace(/\s+/g, '')}${Date.now()}@healthykids.com`;
         
             // 가입 시도
-            const { error: authErr } = await supabase.auth.signUp({ email: virtualEmail, password: password });
-                
+            const { error: authErr } = await supabase.auth.signUp({ 
+                email: virtualEmail, 
+                password: password 
+            });
+            
+            if (authErr) {
                 if (authErr.message.includes("weak")) {
-                    errorMessage = "비밀번호는 8글자 이상, 대소문자, 숫자, 기호를 모두 섞어서 만들어야 해요!";
-                } else if (authErr.message.includes("already registered")) {
-                    errorMessage = "이미 가입된 이메일(이름)이에요.";
+                        showError('password', "비밀번호는 8글자 이상, 대소문자, 숫자, 기호를 섞어서 만들어야 해요!");
+                    } else if (authErr.message.includes("already registered")) {
+                        showError('name', "어? 이 이름은 이미 누군가 쓰고 있어요.");
+                    }
+                    return; 
                 }
-        
-                showError('password', errorMessage); // 비밀번호 입력창 아래에 띄우기
-                return;
-            }
+
+                if (answer.trim().length === 0) {
+                    showError('answer', "질문에 대한 답을 꼭 적어주세요!");
+                    return;
+                }
         
             // DB 저장
             const { error: dbErr } = await supabase.from('users').insert([{ 
@@ -160,14 +172,28 @@
             }]);
             
             if (dbErr) {
-                showError('name', '데이터 저장 실패: ' + dbErr.message);
+                showError('name', "저장하는 중에 실수가 있었나 봐요. 다시 눌러볼까요?");
                 return;
             }
         
-            alert("가입 완료!");
+            // alert("가입 완료!"); // 이 줄을 지우고 아래처럼 바꾸세요
             localStorage.setItem('user_name', name);
-            window.location.href = 'login.html';
+            showAuthModal("가입 완료! 이제 로그인해 보세요.");
         });
+
+        function showAuthModal(message) {
+            const modal = document.getElementById('auth-modal');
+            const msgElement = document.getElementById('modal-message');
+            if (!modal || !msgElement) return;
+            
+            msgElement.textContent = message;
+            modal.style.display = 'flex';
+            
+            // 3초 뒤 로그인 페이지로 이동
+            setTimeout(() => { 
+                window.location.href = 'https://healthykids-workspace.onrender.com/login.html'; 
+            }, 3000);
+        }
     
         // 4. 소셜 가입 로직
         const socialSignUp = async (provider) => {
