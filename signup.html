@@ -47,7 +47,7 @@
 </head>
 <body>
     <div id="auth-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); justify-content: center; align-items: center; z-index: 9999;">
-        <div style="background: white; padding: 30px; border-radius: 15px; text-align: center;">
+        <div style="background: white; padding: 30px; text-align: center;">
             <p id="modal-message"></p>
             <button onclick="window.location.href='login.html'">로그인하러 가기</button>
         </div>
@@ -59,14 +59,14 @@
         <form id="signup-form">
             <input type="text" id="name" class="input-box" placeholder="이름을 입력해 주세요!" required>
             <div id="name-error" class="error-text">이름이 뭔가요?</div>
-
-            <div class="id-input-group" id="id-group">
+        
+            <div class="id-input-group">
                 <input type="text" id="user-id" placeholder="나만의 아이디" required>
                 <span class="email-suffix">@healthykids.com</span>
             </div>
             <div id="id-error" class="error-text">아이디를 입력해 주세요!</div>
             
-            <input type="password" id="password" class="input-box" placeholder="비밀번호(영어,숫자,기호 8자 이상)" required>
+            <input type="password" id="password" class="input-box" placeholder="비밀번는 대문자, 소문자, 숫자, 기호를 섞어서 8자 이상 만들어주세요!)" required>
             <div id="password-error" class="error-text">비밀번호를 입력해 주세요!</div>
             
             <input type="text" id="nickname" class="input-box" placeholder="특별한 별명을 만들어주세요!" required>
