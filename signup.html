@@ -106,7 +106,7 @@
             await supabase.auth.signInWithOAuth({
                 provider: provider, // 여기는 'google', 'kakao' 여야 합니다.
                 options: { 
-                    redirectTo: 'https://healthykids-workspace.onrender.com/callback.html' 
+                    redirectTo: 'https://healthykids-workspace.onrender.com/login.html' 
                 }
             });
         };
