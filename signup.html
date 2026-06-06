@@ -11,13 +11,33 @@
         
         .input-box { width: 340px; padding: 12px; margin: 8px 0; border: 2px solid #ddd; box-sizing: border-box; }
         
-        /* 아이디 입력창 그룹 스타일 (login.html과 통일) */
         .id-input-group { 
-            display: flex; align-items: center; width: 340px; margin: 8px 0; 
-            border: 2px solid #ddd; box-sizing: border-box; background: white;
+            display: flex; 
+            align-items: center; 
+            width: 340px; 
+            margin: 8px 0; 
+            border: 2px solid #ddd; 
+            box-sizing: border-box; 
+            background: white;
         }
-        .id-input-group input { border: none; width: 100%; padding: 12px; outline: none; }
-        .email-suffix { color: #888; padding-right: 10px; font-size: 14px; white-space: nowrap; }
+        
+        /* input은 flex-grow를 주어 남은 공간을 다 차지하게 함 */
+        .id-input-group input { 
+            border: none; 
+            flex: 1; 
+            padding: 12px; 
+            outline: none; 
+            width: 100%; /* 너비 유지 */
+        }
+        
+        /* @healthykids.com 글자는 고정 너비로 처리 */
+        .email-suffix { 
+            color: #888; 
+            padding-right: 10px; 
+            font-size: 14px; 
+            white-space: nowrap; 
+            flex-shrink: 0; /* 글자가 줄어들지 않게 함 */
+        }
 
         .error-border { border: 2px solid #ff4d4d !important; }
         .error-text { font-size: 13px; color: #ff4d4d; margin-top: -5px; margin-bottom: 10px; display: none; text-align: left; padding-left: 5%; }
