@@ -551,33 +551,45 @@
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
         
         async function updateUI(session) {
-            const beforeLogin = document.getElementById('before-login');
-            const afterLogin = document.getElementById('after-login');
-            const welcomeMsg = document.getElementById('welcome-message');
-        
-            // 세션 정보 확인
-            const email = session?.user?.email || localStorage.getItem('user_email');
-            
-            if (email) {
-                // DB에서 이름 가져오기
-                const { data: user } = await window.supabase
-                    .from('users')
-                    .select('name')
-                    .eq('email', email)
-                    .maybeSingle();
-        
-                if (user) {
-                    // 로그인 성공 UI
-                    if (welcomeMsg) welcomeMsg.innerText = user.name;
-                    beforeLogin.style.display = 'none';
-                    afterLogin.style.display = 'flex';
-                }
-            } else {
-                // 비로그인 UI
-                beforeLogin.style.display = 'flex';
-                afterLogin.style.display = 'none';
-            }
+        const beforeLogin = document.getElementById('before-login');
+        const afterLogin = document.getElementById('after-login');
+        const welcomeMsg = document.getElementById('welcome-message');
+    
+        if (!session) {
+            beforeLogin.style.display = 'flex';
+            afterLogin.style.display = 'none';
+            return;
         }
+    
+        const { email, user_metadata } = session.user;
+    
+        // 1. DB에서 이메일로 유저 찾기
+        let { data: userProfile } = await window.supabase
+            .from('users')
+            .select('*')
+            .eq('email', email)
+            .maybeSingle();
+    
+        // 2. DB에 없다면? -> 자동 가입 (이름이 없으면 이메일 앞부분 사용)
+        if (!userProfile) {
+            const userName = user_metadata.full_name || email.split('@')[0];
+            const { data: newUser, error } = await window.supabase
+                .from('users')
+                .insert([{ email: email, name: userName }])
+                .select()
+                .single();
+            
+            userProfile = newUser;
+            if (error) console.error("가입 에러:", error);
+        }
+    
+        // 3. UI 업데이트
+        if (userProfile) {
+            if (welcomeMsg) welcomeMsg.innerText = `${userProfile.name}님`;
+            beforeLogin.style.display = 'none';
+            afterLogin.style.display = 'flex';
+        }
+    }
 
         async function init() {
             try {
