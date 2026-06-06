@@ -549,67 +549,79 @@
 </footer>
     <script type="module">
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-        
-        async function updateUI(session) {
-        const beforeLogin = document.getElementById('before-login');
-        const afterLogin = document.getElementById('after-login');
-        const welcomeMsg = document.getElementById('welcome-message');
-    
-        if (!session) {
-            beforeLogin.style.display = 'flex';
-            afterLogin.style.display = 'none';
-            return;
-        }
-    
-        const { email, user_metadata } = session.user;
-    
-        // 1. DB에서 이메일로 유저 찾기
-        let { data: userProfile } = await window.supabase
-            .from('users')
-            .select('*')
-            .eq('email', email)
-            .maybeSingle();
-    
-        // 2. DB에 없다면? -> 자동 가입 (이름이 없으면 이메일 앞부분 사용)
-        if (!userProfile) {
-            const userName = user_metadata.full_name || email.split('@')[0];
-            const { data: newUser, error } = await window.supabase
-                .from('users')
-                .insert([{ email: email, name: userName }])
-                .select()
-                .single();
-            
-            userProfile = newUser;
-            if (error) console.error("가입 에러:", error);
-        }
-    
-        // 3. UI 업데이트
-        if (userProfile) {
-            if (welcomeMsg) welcomeMsg.innerText = `${userProfile.name}님`;
-            beforeLogin.style.display = 'none';
-            afterLogin.style.display = 'flex';
-        }
-    }
 
+        async function updateUI(session) {
+            const beforeLogin = document.getElementById('before-login');
+            const afterLogin = document.getElementById('after-login');
+            const welcomeMsg = document.getElementById('welcome-message');
+        
+            // 1. 로그인 상태 결정 (Supabase 세션 OR 로컬 스토리지)
+            const userEmail = session?.user?.email || localStorage.getItem('user_email');
+            const userName = session?.user?.user_metadata?.full_name || localStorage.getItem('user_name');
+        
+            // 로그인 정보가 아예 없으면 비로그인 UI
+            if (!userEmail) {
+                beforeLogin.style.display = 'flex';
+                afterLogin.style.display = 'none';
+                return;
+            }
+        
+            // 2. DB에서 유저 조회 (Supabase 세션 유저의 경우에만 가입 로직 수행)
+            let userProfile = null;
+            if (session) {
+                let { data: existing } = await window.supabase
+                    .from('users')
+                    .select('*')
+                    .eq('email', userEmail)
+                    .maybeSingle();
+        
+                if (!existing) {
+                    const { data: newUser } = await window.supabase
+                        .from('users')
+                        .insert([{ email: userEmail, name: userName }])
+                        .select()
+                        .single();
+                    userProfile = newUser;
+                } else {
+                    userProfile = existing;
+                }
+            } else {
+                // 네이버 유저의 경우 DB 조회만 함
+                let { data: existing } = await window.supabase
+                    .from('users')
+                    .select('*')
+                    .eq('email', userEmail)
+                    .maybeSingle();
+                userProfile = existing || { name: userName };
+            }
+        
+            // 3. UI 업데이트
+            if (userProfile) {
+                if (welcomeMsg) welcomeMsg.innerText = `${userProfile.name}님 환영해요!`;
+                beforeLogin.style.display = 'none';
+                afterLogin.style.display = 'flex';
+            }
+        }
+        
         async function init() {
             try {
                 const res = await fetch('/get-config');
                 const config = await res.json();
                 window.supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
                 
-                // 인증 상태가 변할 때마다 UI 갱신
+                // Supabase 인증 상태 변화 감지
                 window.supabase.auth.onAuthStateChange((event, session) => updateUI(session));
                 
-                // 페이지 로드 시 즉시 세션 확인
+                // 초기 세션 확인
                 const { data: { session } } = await window.supabase.auth.getSession();
                 updateUI(session);
                 
-                // 로그아웃 버튼 이벤트
+                // 로그아웃 처리
                 document.getElementById('logout-btn')?.addEventListener('click', async (e) => {
                     e.preventDefault();
                     await window.supabase.auth.signOut();
                     localStorage.clear();
-                    window.location.reload(); // 로그아웃 후 새로고침하여 비로그인 상태로 복귀
+                    window.location.reload();
                 });
             } catch (err) {
                 console.error("초기화 오류:", err);
