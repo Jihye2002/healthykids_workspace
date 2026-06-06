@@ -114,7 +114,9 @@
         document.getElementById('google-signup').addEventListener('click', () => socialSignUp('google'));
         document.getElementById('kakao-signup').addEventListener('click', () => socialSignUp('kakao'));
         
-        const naverBtn = document.getElementById('naver-btn');
+        // 'naver-btn' 대신 'naver-signup'으로 ID를 변경합니다.
+        const naverBtn = document.getElementById('naver-signup'); 
+        
         if (naverBtn) {
             naverBtn.addEventListener('click', async () => {
                 const res = await fetch('/get-config');
