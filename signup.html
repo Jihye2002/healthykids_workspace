@@ -154,16 +154,21 @@
             return createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
         }
 
-        function showError(inputId, message) {
-            const input = document.getElementById(inputId);
-            const errorDiv = document.getElementById(inputId + '-error');
+        function showError(id, message) {
+            const errorDiv = document.getElementById(id + '-error');
+            const inputElement = document.getElementById(id);
             
-            if (input) {
-                input.classList.add('error-border'); // 빨간 테두리 클래스 추가
-            }
+            // 에러 메시지 보이기
             if (errorDiv) {
-                errorDiv.textContent = message;      // 메시지 설정
-                errorDiv.style.display = 'block';    // 화면에 나타나게 함
+                errorDiv.textContent = message;
+                errorDiv.style.display = 'block';
+            }
+            
+            // 입력창 테두리 빨갛게 (아이디는 그룹 전체에)
+            if (id === 'user-id') {
+                document.querySelector('.id-input-group').classList.add('error-border');
+            } else if (inputElement) {
+                inputElement.classList.add('error-border');
             }
         }
 
@@ -188,22 +193,42 @@
             
             const virtualEmail = `${userId}@healthykids.com`;
 
-            const { error: authErr } = await supabase.auth.signUp({ email: virtualEmail, password: password });
+            // 가입 요청
+            const { error: authErr } = await supabase.auth.signUp({ 
+                email: virtualEmail, 
+                password: password 
+            });
             
             if (authErr) {
-                // 1. 서버가 준 에러를 콘솔에서 확인 (디버깅용)
                 console.error("Supabase Error:", authErr);
             
-                // 2. 에러 종류에 따라 화면에 에러 표시
+                // 모든 에러 메시지 초기화 (이전 에러 지우기)
+                document.querySelectorAll('.error-text').forEach(el => el.style.display = 'none');
+                document.querySelectorAll('.input-box, .id-input-group').forEach(el => el.classList.remove('error-border'));
+            
+                // 에러 종류에 따라 화면에 표시
                 if (authErr.message.includes("weak")) {
-                    showError('password', "비밀번호가 너무 쉬워요! (영어 대소문자, 숫자, 기호 포함)");
+                    // 비밀번호 에러 처리
+                    const pErr = document.getElementById('password-error');
+                    pErr.textContent = "비밀번호가 너무 쉬워요! 영어 대소문자, 숫자, 기호를 섞어서 8글자보다 길게 만들어 주세요.";
+                    pErr.style.display = 'block';
+                    document.getElementById('password').classList.add('error-border');
+                    
                 } else if (authErr.message.includes("already registered")) {
-                    showError('user-id', "이미 사용 중인 아이디입니다.");
+                    // 아이디 중복 에러 처리
+                    const iErr = document.getElementById('id-error');
+                    iErr.textContent = "이미 아이디가 있어요ㅠㅠ 다른 아이디를 입력해 볼까요?";
+                    iErr.style.display = 'block';
+                    document.querySelector('.id-input-group').classList.add('error-border');
+                    
                 } else {
-                    // 그 외 에러가 났을 때 일단 알림창으로라도 확인
-                    alert("가입 중 오류가 발생했어요: " + authErr.message);
+                    // 기타 에러는 비밀번호 창 아래에 통합 표시
+                    const pErr = document.getElementById('password-error');
+                    pErr.textContent = "잠깐 잘못된 것 같아요. 조금만 있다가 다시 시도해 주세요!";
+                    pErr.style.display = 'block';
+                    document.getElementById('password').classList.add('error-border');
                 }
-                return;
+                return; // 함수 종료
             }
 
             const { error: dbErr } = await supabase.from('users').insert([{ email: virtualEmail, name, nickname, question, answer }]);
