@@ -213,17 +213,54 @@
 
         document.getElementById('signup-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const supabase = await initSupabase();
+            
+            // 0. 입력값 먼저 가져오기
             const userId = document.getElementById('user-id').value.trim().toLowerCase();
             const password = document.getElementById('password').value;
-            const name = document.getElementById('name').value;
-            const nickname = document.getElementById('nickname').value;
+            const name = document.getElementById('name').value.trim();
+            const nickname = document.getElementById('nickname').value.trim();
             const question = document.getElementById('question').value;
-            const answer = document.getElementById('answer').value;
-            
+            const answer = document.getElementById('answer').value.trim();
+            const koreanRegex = /^[가-힣]+$/;
             const virtualEmail = `${userId}@healthykids.com`;
-
-            // 가입 요청
+            
+            // 에러 메시지 초기화
+            document.querySelectorAll('.error-text').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.input-box, .id-input-group').forEach(el => el.classList.remove('error-border'));
+        
+            // 1. 클라이언트 측 유효성 검증 (서버 통신 전!)
+            if (name.length === 0) {
+                showError('name', "반가워요! 이름이 뭔가요?");
+                return;
+            }
+            if (nickname.length === 0) {
+                showError('nickname', "별명을 입력해 주세요!");
+                return;
+            }
+            if (answer.length === 0) {
+                showError('answer', "질문에 대한 답을 입력해 주세요!");
+                return;
+            } else if (!koreanRegex.test(answer)) {
+                showError('answer', "답은 한글로만 입력해 주세요!");
+                return;
+            }
+        
+            // 2. 서버 통신 시작
+            const supabase = await initSupabase();
+        
+            // 3. 별명 중복 체크 (DB 확인)
+            const { data: existingUser, error: checkErr } = await supabase
+                .from('users')
+                .select('nickname')
+                .eq('nickname', nickname)
+                .maybeSingle(); // 결과가 없으면 null을 반환함
+        
+            if (existingUser) {
+                showError('nickname', "이미 누군가 사용 중인 별명이에요! 다른 걸로 해볼까요?");
+                return;
+            }
+        
+            // 4. Supabase 인증 가입
             const { error: authErr } = await supabase.auth.signUp({ 
                 email: virtualEmail, 
                 password: password 
@@ -231,39 +268,25 @@
             
             if (authErr) {
                 console.error("Supabase Error:", authErr);
-            
-                // 모든 에러 메시지 초기화 (이전 에러 지우기)
-                document.querySelectorAll('.error-text').forEach(el => el.style.display = 'none');
-                document.querySelectorAll('.input-box, .id-input-group').forEach(el => el.classList.remove('error-border'));
-            
-                // 에러 종류에 따라 화면에 표시
                 if (authErr.message.includes("weak")) {
-                    // 비밀번호 에러 처리
-                    const pErr = document.getElementById('password-error');
-                    pErr.textContent = "비밀번호가 너무 쉬워요! 영어 대소문자, 숫자, 기호를 섞어서 8글자보다 길게 만들어 주세요.";
-                    pErr.style.display = 'block';
-                    document.getElementById('password').classList.add('error-border');
-                    
+                    showError('password', "비밀번호가 너무 쉬워요! 영어, 숫자, 기호를 섞어주세요.");
                 } else if (authErr.message.includes("already registered")) {
-                    // 아이디 중복 에러 처리
-                    const iErr = document.getElementById('id-error');
-                    iErr.textContent = "이미 아이디가 있어요ㅠㅠ 다른 아이디를 입력해 볼까요?";
-                    iErr.style.display = 'block';
-                    document.querySelector('.id-input-group').classList.add('error-border');
-                    
+                    showError('user-id', "이미 아이디가 있어요! 다른 아이디를 써볼까요?");
+                } else if (authErr.message.includes("invalid format")) {
+                    showError('user-id', "아이디를 다시 써주세요ㅜㅜ");
                 } else {
-                    // 기타 에러는 비밀번호 창 아래에 통합 표시
-                    const pErr = document.getElementById('password-error');
-                    pErr.textContent = "잠깐 잘못된 것 같아요. 조금만 있다가 다시 시도해 주세요!";
-                    pErr.style.display = 'block';
-                    document.getElementById('password').classList.add('error-border');
+                    showError('password', "가입 중 오류가 발생했어요. 다시 시도해 주세요!");
                 }
-                return; // 함수 종료
+                return;
             }
-
+            
+            // 5. DB Insert 및 성공 처리
             const { error: dbErr } = await supabase.from('users').insert([{ email: virtualEmail, name, nickname, question, answer }]);
-            if (dbErr) { showError('name', "죄송해요.조금 후에 다시 시도해 주세요."); return; }
-
+            if (dbErr) { 
+                showError('name', "죄송해요. 조금 후에 다시 시도해 주세요."); 
+                return; 
+            }
+        
             const modal = document.getElementById('auth-modal');
             document.getElementById('modal-message').textContent = "가입 완료! 로그인 페이지로 이동해요!";
             modal.style.display = 'flex';
