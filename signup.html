@@ -235,7 +235,7 @@
             const { error: authErr } = await supabase.auth.signUp({ email: virtualEmail, password: password });
             if (authErr) {
                 if (authErr.message.includes("weak")) showError('password', "비밀번호가 너무 쉬워요!");
-                else if (authErr.message.includes("already registered")) showError('user-id', "이미 사용 중인 아이디입니다.");
+                else if (authErr.message.includes("already registered")) showError('user-id', "이미 사용 중인 아이디예요. 다른 아이디를 입력해 주세요!");
                 else showError('password', "가입 오류가 발생했습니다.");
                 return;
             }
@@ -243,7 +243,7 @@
             // 2. 별명 중복 체크
             const { data: existingUser } = await supabase.from('users').select('nickname').eq('nickname', nickname).maybeSingle();
             if (existingUser) {
-                showError('nickname', "이미 사용 중인 별명입니다!");
+                showError('nickname', "이미 사용 중인 별명이에요! 다른 별명을 만들어 볼까요?");
                 return;
             }
     
@@ -252,10 +252,10 @@
                 { email: virtualEmail, name, nickname, question: document.getElementById('question').value, answer }
             ]);
             
-            if (dbErr) { showError('name', "저장 실패! 다시 시도해 주세요."); return; }
+            if (dbErr) { showError('name', "저장 실패.. 다시 시도해 주세요ㅠㅠ"); return; }
     
             // 4. 완료 처리
-            document.getElementById('modal-message').textContent = "가입 완료! 로그인 페이지로 이동합니다!";
+            document.getElementById('modal-message').textContent = "가입 완료! 로그인 페이지로 이동해요!";
             document.getElementById('auth-modal').style.display = 'flex';
             setTimeout(() => window.location.href = 'login.html', 3000);
         });
