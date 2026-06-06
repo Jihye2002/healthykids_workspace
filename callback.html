@@ -17,7 +17,7 @@
             width: 50px;
             height: 50px;
             border: 5px solid #e0e0e0;
-            border-top: 5px solid #03c75a; /* 네이버의 상징색 */
+            border-top: 5px solid #03c75a; 
             border-radius: 50%;
             animation: spin 1s linear infinite;
             margin-bottom: 20px;
@@ -29,63 +29,65 @@
         h2 { color: #333; font-weight: 500; font-size: 18px; }
     </style>
 </head>
-        <body>
-            <div class="spinner"></div>
-            <h2>로그인 정보를 확인하고 있습니다...</h2>
+<body>
+    <div class="spinner"></div>
+    <h2 id="status-message">정보를 확인하고 있습니다...</h2>
 
-                <script type="module">
-                    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+    <script type="module">
+        import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-                    async function handleNaverCallback() {
-                        const hash = window.location.hash.substring(1);
-                        const params = new URLSearchParams(hash || window.location.search.substring(1));
-                        const accessToken = params.get('access_token');
-                
-                        if (!accessToken) {
-                            window.location.replace('/index.html');
-                            return;
-                        }
-                
-                        try {
-                            const res = await fetch('/get-config');
-                            const config = await res.json();
-                            const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
-                
-                            const response = await fetch(`/get-naver-profile?token=${accessToken}`);
-                            const data = await response.json();
-                
-                            if (data.response) {
-                                const p = data.response;
-                
-                                // 1. DB에서 사용자 조회
-                                let { data: user } = await supabase
-                                    .from('users')
-                                    .select('*')
-                                    .eq('email', p.email)
-                                    .maybeSingle();
-                
-                                // 2. 없으면 회원가입(데이터 저장)
-                                if (!user) {
-                                    const { data: newUser } = await supabase
-                                        .from('users')
-                                        .insert([{ email: p.email, name: p.name }])
-                                        .select()
-                                        .single();
-                                    user = newUser;
-                                }
-                
-                                // 3. 로그인 정보 저장 및 이동
-                                localStorage.setItem('user_name', user.name);
-                                window.location.replace('/index.html');
-                            }
-                        } catch (err) {
-                            console.error("연동 실패:", err);
-                            window.location.replace('/login.html');
-                        }
+        async function handleNaverCallback() {
+            const hash = window.location.hash.substring(1);
+            const params = new URLSearchParams(hash || window.location.search.substring(1));
+            const accessToken = params.get('access_token');
+            const statusMsg = document.getElementById('status-message');
+
+            if (!accessToken) {
+                window.location.replace('/index.html');
+                return;
+            }
+
+            try {
+                const res = await fetch('/get-config');
+                const config = await res.json();
+                const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+                const response = await fetch(`/get-naver-profile?token=${accessToken}`);
+                const data = await response.json();
+
+                if (data.response) {
+                    const p = data.response;
+
+                    // 1. DB에서 사용자 조회
+                    let { data: user } = await supabase
+                        .from('users')
+                        .select('*')
+                        .eq('email', p.email)
+                        .maybeSingle();
+
+                    if (user) {
+                        // 로그인 경우
+                        statusMsg.textContent = "로그인 정보를 확인하고 있습니다...";
+                        localStorage.setItem('user_name', user.name);
+                    } else {
+                        // 회원가입 경우
+                        statusMsg.textContent = "가입 정보를 확인하고 있습니다...";
+                        const { data: newUser } = await supabase
+                            .from('users')
+                            .insert([{ email: p.email, name: p.name }])
+                            .select()
+                            .single();
+                        localStorage.setItem('user_name', newUser.name);
                     }
-                
-                    handleNaverCallback();
-                </script>
-        </body>
-</html>
 
+                    // 1.5초 대기 후 이동 (사용자가 메시지를 읽을 시간 제공)
+                    setTimeout(() => window.location.replace('/index.html'), 1500);
+                }
+            } catch (err) {
+                console.error("연동 실패:", err);
+                window.location.replace('/login.html');
+            }
+        }
+        handleNaverCallback();
+    </script>
+</body>
+</html>
