@@ -56,6 +56,31 @@
             white-space: nowrap;
         }
 
+        /* 비밀번호 그룹 컨테이너 */
+        .password-group {
+            position: relative;
+            width: 340px; /* input-box와 동일한 너비로 고정 */
+            margin: 8px auto; /* 중앙 정렬 */
+        }
+        
+        /* 그룹 안의 input은 그룹 너비를 100% 채움 */
+        .password-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            box-sizing: border-box; /* 패딩 포함 너비 계산 */
+        }
+        
+        /* 눈 아이콘 위치 조정 */
+        #toggle-password {
+            position: absolute; 
+            right: 15px; 
+            top: 50%; 
+            transform: translateY(-50%); /* 정확히 세로 중앙 정렬 */
+            cursor: pointer;
+            user-select: none;
+        }
+
         /* 모든 input과 버튼의 둥근 모서리를 강제로 제거 */
         input, select, button, .box, .id-input-group {
             border-radius: 0px !important;
@@ -116,7 +141,10 @@
             </div>
             <div id="id-error" class="error-text">아이디를 입력해 주세요!</div>
             
-            <input type="password" id="password" class="input-box" placeholder="비밀번호(영어 대소문자·숫자·기호 섞어 8자 이상!)" required>
+            <div class="password-group" style="position: relative;">
+                <input type="password" id="password" class="input-box" placeholder="비밀번호(대소문자·숫자·기호 섞어 8자 이상!)" required>
+                <span id="toggle-password" style="position: absolute; right: 10px; top: 12px; cursor: pointer;">👁️</span>
+            </div>
             <div id="password-error" class="error-text">비밀번호를 입력해 주세요!</div>
             
             <input type="text" id="nickname" class="input-box" placeholder="특별한 별명을 만들어주세요!" required>
@@ -239,6 +267,21 @@
             modal.style.display = 'flex';
             setTimeout(() => window.location.href = 'login.html', 3000);
         });
+
+        // 비밀번호 보이기/숨기기 토글 기능
+        const togglePassword = document.getElementById('toggle-password');
+        const passwordInput = document.getElementById('password');
+        
+        if (togglePassword) {
+            togglePassword.addEventListener('click', function() {
+                // 현재 타입이 password면 text로, 아니면 다시 password로 변경
+                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordInput.setAttribute('type', type);
+                
+                // 아이콘 변경 (보일 때는 감은 눈, 숨길 때는 뜬 눈)
+                this.textContent = type === 'password' ? '👁️' : '🙈';
+            });
+        }
     
         // 4. 소셜 가입 로직
         const socialSignUp = async (provider) => {
