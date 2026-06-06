@@ -37,37 +37,34 @@
                     import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
                     async function handleNaverCallback() {
-                        // URL에서 토큰 확인
                         const hash = window.location.hash.substring(1);
                         const params = new URLSearchParams(hash || window.location.search.substring(1));
                         const accessToken = params.get('access_token');
-                    
-                        // 만약 네이버 토큰이 없다면? (잘못 들어온 경우)
+                
                         if (!accessToken) {
                             window.location.replace('/index.html');
                             return;
                         }
-                    
+                
                         try {
-                            // Supabase 초기화
                             const res = await fetch('/get-config');
                             const config = await res.json();
                             const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
-                    
-                            // 네이버 프로필 조회 (서버 API 호출)
+                
                             const response = await fetch(`/get-naver-profile?token=${accessToken}`);
                             const data = await response.json();
-                    
+                
                             if (data.response) {
-                                const p = data.response; // p.email, p.name 등
-                    
-                                // DB 확인 및 가입/로그인 처리
+                                const p = data.response;
+                
+                                // 1. DB에서 사용자 조회
                                 let { data: user } = await supabase
                                     .from('users')
                                     .select('*')
                                     .eq('email', p.email)
                                     .maybeSingle();
-                    
+                
+                                // 2. 없으면 회원가입(데이터 저장)
                                 if (!user) {
                                     const { data: newUser } = await supabase
                                         .from('users')
@@ -76,18 +73,17 @@
                                         .single();
                                     user = newUser;
                                 }
-                    
-                                // 세션 저장 및 이동
-                                localStorage.setItem('user_email', user.email);
+                
+                                // 3. 로그인 정보 저장 및 이동
                                 localStorage.setItem('user_name', user.name);
                                 window.location.replace('/index.html');
                             }
                         } catch (err) {
-                            console.error("네이버 연동 실패:", err);
+                            console.error("연동 실패:", err);
                             window.location.replace('/login.html');
                         }
                     }
-                    
+                
                     handleNaverCallback();
                 </script>
         </body>
