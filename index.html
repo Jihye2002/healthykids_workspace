@@ -612,13 +612,19 @@
             // 이벤트 리스너 통합 연결
             document.getElementById('logout-btn')?.addEventListener('click', handleLogout);
         
-            const signupBtn = document.querySelector('a[href="signup.html"]');
-            signupBtn?.addEventListener('click', (e) => {
-                // 이미 가입된 유저인지 확인
-                if (localStorage.getItem('user_name')) {
+            // index.html의 init 함수 내부에 이 부분을 작성하세요
+            const signupLink = document.querySelector('a[href="signup.html"]');
+            
+            signupLink?.addEventListener('click', (e) => {
+                // 1. 이미 가입된 정보(user_name)가 있는지 확인
+                const userName = localStorage.getItem('user_name');
+                
+                if (userName) {
+                    // 2. 가입된 상태라면 링크 이동을 막고(preventDefault) 모달 띄우기
                     e.preventDefault(); 
-                    showAuthModal(`${localStorage.getItem('user_name')}님은 이미 가입되어 있어요! 이제 로그인을 해주시면 좋을 것 같아요!`);
+                    showAuthModal(`${userName}님은 이미 가입되어 있어요! 이제 로그인을 해주시면 좋을 것 같아요!`);
                 }
+                // 3. 가입된 정보가 없으면 아무런 방해 없이 평소처럼 signup.html로 이동함
             });
         
             // 상태 변화 감지 및 초기 상태 확인
