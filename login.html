@@ -6,36 +6,67 @@
     <link rel="icon" type="icon" href="https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/favicon.ico">
     <title>헬시키즈 로그인</title>
     <style>
-            body { font-family: 'Arial', sans-serif; text-align: center; padding: 50px; background-color: #f0f7ff; }
+            body { font-family: 'Arial', sans-serif; text-align: center; padding: 30px; background-color: #f0f7ff; }
             /* border-radius를 모두 0으로 바꾸면 각진 디자인이 됩니다 */
             .box { 
                 background: white; 
-                border-radius: 0px; 
-                padding: 60px; 
+                padding: 40px; /* 로그인 패딩 감소 (상하 높이 슬림하게) */
                 width: 420px; 
                 margin: auto; 
-                border: 2px solid #2f63c7; /* 테두리를 주면 더 명확해져요 */
-                box-shadow: none; /* 그림자도 없애면 더 딱딱한 느낌이 납니다 */
+                border: 2px solid #2f63c7; 
+                border-radius: 0px; 
             }
             
+            /* 입력창 및 공통 스타일 (border-radius 삭제) */
             .input-box { 
-                width: 370px; 
-                padding: 20px; 
+                width: 340px; 
+                padding: 12px; 
                 margin: 8px 0; 
                 border: 2px solid #ddd; 
-                border-radius: 0px; /* 각지게 수정 */
+                border-radius: 0px; /* 각진 디자인 */
+                box-sizing: border-box; 
             }
             
-            button { 
+            /* 아이디 입력 영역만 폼 너비와 맞춤 */
+            .id-input-group {
+                width: 340px;
+                margin: 8px auto; 
+                display: flex;
+                align-items: center;
+                border: 2px solid #ddd;
+                border-radius: 0px;
+                box-sizing: border-box; 
+            }
+            
+            /* 아이디 입력칸 */
+            .id-input-group #user-id {
+                border: none;
+                padding: 12px;
+                width: 100%; 
+                box-sizing: border-box; 
+            }
+            
+            /* @healthykids.com 스타일 유지 */
+            .email-suffix {
+                color: #777;
+                padding-right: 12px;
+                font-size: 14px;
+                white-space: nowrap;
+            }
+            
+            /* 로그인 버튼만 입력창 너비와 통일 */
+            #login-form button { 
+                width: 340px; 
                 background-color: #2f63c7; 
                 color: white; 
                 border: none; 
-                padding: 12px 20px; 
-                border-radius: 0px; /* 각지게 수정 */
+                padding: 12px; 
+                margin-top: 10px;
+                border-radius: 0px; 
                 cursor: pointer; 
-                width: 370px; 
-                font-weight: bold; 
-            }    
+                font-weight: bold;
+            }
+        
             .error-border { border: 2px solid #ff4d4d !important; }
             .error-text { font-size: 13px; color: #ff4d4d; margin-top: -5px; margin-bottom: 10px; display: none; text-align: left; padding-left: 5%; }
         </style>
@@ -43,22 +74,20 @@
 <body>
     <div class="box">
         <h2>로그인 | LOGIN</h2>
-        <div id="welcome-area" style="display:none;"><h3 id="welcome-message"></h3></div>
-
+        
         <form id="login-form">
-            <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 10px;">
-                <input type="text" id="login-id" class="input-box" placeholder="만든 아이디를 여기에 입력해 주세요!" style="width: 50%;" style="width: 225px;">
-                <span style="color: #888; font-size: 14px;">@healthykids.com</span>
+            <div class="id-input-group">
+                <input type="text" id="user-id" placeholder="만든 아이디를 여기에 입력해 주세요!" required>
+                <span class="email-suffix">@healthykids.com</span>
             </div>
             
-            <input type="password" id="login-password" class="input-box" placeholder="비밀번호(암호)를 입력해 주세요!" style="width: 340px;">
+            <input type="password" id="password" class="input-box" placeholder="비밀번호(암호)를 입력해 주세요!" required>
             
-            <div id="login-error" class="error-text">아이디나 암호가 틀린 것 같아요. 한 번 더 입력해 주세요!</div>
-            
-            <button type="submit" class="input-box">로그인</button>
+            <button type="submit">로그인</button>
         </form>
         
         <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+        
             <button id="google-btn" style="background:#4285f4; margin-bottom:5px;">Google로 로그인</button>
             <button id="kakao-btn" style="background:#fee500; color:#000; margin-bottom:5px;">Kakao로 로그인</button>
             <button id="naver-btn" style="background:#03c75a; margin-bottom:5px;">Naver로 로그인</button>
@@ -87,25 +116,25 @@
         // 1. 일반 로그인 처리
         async function handleLogin(e) {
             e.preventDefault();
-            const emailInput = document.getElementById('email').value;
+            
+            // HTML에 있는 user-id와 password를 가져옵니다.
+            const userId = document.getElementById('user-id').value;
             const password = document.getElementById('password').value;
-            const name = document.getElementById('name').value; // 가상 이메일 생성을 위해 필요
         
-            // 가입할 때 만들었던 방식과 동일하게 가상 이메일 조합
-            // 주의: 사용자가 이름만 입력하면, 가입 시 생성했던 이메일과 일치시키기 어렵습니다.
-            // 그래서 로그인 시에는 가입 시 사용한 이메일(또는 이름)을 정확히 입력받아야 합니다.
-            const email = `${name.replace(/\s+/g, '')}@healthykids.com`; 
+            // [중요] 가입 시 'Date.now()'를 제거하고 이 이메일 규칙을 사용하세요!
+            // (예: 아이디가 'jihye'면 'jihye@healthykids.com')
+            const email = `${userId.replace(/\s+/g, '')}@healthykids.com`; 
         
             const { data, error } = await window.supabase.auth.signInWithPassword({
-                email: email, // 실제 DB에 저장된 가상 이메일
+                email: email, 
                 password: password
             });
         
             if (error) {
-                alert("로그인 실패: " + error.message);
+                alert("로그인 실패: 아이디나 비밀번호를 확인해주세요.");
             } else {
-                localStorage.setItem('user_name', name); // 이름 저장
-                window.location.href = 'index.html'; // 메인으로 이동
+                localStorage.setItem('user_name', userId); 
+                window.location.href = 'index.html'; 
             }
         }
         
