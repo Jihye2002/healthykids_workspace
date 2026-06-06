@@ -76,13 +76,6 @@
                 const res = await fetch('/get-config');
                 const config = await res.json();
                 window.supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
-                
-                // A. 이미 로그인된 상태인지 확인 (Supabase 세션 + 로컬 스토리지)
-                const { data: { session } } = await window.supabase.auth.getSession();
-                if (session || localStorage.getItem('user_email')) {
-                    window.location.replace('/index.html');
-                    return;
-                }
     
                 // B. 이벤트 연결 (버튼이 있을 때만 동작하도록 null 체크)
                 document.getElementById('google-btn')?.addEventListener('click', () => socialLogin('google'));
