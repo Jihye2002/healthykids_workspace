@@ -593,16 +593,30 @@
             const msgElement = document.getElementById('modal-message');
             msgElement.textContent = message;
             modal.style.display = 'flex';
+        
+            // 3초 후 이동을 변수에 저장
+            const timer = setTimeout(() => {
+                window.location.href = '/login.html';
+            }, 3000);
+        
+            // [중요] 사용자가 버튼을 직접 눌러서 나갈 때는 타이머를 취소
+            const btn = modal.querySelector('button');
+            if (btn) {
+                btn.addEventListener('click', () => {
+                    clearTimeout(timer);
+                });
+            }
         }
         
-        // 회원가입 버튼 클릭 이벤트 연결 (기존 코드가 있다면 수정)
+        // 회원가입 버튼 클릭 이벤트 연결
         document.addEventListener('DOMContentLoaded', () => {
+            // a 태그의 href 속성을 기준으로 정확하게 찾습니다.
             const signupBtn = document.querySelector('a[href="signup.html"]');
             
             signupBtn?.addEventListener('click', (e) => {
                 // localStorage에 이름이 있으면 이미 가입된 상태로 간주
                 if (localStorage.getItem('user_name')) {
-                    e.preventDefault(); // 페이지 이동 차단
+                    e.preventDefault(); // 기본 페이지 이동 차단
                     const name = localStorage.getItem('user_name');
                     showAuthModal(`${name}님은 이미 가입되어 있어요! 이제 로그인을 해주시면 좋을 것 같아요!`);
                 }
