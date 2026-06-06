@@ -184,8 +184,18 @@
             const { error: authErr } = await supabase.auth.signUp({ email: virtualEmail, password: password });
             
             if (authErr) {
-                if (authErr.message.includes("weak")) showError('password', "비밀번호가 너무 쉬워요!");
-                else if (authErr.message.includes("already registered")) showError('user-id', "이미 사용 중인 아이디입니다.");
+                // 1. 서버가 준 에러를 콘솔에서 확인 (디버깅용)
+                console.error("Supabase Error:", authErr);
+            
+                // 2. 에러 종류에 따라 화면에 에러 표시
+                if (authErr.message.includes("weak")) {
+                    showError('password', "비밀번호가 너무 쉬워요! (영어 대소문자, 숫자, 기호 포함)");
+                } else if (authErr.message.includes("already registered")) {
+                    showError('user-id', "이미 사용 중인 아이디입니다.");
+                } else {
+                    // 그 외 에러가 났을 때 일단 알림창으로라도 확인
+                    alert("가입 중 오류가 발생했어요: " + authErr.message);
+                }
                 return;
             }
 
