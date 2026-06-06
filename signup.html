@@ -56,30 +56,30 @@
             white-space: nowrap;
         }
 
-        /* 비밀번호 그룹 컨테이너 */
         .password-group {
-            position: relative;
-            width: 340px; /* input-box와 동일한 너비로 고정 */
-            margin: 8px auto; /* 중앙 정렬 */
+            position: relative; /* 자식 요소(아이콘)의 기준점이 됩니다 */
+            width: 340px;       /* 전체 너비 */
+            margin: 8px auto;   /* 중앙 정렬 */
         }
         
-        /* 그룹 안의 input은 그룹 너비를 100% 채움 */
+        /* inputbox가 그룹 전체를 꽉 채우게 합니다 */
         .password-group input {
             width: 100%;
             padding: 12px;
-            border: 2px solid #ddd;
-            box-sizing: border-box; /* 패딩 포함 너비 계산 */
+            padding-right: 45px; /* 아이콘이 들어갈 공간을 확보합니다 */
+            box-sizing: border-box; /* 패딩이 너비에 포함되게 합니다 */
         }
         
-        /* 눈 아이콘 위치 조정 */
+        /* 아이콘을 입력창 내부 오른쪽 끝으로 보냅니다 */
         #toggle-password {
-            font-size: 14px;
-            position: absolute; 
-            right: 15px; 
-            top: 50%; 
-            transform: translateY(-50%); /* 정확히 세로 중앙 정렬 */
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%); /* 정확히 수직 중앙에 배치 */
             cursor: pointer;
             user-select: none;
+            font-size: 18px;
+            z-index: 10; /* 다른 요소보다 위에 보이게 함 */
         }
 
         /* 모든 input과 버튼의 둥근 모서리를 강제로 제거 */
@@ -144,7 +144,7 @@
             
             <div class="password-group" style="position: relative;">
                 <input type="password" id="password" class="input-box" placeholder="비밀번호(대소문자·숫자·기호 섞어 8자 이상!)" required>
-                <span id="toggle-password" style="cursor: pointer;">🔒</span>
+                <span id="toggle-password">🔒</span>
             </div>
             <div id="password-error" class="error-text">비밀번호를 입력해 주세요!</div>
             
