@@ -224,15 +224,16 @@
             const idRegex = /^[a-z0-9]{3,12}$/;
             const nameRegex = /^[a-zA-Z가-힣\s]{2,12}$/;
             const koreanRegex = /^[가-힣]+$/;
+            const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{8,}$/;
     
             let isValid = true;
     
             // 1. 클라이언트 유효성 검사
             if (!nameRegex.test(name)) { showError('name', "이름은 2~12글자의 한글 또는 영문으로 입력해 주세요!"); isValid = false; }
             if (!idRegex.test(userId)) { showError('user-id', "아이디는 3~12자의 영문/숫자로 입력해 주세요!"); isValid = false; }
-            if (password.length < 8) { showError('password', "비밀번호는 8글자거나 더 길게 입력해 주세요!"); isValid = false; }
+            if (!passwordRegex.test(password)) { showError('password', "대문자, 소문자, 숫자, 기호를 모두 섞어 8자 이상 입력해 주세요!"); isValid = false; }
             if (nickname.length === 0) { showError('nickname', "별명을 입력해 주세요!"); isValid = false; }
-            if (!koreanRegex.test(answer)) { showError('answer', "답은 한글로만!"); isValid = false; }
+            if (!koreanRegex.test(answer)) { showError('answer', "답은 자음과 모음을 다 사용해 한 번 더 입력해 주세요!"); isValid = false; }
     
             if (!isValid) return; // 에러가 있으면 가입 중단
     
