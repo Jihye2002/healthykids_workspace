@@ -228,11 +228,17 @@
             document.querySelectorAll('.error-text').forEach(el => el.style.display = 'none');
             document.querySelectorAll('.input-box, .id-input-group').forEach(el => el.classList.remove('error-border'));
         
-            // 1. 클라이언트 측 유효성 검증 (서버 통신 전!)
+            // 이름 검증 (2~5글자 한글)
+            const nameRegex = /^[가-힣]{2,12}$/; 
+            
             if (name.length === 0) {
-                showError('name', "반가워요! 이름이 뭔가요?");
+                showError('name', "이름을 입력해 주세요!");
+                return;
+            } else if (!nameRegex.test(name)) {
+                showError('name', "이름은 2~12자 한글로만 입력해 주세요!");
                 return;
             }
+            
             if (nickname.length === 0) {
                 showError('nickname', "별명을 입력해 주세요!");
                 return;
