@@ -558,89 +558,76 @@
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
         // 1. UI 업데이트 함수
-        async function updateUI(session) {
+        function updateUI(session) {
             const beforeLogin = document.getElementById('before-login');
             const afterLogin = document.getElementById('after-login');
             const welcomeMsg = document.getElementById('welcome-message');
         
-            // Supabase 세션 또는 localStorage(네이버)에서 이름 가져오기
+            // Supabase 세션 또는 localStorage에서 이름 가져오기
             const userName = session?.user?.user_metadata?.full_name || localStorage.getItem('user_name');
         
             if (!userName) {
                 beforeLogin.style.display = 'flex';
                 afterLogin.style.display = 'none';
-                return;
+            } else {
+                beforeLogin.style.display = 'none';
+                afterLogin.style.display = 'flex';
+                welcomeMsg.textContent = userName;
             }
-        
-            beforeLogin.style.display = 'none';
-            afterLogin.style.display = 'flex';
-            welcomeMsg.textContent = userName; // 이름만 표시 (HTML에 "님 환영해요!" 존재)
         }
         
-        // 2. 로그아웃 함수
+        // 2. 로그아웃 함수 (가입 이력 유지)
         async function handleLogout() {
-            // 1. Supabase 로그아웃
+            // Supabase 세션만 로그아웃
             await window.supabase.auth.signOut();
-            // 2. 네이버 로그인 정보(localStorage) 삭제
-            localStorage.removeItem('user_name');
-            // 3. 화면 새로고침
+            // localStorage.removeItem('user_name'); // <- 이 줄을 삭제/주석 처리하여 가입 이력 유지
             window.location.reload();
         }
-
-        // 모달 표시 함수
+        
+        // 3. 모달 표시 함수
         function showAuthModal(message) {
             const modal = document.getElementById('auth-modal');
             const msgElement = document.getElementById('modal-message');
             msgElement.textContent = message;
             modal.style.display = 'flex';
         
-            // 3초 후 이동을 변수에 저장
+            // 3초 후 이동
             const timer = setTimeout(() => {
                 window.location.href = '/login.html';
             }, 3000);
         
-            // [중요] 사용자가 버튼을 직접 눌러서 나갈 때는 타이머를 취소
+            // 버튼 클릭 시 타이머 취소
             const btn = modal.querySelector('button');
-            if (btn) {
-                btn.addEventListener('click', () => {
-                    clearTimeout(timer);
-                });
-            }
+            btn?.addEventListener('click', () => {
+                clearTimeout(timer);
+            });
         }
         
-        // 회원가입 버튼 클릭 이벤트 연결
-        document.addEventListener('DOMContentLoaded', () => {
-            // a 태그의 href 속성을 기준으로 정확하게 찾습니다.
-            const signupBtn = document.querySelector('a[href="signup.html"]');
-            
-            signupBtn?.addEventListener('click', (e) => {
-                // localStorage에 이름이 있으면 이미 가입된 상태로 간주
-                if (localStorage.getItem('user_name')) {
-                    e.preventDefault(); // 기본 페이지 이동 차단
-                    const name = localStorage.getItem('user_name');
-                    showAuthModal(`${name}님은 이미 가입되어 있어요! 이제 로그인을 해주시면 좋을 것 같아요!`);
-                }
-            });
-        });
-        
-        // 3. 초기화 함수
+        // 4. 초기화 함수
         async function init() {
             const res = await fetch('/get-config');
             const config = await res.json();
             window.supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
         
-            // 로그아웃 버튼 이벤트 연결
+            // 이벤트 리스너 통합 연결
             document.getElementById('logout-btn')?.addEventListener('click', handleLogout);
         
-            // 인증 상태 변화 감지 (구글/카카오용)
-            window.supabase.auth.onAuthStateChange((event, session) => {
-                updateUI(session);
+            const signupBtn = document.querySelector('a[href="signup.html"]');
+            signupBtn?.addEventListener('click', (e) => {
+                // 이미 가입된 유저인지 확인
+                if (localStorage.getItem('user_name')) {
+                    e.preventDefault(); 
+                    showAuthModal(`${localStorage.getItem('user_name')}님은 이미 가입되어 있어요! 이제 로그인을 해주시면 좋을 것 같아요!`);
+                }
             });
         
-            // 현재 상태 확인 (페이지 로드 시)
+            // 상태 변화 감지 및 초기 상태 확인
+            window.supabase.auth.onAuthStateChange((event, session) => updateUI(session));
             const { data: { session } } = await window.supabase.auth.getSession();
             updateUI(session);
         }
+        
+        // 스크립트 실행
         init();
     </script>
     <script src="chat-ui.js"></script>
