@@ -7,39 +7,22 @@
     <title>헬시키즈 회원가입</title>
     <style>
         body { font-family: 'Arial', sans-serif; text-align: center; padding: 30px; background-color: #f0f7ff; }
-        .box { 
-            background: white; 
-            padding: 60px; /* 회원가입 패딩 유지 */
-            width: 420px; 
-            margin: auto; 
-            border: 2px solid #2f63c7; 
-        }
+        .box { background: white; padding: 40px; width: 420px; margin: auto; border: 2px solid #2f63c7; }
         
-        /* 입력창 및 공통 스타일 (border-radius 삭제) */
-        .input-box { 
-            width: 340px; 
-            padding: 12px; 
-            margin: 8px 0; 
-            border: 2px solid #ddd; 
-            border-radius: 0px; /* 각진 디자인으로 통일 */
-            box-sizing: border-box; 
+        .input-box { width: 340px; padding: 12px; margin: 8px 0; border: 2px solid #ddd; box-sizing: border-box; }
+        
+        /* 아이디 입력창 그룹 스타일 (login.html과 통일) */
+        .id-input-group { 
+            display: flex; align-items: center; width: 340px; margin: 8px 0; 
+            border: 2px solid #ddd; box-sizing: border-box; background: white;
         }
+        .id-input-group input { border: none; width: 100%; padding: 12px; outline: none; }
+        .email-suffix { color: #888; padding-right: 10px; font-size: 14px; white-space: nowrap; }
 
-        /* 오류 시 테두리 스타일 */
         .error-border { border: 2px solid #ff4d4d !important; }
-        /* 안내 문구 스타일 */
         .error-text { font-size: 13px; color: #ff4d4d; margin-top: -5px; margin-bottom: 10px; display: none; text-align: left; padding-left: 5%; }
-        button { 
-            width: 340px; /* 너비 통일 */
-            background-color: #2f63c7; 
-            color: white; 
-            border: none; 
-            padding: 12px; 
-            margin-top: 10px;
-            border-radius: 0px; /* 버튼도 각지게 */
-            cursor: pointer; 
-            font-weight: bold;
-        }
+        
+        button { width: 340px; background-color: #2f63c7; color: white; border: none; padding: 12px; margin-top: 10px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -57,11 +40,14 @@
             <input type="text" id="name" class="input-box" placeholder="이름을 입력해 주세요!" required>
             <div id="name-error" class="error-text">이름이 뭔가요?</div>
 
-            <input type="text" id="user-id" class="input-box" placeholder="나만의 아이디를 만들어주세요!" required>
+            <div class="id-input-group" id="id-group">
+                <input type="text" id="user-id" placeholder="나만의 아이디" required>
+                <span class="email-suffix">@healthykids.com</span>
+            </div>
             <div id="id-error" class="error-text">아이디를 입력해 주세요!</div>
             
-            <input type="password" id="password" class="input-box" placeholder="비밀번호 (암호는 알파벳 대,소문자와 숫자, 기호를 이용해 8글자 이상!)" required>
-            <div id="password-error" class="error-text">만들고 싶은 비밀번호를 입력해 주세요!</div>
+            <input type="password" id="password" class="input-box" placeholder="비밀번호(영어,숫자,기호 8자 이상)" required>
+            <div id="password-error" class="error-text">비밀번호를 입력해 주세요!</div>
             
             <input type="text" id="nickname" class="input-box" placeholder="특별한 별명을 만들어주세요!" required>
             <div id="nickname-error" class="error-text">별명을 입력해 주세요!</div>
@@ -80,128 +66,68 @@
         
         <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
         
-        <button id="google-signup" style="width: 340px; background:#4285f4; color:white; border:none; padding:10px; margin-bottom:5px; cursor:pointer;">Google로 가입하기</button>
-        <button id="kakao-signup" style="width: 340px; background:#fee500; color:#000; border:none; padding:10px; margin-bottom:5px; cursor:pointer;">Kakao로 가입하기</button>
-        <button id="naver-signup" style="width: 340px; background:#03c75a; color:white; border:none; padding:10px; margin-bottom:5px; cursor:pointer;">Naver로 가입하기</button>
+        <button id="google-signup" style="background:#4285f4;">Google로 가입하기</button>
+        <button id="kakao-signup" style="background:#fee500; color:#000;">Kakao로 가입하기</button>
+        <button id="naver-signup" style="background:#03c75a;">Naver로 가입하기</button>
         
-        <p style="margin-top: 20px;">이미 아이디와 비밀번호(암호)가 있으신가요? <a href="login.html">로그인하기</a></p>
+        <p style="margin-top: 20px;">이미 아이디가 있으신가요? <a href="login.html">로그인하기</a></p>
     </div>
 
     <script type="module">
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
         let supabaseInstance = null;
-        
-        // 1. Supabase 초기화 함수
         async function initSupabase() {
             if (supabaseInstance) return supabaseInstance;
-            
             const res = await fetch('/get-config');
             const config = await res.json();
             return createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
         }
-        
-        // 2. 페이지 로드 시 로그인 체크
-        document.addEventListener('DOMContentLoaded', async () => {
-            const supabase = await initSupabase();
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session) {
-                window.location.href = 'index.html';
-            }
-        });
-        
-        // 3. 에러 표시 공통 함수
+
         function showError(inputId, message) {
             const input = document.getElementById(inputId);
             const errorDiv = document.getElementById(inputId + '-error');
             if (input) input.classList.add('error-border');
-            if (errorDiv) {
-                errorDiv.textContent = message;
-                errorDiv.style.display = 'block';
-            }
+            if (errorDiv) { errorDiv.textContent = message; errorDiv.style.display = 'block'; }
         }
-        
-        // 4. 입력 시 에러 자동 초기화
-        document.querySelectorAll('.input-box').forEach(input => {
+
+        // 입력 시 테두리 초기화
+        document.querySelectorAll('input').forEach(input => {
             input.addEventListener('input', () => {
                 input.classList.remove('error-border');
                 const errorDiv = document.getElementById(input.id + '-error');
                 if (errorDiv) errorDiv.style.display = 'none';
             });
         });
-        
-        // 5. 사용자 존재 여부 확인 함수
-        async function checkUserExists(supabase, name, nickname, email) {
-            const { data } = await supabase
-                .from('users')
-                .select('*')
-                .eq('name', name)
-                .eq('nickname', nickname)
-                .maybeSingle();
-            return !!data;
-        }
-        
-        // 6. 회원가입 제출 처리
+
         document.getElementById('signup-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const supabase = await initSupabase();
-            
-            const name = document.getElementById('name').value;
             const userId = document.getElementById('user-id').value.trim().toLowerCase();
             const password = document.getElementById('password').value;
+            const name = document.getElementById('name').value;
             const nickname = document.getElementById('nickname').value;
             const question = document.getElementById('question').value;
             const answer = document.getElementById('answer').value;
+            
             const virtualEmail = `${userId}@healthykids.com`;
-        
-            // 가입 시도
-            const { error: authErr } = await supabase.auth.signUp({ 
-                email: virtualEmail, 
-                password: password 
-            });
+
+            const { error: authErr } = await supabase.auth.signUp({ email: virtualEmail, password: password });
             
             if (authErr) {
-                if (authErr.message.includes("weak")) {
-                        showError('password', "비밀번호는 8글자 이상, 대소문자, 숫자, 기호를 섞어서 만들어야 해요!");
-                    } else if (authErr.message.includes("already registered")) {
-                        showError('user-id', "앗, 이 아이디는 이미 친구가 쓰고 있어요! 다른 걸로 해볼까?");
-                    }
-                    return; 
-                }
-
-                if (answer.trim().length === 0) {
-                    showError('answer', "질문에 대한 답을 꼭 적어주세요!");
-                    return;
-                }
-        
-            // DB 저장
-            const { error: dbErr } = await supabase.from('users').insert([{ 
-                email: virtualEmail, name, nickname, question, answer 
-            }]);
-            
-            if (dbErr) {
-                showError('name', "저장하는 중에 실수가 있었나 봐요. 다시 눌러볼까요?");
+                if (authErr.message.includes("weak")) showError('password', "비밀번호가 너무 쉬워요!");
+                else if (authErr.message.includes("already registered")) showError('user-id', "이미 사용 중인 아이디입니다.");
                 return;
             }
-        
-            // alert("가입 완료!"); // 이 줄을 지우고 아래처럼 바꾸세요
-            localStorage.setItem('user_name', name);
-            showAuthModal("가입 완료! 이제 로그인해 보세요.");
-        });
 
-        function showAuthModal(message) {
+            const { error: dbErr } = await supabase.from('users').insert([{ email: virtualEmail, name, nickname, question, answer }]);
+            if (dbErr) { showError('name', "죄송해요.조금 후에 다시 시도해 주세요."); return; }
+
             const modal = document.getElementById('auth-modal');
-            const msgElement = document.getElementById('modal-message');
-            if (!modal || !msgElement) return;
-            
-            msgElement.textContent = message;
+            document.getElementById('modal-message').textContent = "가입 완료! 로그인 페이지로 이동해요!";
             modal.style.display = 'flex';
-            
-            // 3초 뒤 로그인 페이지로 이동
-            setTimeout(() => { 
-                window.location.href = 'https://healthykids-workspace.onrender.com/login.html'; 
-            }, 3000);
-        }
+            setTimeout(() => window.location.href = 'login.html', 3000);
+        });
     
         // 4. 소셜 가입 로직
         const socialSignUp = async (provider) => {
