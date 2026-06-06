@@ -114,13 +114,15 @@
         document.getElementById('google-signup').addEventListener('click', () => socialSignUp('google'));
         document.getElementById('kakao-signup').addEventListener('click', () => socialSignUp('kakao'));
         
-        // 3. 네이버 가입 (기존 API 호출 방식)
-        document.getElementById('naver-btn').addEventListener('click', async () => {
-            const res = await fetch('/get-config');
-            const config = await res.json();
-            const callback = encodeURIComponent("https://healthykids-workspace.onrender.com/callback.html");
-            window.location.href = `https://nid.naver.com/oauth2.0/authorize?response_type=token&client_id=${config.NAVER_CLIENT_ID}&redirect_uri=${callback}&state=RANDOM`;
-        });
+        const naverBtn = document.getElementById('naver-btn');
+        if (naverBtn) {
+            naverBtn.addEventListener('click', async () => {
+                const res = await fetch('/get-config');
+                const config = await res.json();
+                const callbackUrl = encodeURIComponent("https://healthykids-workspace.onrender.com/callback.html");
+                window.location.href = `https://nid.naver.com/oauth2.0/authorize?response_type=token&client_id=${config.NAVER_CLIENT_ID}&redirect_uri=${callbackUrl}&state=RANDOM`;
+            });
+        }
     </script>
 </body>
 </html>
