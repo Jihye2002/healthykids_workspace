@@ -7,42 +7,71 @@
     <title>헬시키즈 회원가입</title>
     <style>
         body { font-family: 'Arial', sans-serif; text-align: center; padding: 30px; background-color: #f0f7ff; }
-        .box { background: white; padding: 40px; width: 420px; margin: auto; border: 2px solid #2f63c7; }
+
+        /* 박스 디자인 통일 */
+        .box { 
+            background: white; 
+            padding: 40px; 
+            width: 420px; 
+            margin: auto; 
+            border: 2px solid #2f63c7; 
+            border-radius: 0px; 
+        }
         
-        .input-box { width: 340px; padding: 12px; margin: 8px 0; border: 2px solid #ddd; box-sizing: border-box; }
-        
-        .id-input-group { 
-            display: flex; 
-            align-items: center; 
+        /* 모든 입력창 스타일 통일 */
+        .input-box { 
             width: 340px; 
+            padding: 12px; 
             margin: 8px 0; 
             border: 2px solid #ddd; 
+            border-radius: 0px; 
+            box-sizing: border-box; 
+        }
+        
+        /* 아이디 입력 영역 (login과 동일한 마진/구조 적용) */
+        .id-input-group {
+            width: 340px;
+            margin: 8px auto; /* 폼 중앙 정렬 */
+            display: flex;
+            align-items: center;
+            border: 2px solid #ddd;
+            border-radius: 0px;
             box-sizing: border-box; 
             background: white;
         }
         
-        /* input은 flex-grow를 주어 남은 공간을 다 차지하게 함 */
-        .id-input-group input { 
-            border: none; 
-            flex: 1; 
-            padding: 12px; 
-            outline: none; 
-            width: 100%; /* 너비 유지 */
+        .id-input-group #user-id {
+            border: none;
+            padding: 12px;
+            width: 100%; 
+            box-sizing: border-box; 
+            outline: none; /* 클릭 시 테두리 제거 */
         }
         
-        /* @healthykids.com 글자는 고정 너비로 처리 */
-        .email-suffix { 
-            color: #888; 
-            padding-right: 10px; 
-            font-size: 14px; 
-            white-space: nowrap; 
-            flex-shrink: 0; /* 글자가 줄어들지 않게 함 */
+        /* @healthykids.com 스타일 */
+        .email-suffix {
+            color: #777;
+            padding-right: 12px;
+            font-size: 14px;
+            white-space: nowrap;
         }
-
+        
+        /* 에러 스타일 */
         .error-border { border: 2px solid #ff4d4d !important; }
         .error-text { font-size: 13px; color: #ff4d4d; margin-top: -5px; margin-bottom: 10px; display: none; text-align: left; padding-left: 5%; }
         
-        button { width: 340px; background-color: #2f63c7; color: white; border: none; padding: 12px; margin-top: 10px; cursor: pointer; font-weight: bold; }
+        /* 버튼 스타일 (가입하기 및 소셜 로그인 버튼 공통) */
+        button { 
+            width: 340px; 
+            background-color: #2f63c7; 
+            color: white; 
+            border: none; 
+            padding: 12px; 
+            margin-top: 10px; 
+            border-radius: 0px; 
+            cursor: pointer; 
+            font-weight: bold; 
+        }
     </style>
 </head>
 <body>
