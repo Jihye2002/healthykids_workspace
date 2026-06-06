@@ -143,10 +143,6 @@
         
             // 가입 시도
             const { error: authErr } = await supabase.auth.signUp({ email: virtualEmail, password: password });
-            
-            if (authErr) {
-                // [핵심] 여기서 영어 에러 메시지를 한글로 예쁘게 바꿔줍니다.
-                let errorMessage = "가입 중 오류가 발생했어요.";
                 
                 if (authErr.message.includes("weak")) {
                     errorMessage = "비밀번호는 8글자 이상, 대소문자, 숫자, 기호를 모두 섞어서 만들어야 해요!";
