@@ -234,9 +234,18 @@
             // 1. Supabase 가입
             const { error: authErr } = await supabase.auth.signUp({ email: virtualEmail, password: password });
             if (authErr) {
-                if (authErr.message.includes("weak")) showError('password', "비밀번호가 너무 쉬워요!");
-                else if (authErr.message.includes("already registered")) showError('user-id', "이미 사용 중인 아이디예요. 다른 아이디를 입력해 주세요!");
-                else showError('password', "가입 오류가 발생했습니다.");
+                // 1. 서버가 보내는 진짜 에러 메시지를 콘솔창에 무조건 출력하게 합니다.
+                console.log("서버가 보내준 진짜 에러:", authErr.message);
+                
+                // 2. 일단 아래 코드는 주석 처리하거나, 에러 메시지를 보고 조건을 수정하세요.
+                if (authErr.message.includes("weak")) {
+                    showError('password', "비밀번호가 너무 쉬워요!");
+                } else if (authErr.message.includes("already registered")) {
+                    showError('user-id', "이미 사용 중인 아이디예요!");
+                } else {
+                    // 3. 에러 내용을 화면에 직접 뿌려주면 바로 알 수 있습니다.
+                    showError('password', "에러 발생: " + authErr.message); 
+                }
                 return;
             }
     
