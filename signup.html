@@ -177,26 +177,5 @@
             window.location.href = `https://nid.naver.com/oauth2.0/authorize?response_type=token&client_id=${config.NAVER_CLIENT_ID}&redirect_uri=${callbackUrl}&state=RANDOM`;
         });
     </script>
-    
-        // 2. 소셜 가입 로직
-        const socialSignUp = async (provider) => {
-            const supabase = await initSupabase();
-            await supabase.auth.signInWithOAuth({
-                provider: provider,
-                options: { redirectTo: 'https://healthykids-workspace.onrender.com/login.html' }
-            });
-        };
-    
-        document.getElementById('google-signup')?.addEventListener('click', () => socialSignUp('google'));
-        document.getElementById('kakao-signup')?.addEventListener('click', () => socialSignUp('kakao'));
-    
-        const naverBtn = document.getElementById('naver-signup');
-        naverBtn?.addEventListener('click', async () => {
-            const res = await fetch('/get-config');
-            const config = await res.json();
-            const callbackUrl = encodeURIComponent("https://healthykids-workspace.onrender.com/callback.html");
-            window.location.href = `https://nid.naver.com/oauth2.0/authorize?response_type=token&client_id=${config.NAVER_CLIENT_ID}&redirect_uri=${callbackUrl}&state=RANDOM`;
-        });
-    </script>
 </body>
 </html>
