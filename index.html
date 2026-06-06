@@ -555,18 +555,19 @@
             const beforeLogin = document.getElementById('before-login');
             const afterLogin = document.getElementById('after-login');
             const welcomeMsg = document.getElementById('welcome-message');
-    
+        
             if (!session) {
                 beforeLogin.style.display = 'flex';
                 afterLogin.style.display = 'none';
                 return;
             }
-    
+        
             beforeLogin.style.display = 'none';
             afterLogin.style.display = 'flex';
             
+            // 이제 welcomeMsg는 이름만 표시합니다.
             const name = session.user.user_metadata?.full_name || "사용자";
-            welcomeMsg.textContent = `${name}님 환영해요!`;
+            welcomeMsg.textContent = name; 
         }
     
         // 2. 로그아웃 함수
