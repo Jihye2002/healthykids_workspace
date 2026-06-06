@@ -627,8 +627,9 @@
             updateUI(session);
         }
         
-        // 스크립트 실행
-        init();
+        document.addEventListener('DOMContentLoaded', () => {
+            init(); // 페이지 로드가 완료된 후 init() 호출
+        });
     </script>
     <script src="chat-ui.js"></script>
 </body>
