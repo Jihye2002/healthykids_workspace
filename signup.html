@@ -73,6 +73,7 @@
         
         /* 눈 아이콘 위치 조정 */
         #toggle-password {
+            font-size: 14px;
             position: absolute; 
             right: 15px; 
             top: 50%; 
@@ -143,7 +144,7 @@
             
             <div class="password-group" style="position: relative;">
                 <input type="password" id="password" class="input-box" placeholder="비밀번호(대소문자·숫자·기호 섞어 8자 이상!)" required>
-                <span id="toggle-password" style="position: absolute; right: 10px; top: 12px; cursor: pointer;">👁️</span>
+                <span id="toggle-password" style="cursor: pointer;">🔒</span>
             </div>
             <div id="password-error" class="error-text">비밀번호를 입력해 주세요!</div>
             
@@ -277,9 +278,7 @@
                 // 현재 타입이 password면 text로, 아니면 다시 password로 변경
                 const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
                 passwordInput.setAttribute('type', type);
-                
-                // 아이콘 변경 (보일 때는 감은 눈, 숨길 때는 뜬 눈)
-                this.textContent = type === 'password' ? '👁️' : '🙈';
+                this.textContent = type === 'password' ? '🔒' : '🔓';
             });
         }
     
