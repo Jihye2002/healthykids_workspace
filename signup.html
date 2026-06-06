@@ -127,6 +127,68 @@
                 window.location.href = `https://nid.naver.com/oauth2.0/authorize?response_type=token&client_id=${config.NAVER_CLIENT_ID}&redirect_uri=${callbackUrl}&state=RANDOM`;
             });
         }
+
+        import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+        async function initSupabase() {
+            const res = await fetch('/get-config');
+            const config = await res.json();
+            return createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+        }
+        
+        // 1. 일반 회원가입
+        document.getElementById('signup-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const supabase = await initSupabase();
+            
+            // 폼 데이터 수집
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const name = document.getElementById('name').value;
+            const nickname = document.getElementById('nickname').value;
+            const question = document.getElementById('question').value;
+            const answer = document.getElementById('answer').value;
+        
+            // Auth 생성
+            const { data: auth, error: authErr } = await supabase.auth.signUp({ email, password });
+            if (authErr) return alert(authErr.message);
+        
+            // DB 저장
+            const { error: dbErr } = await supabase.from('users').insert([
+                { email, name, nickname, question, answer }
+            ]);
+        
+            if (dbErr) alert("DB 저장 실패: " + dbErr.message);
+            else { alert("가입 완료!"); window.location.href = 'login.html'; }
+        });
+        
+        // 2. 구글/카카오 가입 (Supabase OAuth)
+        const socialSignUp = async (provider) => {
+            // initSupabase()가 window.supabase를 반환하도록 되어있다고 가정합니다.
+            const supabase = await initSupabase(); 
+            
+            await supabase.auth.signInWithOAuth({
+                provider: provider, // 여기는 'google', 'kakao' 여야 합니다.
+                options: { 
+                    redirectTo: 'https://healthykids-workspace.onrender.com/login.html' 
+                }
+            });
+        };
+        
+        document.getElementById('google-signup').addEventListener('click', () => socialSignUp('google'));
+        document.getElementById('kakao-signup').addEventListener('click', () => socialSignUp('kakao'));
+        
+        // 'naver-btn' 대신 'naver-signup'으로 ID를 변경합니다.
+        const naverBtn = document.getElementById('naver-signup'); 
+        
+        if (naverBtn) {
+            naverBtn.addEventListener('click', async () => {
+                const res = await fetch('/get-config');
+                const config = await res.json();
+                const callbackUrl = encodeURIComponent("https://healthykids-workspace.onrender.com/callback.html");
+                window.location.href = `https://nid.naver.com/oauth2.0/authorize?response_type=token&client_id=${config.NAVER_CLIENT_ID}&redirect_uri=${callbackUrl}&state=RANDOM`;
+            });
+        }
     </script>
 </body>
 </html>
