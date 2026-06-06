@@ -141,7 +141,7 @@
                 <input type="text" id="user-id" placeholder="나만의 아이디" required>
                 <span class="email-suffix">@healthykids.com</span>
             </div>
-            <div id="id-error" class="error-text">아이디를 입력해 주세요!</div>
+            <div id="user-id-error" class="error-text">아이디를 입력해 주세요!</div>
             
             <div class="password-group" style="position: relative;">
                 <input type="password" id="password" class="input-box" placeholder="비밀번호(대소문자·숫자·기호 섞어 8자 이상!)" required>
@@ -228,9 +228,9 @@
             let isValid = true;
     
             // 1. 클라이언트 유효성 검사
-            if (!nameRegex.test(name)) { showError('name', "이름은 2~12자의 한글 또는 영문!"); isValid = false; }
-            if (!idRegex.test(userId)) { showError('user-id', "아이디는 3~12자의 영문/숫자!"); isValid = false; }
-            if (password.length < 8) { showError('password', "비밀번호는 8자 이상!"); isValid = false; }
+            if (!nameRegex.test(name)) { showError('name', "이름은 2~12글자의 한글 또는 영문으로 입력해 주세요!"); isValid = false; }
+            if (!idRegex.test(userId)) { showError('user-id', "아이디는 3~12자의 영문/숫자로 입력해 주세요!"); isValid = false; }
+            if (password.length < 8) { showError('password', "비밀번호는 8글자거나 더 길게 입력해 주세요!"); isValid = false; }
             if (nickname.length === 0) { showError('nickname', "별명을 입력해 주세요!"); isValid = false; }
             if (!koreanRegex.test(answer)) { showError('answer', "답은 한글로만!"); isValid = false; }
     
@@ -265,7 +265,7 @@
     
             // 3. DB 저장
             const { error: dbErr } = await supabase.from('users').insert([
-                { email: virtualEmail, name, nickname, question: document.getElementById('question').value, answer }
+                { email: `${userId}@healthykids.com`, name, nickname, question: document.getElementById('question').value, answer }
             ]);
             
             if (dbErr) { showError('name', "저장 실패.. 다시 시도해 주세요ㅠㅠ"); return; }
