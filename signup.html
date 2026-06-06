@@ -87,8 +87,12 @@
     <script type="module">
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+        let supabaseInstance = null;
+        
         // 1. Supabase 초기화 함수
         async function initSupabase() {
+            if (supabaseInstance) return supabaseInstance;
+            
             const res = await fetch('/get-config');
             const config = await res.json();
             return createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
@@ -144,7 +148,7 @@
             const nickname = document.getElementById('nickname').value;
             const question = document.getElementById('question').value;
             const answer = document.getElementById('answer').value;
-            const virtualEmail = `${name.replace(/\s+/g, '')}${Date.now()}@healthykids.com`;
+            const virtualEmail = `test${Date.now()}@healthykids.com`;
         
             // 가입 시도
             const { error: authErr } = await supabase.auth.signUp({ 
