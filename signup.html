@@ -220,33 +220,43 @@
             // 에러 초기화
             document.querySelectorAll('.error-text').forEach(el => el.style.display = 'none');
             document.querySelectorAll('.input-box, .id-input-group').forEach(el => el.classList.remove('error-border'));
+
+            let isValid = true; // 에러가 발생하면 false로 바뀜
             
             // 유효성 검사
-            if (!nameRegex.test(name)) { showError('name', "이름은 2~12자의 한글 또는 영문으로 입력해 주세요!"); return; }
-            if (!idRegex.test(userId)) { showError('user-id', "아이디는 3~12자의 영문 소문자와 숫자만 가능해요!"); return; }
-            if (password.length < 8) { showError('password', "비밀번호는 알파벳 대소문자·숫자·기호를 섞어 8글자 이상 만들어 주세요!"); return; }
-            if (nickname.length === 0) { showError('nickname', "별명을 입력해 주세요!"); return; }
-            if (!koreanRegex.test(answer)) { showError('answer', "답은 한글로만 입력해 주세요!"); return; }
+            if (!nameRegex.test(name)) { showError('name', "이름은 2~12자의 한글 또는 영문!"); isValid = false; }
+            if (!idRegex.test(userId)) { showError('user-id', "아이디는 3~12자의 영문/숫자!"); isValid = false; }
+            if (password.length < 8) { showError('password', "비밀번호는 8자 이상!"); isValid = false; }
+            if (nickname.length === 0) { showError('nickname', "별명을 입력해 주세요!"); isValid = false; }
+            if (!koreanRegex.test(answer)) { showError('answer', "답은 한글로만!"); isValid = false; }
+        
+            // 에러가 하나라도 있으면 서버 통신 안 함
+            if (!isValid) return;
     
             const supabase = await initSupabase();
             const virtualEmail = `${userId}@healthykids.com`;
     
-            // 1. Supabase 가입
-            const { error: authErr } = await supabase.auth.signUp({ email: virtualEmail, password: password });
+            const supabase = await initSupabase();
+            const { error: authErr } = await supabase.auth.signUp({ email: `${userId}@healthykids.com`, password });
+            
+            // 2. 일단 아래 코드는 주석 처리하거나, 에러 메시지를 보고 조건을 수정하세요.
             if (authErr) {
-                // 1. 서버가 보내는 진짜 에러 메시지를 콘솔창에 무조건 출력하게 합니다.
-                console.log("서버가 보내준 진짜 에러:", authErr.message);
+                const msg = authErr.message;
                 
-                // 2. 일단 아래 코드는 주석 처리하거나, 에러 메시지를 보고 조건을 수정하세요.
-                if (authErr.message.includes("weak")) {
-                    showError('password', "비밀번호가 너무 쉬워요!");
-                } else if (authErr.message.includes("already registered")) {
-                    showError('user-id', "이미 사용 중인 아이디예요!");
-                } else {
-                    // 3. 에러 내용을 화면에 직접 뿌려주면 바로 알 수 있습니다.
-                    showError('password', "에러 발생: " + authErr.message); 
+                // 1. 아이디 중복 처리
+                if (msg.includes("already registered")) {
+                    showError('user-id', "이미 사용 중인 아이디예요! 다른 아이디를 골라볼까요?");
+                } 
+                // 2. 비밀번호 복잡성 에러 (Supabase가 보내는 메시지 확인)
+                else if (msg.includes("weak") || msg.includes("at least one")) {
+                    showError('password', "비밀번호는 대문자, 소문자, 숫자, 기호를 섞어 8자 이상 써주세요!");
+                } 
+                // 3. 기타 예기치 못한 에러
+                else {
+                    showError('password', "가입 오류: 다시 시도해 주세요.");
+                    console.error("Supabase Error Detail:", msg); // 개발자용 로그
                 }
-                return;
+                return; // 여기서 멈춰야 나머지 로직(별명 체크 등)이 실행되지 않습니다.
             }
     
             // 2. 별명 중복 체크
