@@ -36,74 +36,59 @@
                 <script type="module">
                     import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-                    async function handleCallback() {
-                        // 1. Supabase 초기화
-                        const res = await fetch('/get-config');
-                        const config = await res.json();
-                        const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+                    async function handleNaverCallback() {
+                        // URL에서 토큰 확인
+                        const hash = window.location.hash.substring(1);
+                        const params = new URLSearchParams(hash || window.location.search.substring(1));
+                        const accessToken = params.get('access_token');
                     
-                        // 2. Supabase 세션 확인 (구글/카카오 로그인 후 리다이렉트 시)
-                        const { data: { session } } = await supabase.auth.getSession();
-                    
-                        if (session) {
-                            // 구글/카카오 로그인 성공 케이스
-                            const user = session.user;
-                            const email = user.email;
-                            const name = user.user_metadata.full_name || user.user_metadata.name || "사용자";
-                    
-                            // DB에 유저가 있는지 확인 (없으면 추가)
-                            const { data: existing } = await supabase.from('users').select('*').eq('email', email).maybeSingle();
-                            if (!existing) {
-                                await supabase.from('users').insert([{ email, name }]);
-                            }
-                    
-                            localStorage.setItem('user_email', email);
-                            localStorage.setItem('user_name', name);
+                        // 만약 네이버 토큰이 없다면? (잘못 들어온 경우)
+                        if (!accessToken) {
                             window.location.replace('/index.html');
                             return;
                         }
                     
-                        // 3. 네이버 로그인 케이스 (세션이 없다면 네이버 토큰 확인)
-                        const hashParams = new URLSearchParams(window.location.hash.substring(1));
-                        const searchParams = new URLSearchParams(window.location.search);
-                        let accessToken = hashParams.get('access_token') || searchParams.get('access_token');
+                        try {
+                            // Supabase 초기화
+                            const res = await fetch('/get-config');
+                            const config = await res.json();
+                            const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
                     
-                        if (accessToken) {
-                            try {
-                                const response = await fetch(`/get-naver-profile?token=${accessToken}`);
-                                const data = await response.json();
+                            // 네이버 프로필 조회 (서버 API 호출)
+                            const response = await fetch(`/get-naver-profile?token=${accessToken}`);
+                            const data = await response.json();
                     
-                                if (!data.response) throw new Error("네이버 프로필 정보 없음");
+                            if (data.response) {
+                                const p = data.response; // p.email, p.name 등
                     
-                                const p = data.response;
-                                const { data: existingUser } = await supabase
+                                // DB 확인 및 가입/로그인 처리
+                                let { data: user } = await supabase
                                     .from('users')
-                                    .select('email, name')
+                                    .select('*')
                                     .eq('email', p.email)
                                     .maybeSingle();
                     
-                                if (!existingUser) {
-                                    // 신규 유저: 가입 페이지로 이동 (정보 전달)
-                                    window.location.replace(`/signup.html?email=${encodeURIComponent(p.email)}&name=${encodeURIComponent(p.name)}`);
-                                } else {
-                                    // 기존 유저: 로그인 처리
-                                    localStorage.setItem('user_email', existingUser.email);
-                                    localStorage.setItem('user_name', existingUser.name);
-                                    localStorage.setItem('login_type', 'naver');
-                                    window.location.replace('/index.html');
+                                if (!user) {
+                                    const { data: newUser } = await supabase
+                                        .from('users')
+                                        .insert([{ email: p.email, name: p.name }])
+                                        .select()
+                                        .single();
+                                    user = newUser;
                                 }
-                            } catch (err) {
-                                console.error("네이버 처리 중 오류:", err);
-                                alert("로그인 처리 중 오류가 발생했습니다.");
-                                window.location.href = '/login.html';
+                    
+                                // 세션 저장 및 이동
+                                localStorage.setItem('user_email', user.email);
+                                localStorage.setItem('user_name', user.name);
+                                window.location.replace('/index.html');
                             }
-                        } else {
-                            alert("로그인 정보가 없습니다.");
-                            window.location.href = '/login.html';
+                        } catch (err) {
+                            console.error("네이버 연동 실패:", err);
+                            window.location.replace('/login.html');
                         }
                     }
                     
-                    handleCallback();
+                    handleNaverCallback();
                 </script>
         </body>
 </html>
