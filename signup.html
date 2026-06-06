@@ -100,15 +100,19 @@
         
         // 2. 구글/카카오 가입 (Supabase OAuth)
         const socialSignUp = async (provider) => {
-            const supabase = await initSupabase();
+            // initSupabase()가 window.supabase를 반환하도록 되어있다고 가정합니다.
+            const supabase = await initSupabase(); 
+            
             await supabase.auth.signInWithOAuth({
-                provider: provider,
-                options: { redirectTo: 'https://healthykids-workspace.onrender.com/callback.html' }
+                provider: provider, // 여기는 'google', 'kakao' 여야 합니다.
+                options: { 
+                    redirectTo: 'https://healthykids-workspace.onrender.com/callback.html' 
+                }
             });
         };
         
-        document.getElementById('google-btn').addEventListener('click', () => socialSignUp('google-signup'));
-        document.getElementById('kakao-btn').addEventListener('click', () => socialSignUp('kakao-signup'));
+        document.getElementById('google-signup').addEventListener('click', () => socialSignUp('google'));
+        document.getElementById('kakao-signup').addEventListener('click', () => socialSignUp('kakao'));
         
         // 3. 네이버 가입 (기존 API 호출 방식)
         document.getElementById('naver-btn').addEventListener('click', async () => {
