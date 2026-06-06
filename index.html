@@ -550,37 +550,47 @@
     <script type="module">
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+        // 1. UI 업데이트 함수
         async function updateUI(session) {
             const beforeLogin = document.getElementById('before-login');
             const afterLogin = document.getElementById('after-login');
             const welcomeMsg = document.getElementById('welcome-message');
     
-            // 세션 데이터가 없는 경우 (로그아웃 상태)
             if (!session) {
                 beforeLogin.style.display = 'flex';
                 afterLogin.style.display = 'none';
                 return;
             }
     
-            // 로그인 상태 UI 처리
             beforeLogin.style.display = 'none';
             afterLogin.style.display = 'flex';
             
             const name = session.user.user_metadata?.full_name || "사용자";
-            welcomeMsg.textContent = `${name}님 환영해요!`; // = 를 사용하여 중복 방지
+            welcomeMsg.textContent = `${name}님 환영해요!`;
         }
     
+        // 2. 로그아웃 함수
+        async function handleLogout() {
+            await window.supabase.auth.signOut();
+            // 로그아웃 후 브라우저 캐시 문제를 방지하기 위해 새로고침
+            window.location.reload();
+        }
+    
+        // 3. 초기화 함수
         async function init() {
             const res = await fetch('/get-config');
             const config = await res.json();
             window.supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
     
-            // 1. 인증 상태 변화 감지 (로그인/로그아웃 시 자동 실행)
+            // 로그아웃 버튼 이벤트 연결
+            document.getElementById('logout-btn')?.addEventListener('click', handleLogout);
+    
+            // 인증 상태 변화 감지
             window.supabase.auth.onAuthStateChange((event, session) => {
                 updateUI(session);
             });
     
-            // 2. 페이지 로드 시 현재 상태 확인
+            // 현재 상태 확인
             const { data: { session } } = await window.supabase.auth.getSession();
             updateUI(session);
         }
