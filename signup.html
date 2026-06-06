@@ -183,26 +183,18 @@
             const config = await res.json();
             return createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
         }
-
-        function showError(id, message) {
-            const errorDiv = document.getElementById(id + '-error');
-            const inputElement = document.getElementById(id);
-            
-            // 에러 메시지 보이기
+    
+        function showError(inputId, message) {
+            const input = document.getElementById(inputId);
+            const errorDiv = document.getElementById(inputId + '-error');
+            if (input) input.classList.add('error-border');
             if (errorDiv) {
                 errorDiv.textContent = message;
                 errorDiv.style.display = 'block';
             }
-            
-            // 입력창 테두리 빨갛게 (아이디는 그룹 전체에)
-            if (id === 'user-id') {
-                document.querySelector('.id-input-group').classList.add('error-border');
-            } else if (inputElement) {
-                inputElement.classList.add('error-border');
-            }
         }
-
-        // 입력 시 테두리 초기화
+    
+        // 입력 시 에러 초기화
         document.querySelectorAll('input').forEach(input => {
             input.addEventListener('input', () => {
                 input.classList.remove('error-border');
@@ -210,91 +202,61 @@
                 if (errorDiv) errorDiv.style.display = 'none';
             });
         });
-
+    
+        // 메인 가입 로직
         document.getElementById('signup-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            // 0. 입력값 먼저 가져오기
             const userId = document.getElementById('user-id').value.trim().toLowerCase();
             const password = document.getElementById('password').value;
             const name = document.getElementById('name').value.trim();
             const nickname = document.getElementById('nickname').value.trim();
-            const question = document.getElementById('question').value;
             const answer = document.getElementById('answer').value.trim();
-            const koreanRegex = /^[가-힣]+$/;
-            const virtualEmail = `${userId}@healthykids.com`;
             
-            // 에러 메시지 초기화
+            const idRegex = /^[a-z0-9]{3,12}$/;
+            const nameRegex = /^[a-zA-Z가-힣\s]{2,12}$/;
+            const koreanRegex = /^[가-힣]+$/;
+            
+            // 에러 초기화
             document.querySelectorAll('.error-text').forEach(el => el.style.display = 'none');
             document.querySelectorAll('.input-box, .id-input-group').forEach(el => el.classList.remove('error-border'));
-        
-            const nameRegex = /^[a-zA-Z가-힣\s]{2,12}$/;
             
-            if (name.length === 0) {
-                showError('name', "이름을 입력해 주세요!");
-                return;
-            } else if (!nameRegex.test(name)) {
-                showError('name', "이름은 2~12자(한글/영문)로 입력해 주세요!");
-                return;
-            }
-            
-            if (nickname.length === 0) {
-                showError('nickname', "별명을 입력해 주세요!");
-                return;
-            }
-            if (answer.length === 0) {
-                showError('answer', "질문에 대한 답을 입력해 주세요!");
-                return;
-            } else if (!koreanRegex.test(answer)) {
-                showError('answer', "답은 한글로만 입력해 주세요!");
-                return;
-            }
-        
-            // 2. 서버 통신 시작
+            // 유효성 검사
+            if (!nameRegex.test(name)) { showError('name', "이름은 2~12자의 한글 또는 영문으로 입력해 주세요!"); return; }
+            if (!idRegex.test(userId)) { showError('user-id', "아이디는 3~12자의 영문 소문자와 숫자만 가능해요!"); return; }
+            if (password.length < 8) { showError('password', "비밀번호는 8자 이상으로 만들어 주세요!"); return; }
+            if (nickname.length === 0) { showError('nickname', "별명을 입력해 주세요!"); return; }
+            if (!koreanRegex.test(answer)) { showError('answer', "답은 한글로만 입력해 주세요!"); return; }
+    
             const supabase = await initSupabase();
-        
-            // 3. 별명 중복 체크 (DB 확인)
-            const { data: existingUser, error: checkErr } = await supabase
-                .from('users')
-                .select('nickname')
-                .eq('nickname', nickname)
-                .maybeSingle(); // 결과가 없으면 null을 반환함
-        
-            if (existingUser) {
-                showError('nickname', "이미 누군가 사용 중인 별명이에요! 다른 걸로 해볼까요?");
-                return;
-            }
-        
-            // 4. Supabase 인증 가입
-            const { error: authErr } = await supabase.auth.signUp({ 
-                email: virtualEmail, 
-                password: password 
-            });
-            
+            const virtualEmail = `${userId}@healthykids.com`;
+    
+            // 1. Supabase 가입
+            const { error: authErr } = await supabase.auth.signUp({ email: virtualEmail, password: password });
             if (authErr) {
-                console.error("Supabase Error:", authErr);
-                if (authErr.message.includes("weak")) {
-                    showError('password', "비밀번호가 너무 쉬워요! 영어, 숫자, 기호를 섞어주세요.");
-                } else if (authErr.message.includes("already registered")) {
-                    showError('user-id', "이미 아이디가 있어요! 다른 아이디를 써볼까요?");
-                } else if (authErr.message.includes("invalid format")) {
-                    showError('user-id', "아이디를 다시 써주세요ㅜㅜ");
-                } else {
-                    showError('password', "가입 중 오류가 발생했어요. 다시 시도해 주세요!");
-                }
+                if (authErr.message.includes("weak")) showError('password', "비밀번호가 너무 쉬워요!");
+                else if (authErr.message.includes("already registered")) showError('user-id', "이미 사용 중인 아이디입니다.");
+                else showError('password', "가입 오류가 발생했습니다.");
                 return;
             }
-            
-            // 5. DB Insert 및 성공 처리
-            const { error: dbErr } = await supabase.from('users').insert([{ email: virtualEmail, name, nickname, question, answer }]);
-            if (dbErr) { 
-                showError('name', "죄송해요. 조금 후에 다시 시도해 주세요."); 
-                return; 
+    
+            // 2. 별명 중복 체크
+            const { data: existingUser } = await supabase.from('users').select('nickname').eq('nickname', nickname).maybeSingle();
+            if (existingUser) {
+                showError('nickname', "이미 사용 중인 별명입니다!");
+                return;
             }
-        
-            const modal = document.getElementById('auth-modal');
-            document.getElementById('modal-message').textContent = "가입 완료! 로그인 페이지로 이동해요!";
-            modal.style.display = 'flex';
+    
+            // 3. DB 저장
+            const { error: dbErr } = await supabase.from('users').insert([
+                { email: virtualEmail, name, nickname, question: document.getElementById('question').value, answer }
+            ]);
+            
+            if (dbErr) { showError('name', "저장 실패! 다시 시도해 주세요."); return; }
+    
+            // 4. 완료 처리
+            document.getElementById('modal-message').textContent = "가입 완료! 로그인 페이지로 이동합니다!";
+            document.getElementById('auth-modal').style.display = 'flex';
             setTimeout(() => window.location.href = 'login.html', 3000);
         });
 
