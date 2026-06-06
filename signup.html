@@ -9,7 +9,6 @@
         body { font-family: 'Arial', sans-serif; text-align: center; padding: 30px; background-color: #f0f7ff; }
         .box { 
             background: white; 
-            border-radius: 0px; 
             padding: 60px; 
             width: 420px; 
             margin: auto; 
@@ -19,12 +18,11 @@
     
         /* 입력창 스타일 */
         .input-box { 
-            width: 360px; 
-            padding: 10px; 
+            width: 340px; 
+            padding: 12px; 
             margin: 8px 0; 
             border: 2px solid #ddd; 
-            border-radius: 0px; 
-            transition: border 0.3s; 
+            box-sizing: border-box; /* 패딩이 너비에 포함되게 */
         }
 
         /* 오류 시 테두리 스타일 */
@@ -32,7 +30,16 @@
         /* 안내 문구 스타일 */
         .error-text { font-size: 13px; color: #ff4d4d; margin-top: -5px; margin-bottom: 10px; display: none; text-align: left; padding-left: 5%; }
         input, select { width: 360px; padding: 10px; margin: 8px 0; border: 1px solid #ddd; border-radius: 10px; }
-        button { background-color: #2f63c7; color: white; border: none; padding: 12px 20px; border-radius: 0px; cursor: pointer; }
+        button { 
+            width: 340px;
+            background-color: #2f63c7; 
+            color: white; 
+            border: none; 
+            padding: 12px; 
+            margin-top: 10px;
+            cursor: pointer; 
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -47,10 +54,10 @@
         <h2>회원가입 | SIGN-UP</h2>
         
         <form id="signup-form">
-            <input type="text" id="email" class="input-box" placeholder="이메일" style="width: 340px;" readonly>
-            <input type="text" id="name" class="input-box" placeholder="이름" style="width: 340px;" readonly>
+            <input type="text" id="name" class="input-box" placeholder="이름" required>
+            <input type="password" id="password" class="input-box" placeholder="비밀번호" required>
             
-            <input type="text" id="nickname" class="input-box" placeholder="특별한 별명을 만들어주세요!" style="width: 340px;" required>
+            <input type="text" id="nickname" class="input-box" placeholder="특별한 별명을 만들어주세요!" required>
             
             <select id="question" class="input-box">
                 <option value="가장 좋아하는 동물은?">가장 좋아하는 동물은?</option>
@@ -58,9 +65,9 @@
                 <option value="가장 좋아하는 음식은?">가장 좋아하는 음식은?</option>
             </select>
             
-            <input type="text" id="answer" class="input-box" placeholder="질문에 대한 답 (나만 알기!)" style="width: 340px;" required>
+            <input type="text" id="answer" class="input-box" placeholder="질문에 대한 답 (나만 알기!)" required>
             
-            <button type="submit" class="input-box" style="width: 340px; background-color: #2f63c7; color: white; border: none; cursor: pointer; font-weight: bold; margin-top: 10px;">가입하기</button>
+            <button type="submit">가입하기</button>
         </form>
         
         <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
