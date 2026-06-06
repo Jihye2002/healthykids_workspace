@@ -156,8 +156,14 @@
         function showError(inputId, message) {
             const input = document.getElementById(inputId);
             const errorDiv = document.getElementById(inputId + '-error');
-            if (input) input.classList.add('error-border');
-            if (errorDiv) { errorDiv.textContent = message; errorDiv.style.display = 'block'; }
+            
+            if (input) {
+                input.classList.add('error-border'); // 빨간 테두리 클래스 추가
+            }
+            if (errorDiv) {
+                errorDiv.textContent = message;      // 메시지 설정
+                errorDiv.style.display = 'block';    // 화면에 나타나게 함
+            }
         }
 
         // 입력 시 테두리 초기화
