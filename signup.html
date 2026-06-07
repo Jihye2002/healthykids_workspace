@@ -208,15 +208,14 @@
                 return;
             }
             
-            // 3. 추가 정보 DB 저장
             const { error: dbErr } = await supabase.from('users').insert([
                 { 
-                    id: authData.user.id, 
+                    id: authData.user.id,               // auth.users의 ID를 외래키로 저장
                     email: `${userId}@healthykids.com`, 
-                    name, 
-                    nickname, 
-                    question, 
-                    answer 
+                    name: name,                         // 필수
+                    nickname: nickname,                 // 필수
+                    security_question: question,        // 필수
+                    security_answer: answer             // 필수
                 }
             ]);
         
