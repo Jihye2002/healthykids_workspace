@@ -580,7 +580,7 @@
         async function handleLogout() {
             // Supabase 세션만 로그아웃
             await window.supabase.auth.signOut();
-            // localStorage.removeItem('user_name'); // <- 이 줄을 삭제/주석 처리하여 가입 이력 유지
+            localStorage.removeItem('user_name'); // <- 이 줄을 삭제/주석 처리하여 가입 이력 유지
             window.location.reload();
         }
         
