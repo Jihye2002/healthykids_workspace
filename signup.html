@@ -184,11 +184,12 @@
                 .from('users')
                 .select('nickname')
                 .eq('nickname', nickname)
-                .single();
+                .maybeSingle(); // 결과가 없으면 null을 반환하며 에러를 일으키지 않음
             
+            // 이제 existingUser가 null이 아닐 때만 중복으로 간주
             if (existingUser) {
                 showError('nickname', "이미 사용 중인 별명입니다. 다른 별명을 써보세요!");
-                return; // 중복이면 여기서 멈춤
+                return;
             }
             
             // 2. 가입 시도 (이메일 기반 Auth)
