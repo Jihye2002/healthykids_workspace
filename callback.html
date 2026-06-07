@@ -41,49 +41,49 @@
             const params = new URLSearchParams(hash || window.location.search.substring(1));
             const accessToken = params.get('access_token');
             const statusMsg = document.getElementById('status-message');
-
+    
             if (!accessToken) {
                 window.location.replace('/index.html');
                 return;
             }
-
+    
             try {
                 const res = await fetch('/get-config');
                 const config = await res.json();
                 const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
                 const response = await fetch(`/get-naver-profile?token=${accessToken}`);
                 const data = await response.json();
-
+    
                 if (data.response) {
                     const p = data.response;
-
+    
                     // 1. DB에서 사용자 조회
                     let { data: user } = await supabase
                         .from('users')
                         .select('*')
                         .eq('email', p.email)
                         .maybeSingle();
-
+    
                     if (user) {
                         // 로그인 경우
                         statusMsg.textContent = "로그인 정보를 확인하고 있습니다...";
                         localStorage.setItem('user_name', user.name);
+                        setTimeout(() => window.location.replace('/index.html'), 1500);
                     } else {
                         // 회원가입 경우
                         statusMsg.textContent = "가입 정보를 확인하고 있습니다...";
                         const insertData = { 
                             email: p.email, 
                             name: p.name,
-                            birthday: p.birthday || '00-00', // DB가 Non-nullable이므로 방어 코드 필수
-                            age: p.age || '0'              // DB가 Non-nullable이므로 방어 코드 필수
+                            birthday: p.birthday || '00-00', 
+                            age: p.age || '0'
                         };
                         
-                        // 2. 선택값: 데이터가 있을 때만 추가
                         if (p.profile_image) insertData.profile_image = p.profile_image;
                         if (p.gender) insertData.gender = p.gender;
                         if (p.birthyear) insertData.birthyear = p.birthyear;
                         if (p.nickname) insertData.nickname = p.nickname;
-
+    
                         const { data: newUser, error: insertErr } = await supabase
                             .from('users')
                             .insert([insertData])
@@ -97,8 +97,9 @@
                             localStorage.setItem('user_name', newUser.name);
                             setTimeout(() => window.location.replace('/index.html'), 1500);
                         }
-                        
-            } catch (err) {
+                    } // <--- 이 괄호가 else를 닫아줌
+                } // <--- 이 괄호가 if (data.response)를 닫아줌
+            } catch (err) { // <--- 이제 이 catch가 try와 올바르게 매칭됨
                 console.error("연동 실패:", err);
                 window.location.replace('/login.html');
             }
