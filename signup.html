@@ -84,7 +84,19 @@
         }
 
         select:focus {
-            pointer-events: none;
+            outline: none;
+            border: 2px solid #000;
+            /* 포커스 시에도 스타일을 강제로 고정 */
+            appearance: none;
+            -webkit-appearance: none;
+        }
+        
+        /* 아래 코드를 추가하여 텍스트 선택 자체를 막습니다 */
+        select {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
         }
 
         /* 모든 input과 버튼의 둥근 모서리를 강제로 제거 */
