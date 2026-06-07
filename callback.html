@@ -76,10 +76,7 @@
                         const insertData = { 
                             email: p.email, 
                             name: p.name,
-                            // birthday: 'date' 타입은 보통 'YYYY-MM-DD' 형식이 필요합니다. 
-                            // 네이버에서 'MM-DD'로 온다면, 현재 연도를 붙여서 변환하는 게 안전합니다.
-                            birthday: p.birthday ? `2026-${p.birthday}` : null, 
-                            // age: 'int4' 타입이므로 숫자로 변환합니다.
+                            birthday: (p.birthyear && p.birthday) ? `${p.birthyear}-${p.birthday}` : null,
                             age: p.age ? parseInt(p.age) : null
                         };
                         
