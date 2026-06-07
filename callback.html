@@ -76,14 +76,14 @@
                         const insertData = { 
                             email: p.email, 
                             name: p.name,
-                            birthday: (p.birthyear && p.birthday) ? `${p.birthyear}-${p.birthday}` : null,
-                            age: p.age ? parseInt(p.age) : null
                         };
                         
                         if (p.profile_image) insertData.profile_image = p.profile_image;
                         if (p.gender) insertData.gender = p.gender;
                         if (p.birthyear) insertData.birthyear = p.birthyear;
                         if (p.nickname) insertData.nickname = p.nickname;
+                        if (p.birthday) insertData.birthday = p.birthday;
+                        if (p.age) insertData.age = p.age;
     
                         const { data: newUser, error: insertErr } = await supabase
                             .from('users')
