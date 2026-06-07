@@ -43,17 +43,50 @@
         #toggle-password { position: absolute; top: 50%; right: 5px; transform: translateY(-50%); cursor: pointer; user-select: none; font-size: 18px; padding: 10px; }
     
         /* select 컨테이너와 내부 처리 (높이 정렬 및 화살표 추가) */
-        .select-container { position: relative; padding: 0; overflow: hidden; }
-        select.input-box { 
-            width: 100%; height: 100%; border: none !important; background: transparent; 
-            padding: 0 12px; cursor: pointer; outline: none !important; appearance: none;
+        .select-container {
+            width: 340px;
+            height: 45px; /* 다른 입력창과 높이 동일 */
+            margin: 8px auto;
+            border: 2px solid #ddd;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center; /* 텍스트 수직 중앙 정렬 */
+            position: relative;
+            background-color: white;
+        }
+        
+        /* select 요소 자체 설정 */
+        select.input-box {
+            width: 100%;
+            height: 100%;
+            border: none !important;
+            background: transparent;
+            padding: 0 12px; /* 상하 패딩 0으로 설정해야 중앙 정렬됨 */
+            cursor: pointer;
+            outline: none !important;
+            appearance: none; /* 브라우저 기본 UI 제거 */
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            
+            /* 화살표 아이콘 수동 추가 */
             background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>');
-            background-repeat: no-repeat; background-position: right 12px center;
-            caret-color: transparent !important; /* 커서 숨김 */
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+        }
+        
+        /* 포커스 시 부모 테두리 검게 변경 */
+        .select-container:focus-within {
+            border: 2px solid #000 !important;
+        }
+        
+        /* 포커스 시 불필요한 아웃라인 제거 */
+        select.input-box:focus {
+            outline: none !important;
+            box-shadow: none !important;
         }
     
         /* 포커스 시 테두리 색상 처리 */
-        .input-box:focus, .id-input-group:has(input:focus), .select-container:focus-within, .password-group:has(input:focus) {
+        .input-box:focus, .id-input-group:has(input:focus), .password-group:has(input:focus) {
             border: 2px solid #000 !important;
         }
     
