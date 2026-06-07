@@ -160,7 +160,8 @@
         document.getElementById('signup-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             document.querySelectorAll('.error-text').forEach(el => el.style.display = 'none');
-            document.querySelectorAll('.input-box, .id-input-group').forEach(el => el.classList.remove('error-border'));
+            document.querySelectorAll('.input-wrapper').forEach(el => el.classList.remove('error-border'));
+            document.querySelectorAll('.input-field').forEach(el => el.classList.remove('error-border'));
         
             const userId = document.getElementById('user-id').value.trim().toLowerCase();
             const password = document.getElementById('password').value;
