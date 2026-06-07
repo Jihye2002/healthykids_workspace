@@ -178,26 +178,37 @@
             if (!/^[가-힣]+$/.test(answer)) { showError('answer', "답은 한글로 입력해 주세요!"); return; }
         
             const supabase = await initSupabase();
-        
-            // 1. 가입 시도
+
+            // 1. [추가] 별명 중복 체크
+            const { data: existingUser, error: nicknameErr } = await supabase
+                .from('users')
+                .select('nickname')
+                .eq('nickname', nickname)
+                .single();
+            
+            if (existingUser) {
+                showError('nickname', "이미 사용 중인 별명입니다. 다른 별명을 써보세요!");
+                return; // 중복이면 여기서 멈춤
+            }
+            
+            // 2. 가입 시도 (이메일 기반 Auth)
             const { data: authData, error: authErr } = await supabase.auth.signUp({
                 email: `${userId}@healthykids.com`,
                 password: password
             });
-        
+            
             if (authErr) {
                 if (authErr.message.includes("already registered")) {
                     showError('user-id', "이미 사용 중인 아이디입니다.");
                 } else if (authErr.message.includes("password")) {
                     showError('password', "비밀번호가 안전하지 않아요! (8자 이상, 대소문자/숫자/기호 포함)");
                 } else {
-                    // 그 외 모든 에러는 여기로
                     alert("가입 중 오류가 발생했습니다: " + authErr.message);
                 }
                 return;
             }
-        
-            // 2. 추가 정보 DB 저장 (ID 필수 포함)
+            
+            // 3. 추가 정보 DB 저장
             const { error: dbErr } = await supabase.from('users').insert([
                 { 
                     id: authData.user.id, 
