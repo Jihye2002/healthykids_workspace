@@ -7,94 +7,33 @@
     <title>헬시키즈 회원가입</title>
     <style>
         body { font-family: 'Arial', sans-serif; text-align: center; padding: 30px; background-color: #f0f7ff; }
+        .box { background: white; padding: 40px; width: 420px; margin: auto; border: 2px solid #2f63c7; }
+    
+        /* 모든 입력창(input, select 등)을 감싸는 공통 컨테이너 */
+        .input-wrapper { 
+            width: 340px; height: 45px; margin: 8px auto; border: 2px solid #ddd; 
+            box-sizing: border-box; display: flex; align-items: center; position: relative; background: white;
+        }
         
-        .box { 
-            background: white; 
-            padding: 40px; 
-            width: 420px; 
-            margin: auto; 
-            border: 2px solid #2f63c7; 
-            border-radius: 0px; 
-        }
+        /* 실제 입력 요소 공통 스타일 */
+        .input-field { width: 100%; height: 100%; border: none !important; outline: none !important; padding: 0 12px; font-size: 14px; background: transparent; }
     
-        /* 모든 입력창 및 컨테이너 공통: 높이 45px, 너비 340px */
-        .input-box, .id-input-group, .select-container, .password-group { 
-            width: 340px; 
-            height: 45px;
-            margin: 8px auto; 
-            border: 2px solid #ddd; 
-            border-radius: 0px !important;
-            box-sizing: border-box;
-        }
-    
-        /* 일반 input 박스 */
-        .input-box { padding: 10px 12px; }
-    
-        /* 아이디 입력 그룹 (flex 정렬) */
-        .id-input-group { display: flex; align-items: center; padding: 0; }
-        .id-input-group input { border: none !important; outline: none !important; flex: 1; padding: 12px; height: 100%; }
-    
-        /* 이메일 뒷부분 */
+        /* 특수 그룹 스타일 */
         .email-suffix { color: #777; padding-right: 12px; font-size: 14px; white-space: nowrap; }
+        #toggle-password { position: absolute; right: 10px; cursor: pointer; font-size: 18px; }
     
-        /* 비밀번호 그룹 */
-        .password-group { position: relative; padding: 0; }
-        .password-group input { width: 100%; height: 100%; border: none !important; padding: 12px; padding-right: 45px; box-sizing: border-box; }
-        #toggle-password { position: absolute; top: 50%; right: 5px; transform: translateY(-50%); cursor: pointer; user-select: none; font-size: 18px; padding: 10px; }
-    
-        /* select 컨테이너와 내부 처리 (높이 정렬 및 화살표 추가) */
-        .select-container {
-            width: 340px;
-            height: 45px; /* 다른 입력창과 높이 동일 */
-            margin: 8px auto;
-            border: 2px solid #ddd;
-            box-sizing: border-box;
-            display: flex;
-            align-items: center; /* 텍스트 수직 중앙 정렬 */
-            position: relative;
-            background-color: white;
-        }
-        
-        /* select 요소 자체 설정 */
-        select.input-box {
-            width: 100%;
-            height: 100%;
-            border: none !important;
-            background: transparent;
-            padding: 0 12px; /* 상하 패딩 0으로 설정해야 중앙 정렬됨 */
-            cursor: pointer;
-            outline: none !important;
-            appearance: none; /* 브라우저 기본 UI 제거 */
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            
-            /* 화살표 아이콘 수동 추가 */
+        /* select 화살표 */
+        select.input-field { 
+            appearance: none; cursor: pointer;
             background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>');
-            background-repeat: no-repeat;
-            background-position: right 12px center;
-        }
-        
-        /* 포커스 시 부모 테두리 검게 변경 */
-        .select-container:focus-within {
-            border: 2px solid #000 !important;
-        }
-        
-        /* 포커스 시 불필요한 아웃라인 제거 */
-        select.input-box:focus {
-            outline: none !important;
-            box-shadow: none !important;
+            background-repeat: no-repeat; background-position: right 12px center;
         }
     
-        /* 포커스 시 테두리 색상 처리 */
-        .input-box:focus, .id-input-group:has(input:focus), .password-group:has(input:focus) {
-            border: 2px solid #000 !important;
-        }
+        /* 포커스 시 테두리 검정색 */
+        .input-wrapper:has(input:focus), .input-wrapper:has(select:focus) { border: 2px solid #000 !important; }
     
-        /* 에러 스타일 */
-        .error-border { border: 2px solid #ff4d4d !important; }
+        /* 에러 및 버튼 */
         .error-text { font-size: 13px; color: #ff4d4d; margin-top: -5px; margin-bottom: 10px; display: none; text-align: left; padding-left: 40px; }
-    
-        /* 버튼 스타일 */
         button { width: 340px; background-color: #2f63c7; color: white; border: none; padding: 12px; margin-top: 10px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
@@ -110,37 +49,35 @@
         <h2>회원가입 | SIGN-UP</h2>
         
         <form id="signup-form">
-            <input type="text" id="name" class="input-box" placeholder="이름을 입력해 주세요!" required>
-            <div id="name-error" class="error-text">이름이 뭔가요?</div>
+            <div class="input-wrapper">
+                <input type="text" id="name" class="input-field" placeholder="이름을 입력해 주세요!" required>
+            </div>
         
-            <div class="id-input-group">
-                <input type="text" id="user-id" placeholder="나만의 아이디" required>
+            <div class="input-wrapper">
+                <input type="text" id="user-id" class="input-field" placeholder="나만의 아이디" required>
                 <span class="email-suffix">@healthykids.com</span>
             </div>
-            <div id="user-id-error" class="error-text">아이디를 입력해 주세요!</div>
             
-            <div class="password-group" style="position: relative;">
-                <input type="password" id="password" class="input-box" placeholder="비밀번호(대소문자·숫자·기호 섞어 8자 이상!)" required>
+            <div class="input-wrapper">
+                <input type="password" id="password" class="input-field" placeholder="비밀번호(대소문자·숫자·기호 섞어 8자 이상!)" required>
                 <span id="toggle-password">🔒</span>
             </div>
-            <div style="font-size: 12px; color: #555; text-align: left; padding-left: 10%; margin-bottom: 5px;">
-              * 대문자, 소문자, 숫자, 기호(!@#$%)를 모두 섞어서 8자 이상 써주세요!
+        
+            <div class="input-wrapper">
+                <input type="text" id="nickname" class="input-field" placeholder="특별한 별명을 만들어주세요!" required>
             </div>
-            <div id="password-error" class="error-text">비밀번호를 입력해 주세요!</div>
             
-            <input type="text" id="nickname" class="input-box" placeholder="특별한 별명을 만들어주세요!" required>
-            <div id="nickname-error" class="error-text">별명을 입력해 주세요!</div>
-            
-            <div class="select-container">
-                <select id="question" class="input-box">
+            <div class="input-wrapper">
+                <select id="question" class="input-field">
                     <option value="가장 좋아하는 동물은?">가장 좋아하는 동물은?</option>
                     <option value="내가 태어난 곳은?">내가 태어난 곳은?</option>
                     <option value="가장 좋아하는 음식은?">가장 좋아하는 음식은?</option>
                 </select>
             </div>
             
-            <input type="text" id="answer" class="input-box" placeholder="질문에 대한 답 (나만 알기!)" required>
-            <div id="answer-error" class="error-text">답을 입력해주세요!</div>
+            <div class="input-wrapper">
+                <input type="text" id="answer" class="input-field" placeholder="질문에 대한 답 (나만 알기!)" required>
+            </div>
             
             <button type="submit">가입하기</button>
         </form>
