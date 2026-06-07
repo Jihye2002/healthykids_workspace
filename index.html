@@ -563,13 +563,19 @@
             const afterLogin = document.getElementById('after-login');
             const welcomeMsg = document.getElementById('welcome-message');
         
-            // Supabase 세션 또는 localStorage에서 이름 가져오기
-            const userName = session?.user?.user_metadata?.full_name || localStorage.getItem('user_name');
+            // 네이버 로그인 유저는 localStorage에, Supabase 로그인 유저는 session에 정보가 있습니다.
+            const naverUserName = localStorage.getItem('user_name');
+            const supabaseUserName = session?.user?.user_metadata?.full_name;
+            
+            // 둘 중 하나라도 있으면 로그인된 것으로 간주
+            const userName = naverUserName || supabaseUserName;
         
             if (!userName) {
+                // 완전히 로그아웃된 상태
                 beforeLogin.style.display = 'flex';
                 afterLogin.style.display = 'none';
             } else {
+                // 로그인된 상태 (네이버든, Supabase든)
                 beforeLogin.style.display = 'none';
                 afterLogin.style.display = 'flex';
                 welcomeMsg.textContent = userName;
