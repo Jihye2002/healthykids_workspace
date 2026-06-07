@@ -212,7 +212,7 @@
             const { error: dbErr } = await supabase.from('public.users').insert([
                 { 
                     id: authData.user.id,               // auth.users의 ID를 외래키로 저장
-                    email: `${user-Id}@healthykids.com`, 
+                    email: `${userId}@healthykids.com`, 
                     name: name,                         // 필수
                     nickname: nickname,                 // 필수
                     security_question: question,        // 필수
