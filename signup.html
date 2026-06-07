@@ -272,6 +272,9 @@
             // 3. 인증 에러 처리
             if (authErr) {
                 const msg = authErr.message;
+
+                resetAllFields();
+                
                 if (msg.includes("already registered")) {
                     showError('user-id', "이미 사용 중인 아이디예요!");
                 } else if (msg.includes("weak") || msg.includes("at least one")) {
@@ -287,6 +290,23 @@
             if (existingUser) {
                 showError('nickname', "이미 사용 중인 별명이에요!");
                 return;
+            }
+
+            function resetAllFields() {
+                // 1. 모든 input 태그의 값을 빈 문자열로 설정
+                document.querySelectorAll('input, select').forEach(input => {
+                    input.value = '';
+                });
+                
+                // 2. 에러 관련 클래스(빨간 테두리) 모두 제거
+                document.querySelectorAll('.error-border, .id-input-group').forEach(el => {
+                    el.classList.remove('error-border');
+                });
+                
+                // 3. 에러 메시지 텍스트 모두 숨김
+                document.querySelectorAll('.error-text').forEach(el => {
+                    el.style.display = 'none';
+                });
             }
     
             // 3. DB 저장
