@@ -185,7 +185,14 @@
             const res = await fetch('/get-config');
             const config = await res.json();
     
-            supabaseInstance = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+            supabaseInstance = createClient(config.SUPABASE_URL, 
+                config.SUPABASE_ANON_KEY,
+                {
+                    auth: {
+                        persistSession: true, // 세션 저장 활성화
+                        autoRefreshToken: true
+                    }
+                });
             return supabaseInstance;
         }
     
