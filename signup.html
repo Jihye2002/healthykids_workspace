@@ -83,37 +83,38 @@
             padding: 16px;
         }
 
-        select.input-box {
-            -webkit-appearance: none; 
-            -moz-appearance: none;
-            appearance: none;
-            
-            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>');
-            background-repeat: no-repeat;
-            background-position: right 15px center;
-            padding-right: 40px;
-            
+        .select-container {
+            width: 340px;
+            margin: 8px auto;
             border: 2px solid #ddd;
             background-color: white;
-            cursor: pointer;
-            user-select: none;
-        }
-        
-        select.input-box:focus {
-            border: 2px solid #000 !important;
-            outline: none !important;
-            caret-color: transparent !important;
+            position: relative;
+            overflow: hidden; 
         }
         
         select.input-box {
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
+            width: 100%;
+            border: none !important; 
+            background: transparent;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            padding: 12px;
+            cursor: pointer;
+            outline: none !important;
+            box-shadow: none !important;
+            position: relative;
+            z-index: 2;
         }
         
-        select.input-box:focus::selection {
-            background: transparent;
+        .select-container:focus-within {
+            border: 2px solid #000 !important;
+        }
+        
+        /* 4. 선택 시 커서 막대기 차단 */
+        select.input-box:focus {
+            caret-color: transparent !important;
+            outline: none !important;
         }
         
         /* 모든 input과 버튼의 둥근 모서리를 강제로 제거 */
@@ -188,11 +189,13 @@
             <input type="text" id="nickname" class="input-box" placeholder="특별한 별명을 만들어주세요!" required>
             <div id="nickname-error" class="error-text">별명을 입력해 주세요!</div>
             
-            <select id="question" class="input-box">
-                <option value="가장 좋아하는 동물은?">가장 좋아하는 동물은?</option>
-                <option value="내가 태어난 곳은?">내가 태어난 곳은?</option>
-                <option value="가장 좋아하는 음식은?">가장 좋아하는 음식은?</option>
-            </select>
+            <div class="select-container">
+                <select id="question" class="input-box">
+                    <option value="가장 좋아하는 동물은?">가장 좋아하는 동물은?</option>
+                    <option value="내가 태어난 곳은?">내가 태어난 곳은?</option>
+                    <option value="가장 좋아하는 음식은?">가장 좋아하는 음식은?</option>
+                </select>
+            </div>
             
             <input type="text" id="answer" class="input-box" placeholder="질문에 대한 답 (나만 알기!)" required>
             <div id="answer-error" class="error-text">답을 입력해주세요!</div>
