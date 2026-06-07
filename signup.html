@@ -7,160 +7,62 @@
     <title>헬시키즈 회원가입</title>
     <style>
         body { font-family: 'Arial', sans-serif; text-align: center; padding: 30px; background-color: #f0f7ff; }
-        /* border-radius를 모두 0으로 바꾸면 각진 디자인이 됩니다 */
+        
         .box { 
             background: white; 
-            padding: 40px; /* 로그인 패딩 감소 (상하 높이 슬림하게) */
+            padding: 40px; 
             width: 420px; 
             margin: auto; 
             border: 2px solid #2f63c7; 
             border-radius: 0px; 
         }
-        
-        /* 입력창 및 공통 스타일 (border-radius 삭제) */
-        .input-box { 
+    
+        /* 모든 입력창 및 컨테이너 공통: 높이 45px, 너비 340px */
+        .input-box, .id-input-group, .select-container, .password-group { 
             width: 340px; 
-            padding: 12px; 
-            margin: 8px 0; 
-            border: 2px solid #ddd; 
-            border-radius: 0px; /* 각진 디자인 */
-            box-sizing: border-box; 
-        }
-        
-        /* 아이디 입력 영역만 폼 너비와 맞춤 */
-        .id-input-group {
-            width: 340px;
+            height: 45px;
             margin: 8px auto; 
-            display: flex;
-            align-items: center;
-            border: 2px solid #ddd;
-            border-radius: 0px;
-            box-sizing: border-box; 
-        }
-        
-        /* 수정된 버전 */
-        .id-input-group input {
-            border: none !important;      /* 중요: 테두리 삭제 */
-            outline: none !important;     /* 중요: 포커스 아웃라인 삭제 */
-            box-shadow: none !important;  /* 혹시 모를 그림자 제거 */
-            flex: 1;           /* 핵심: 남은 공간 차지 */
-            padding: 12px;     /* 패딩을 10px로 조정 (아까보다 조금 더 슬림해집니다) */
-            width: 100%;       /* 너비 강제 설정 */
-        }
-        
-        /* @healthykids.com 스타일 유지 */
-        .email-suffix {
-            color: #777;
-            padding-right: 12px;
-            font-size: 14px;
-            white-space: nowrap;
-        }
-
-        .password-group {
-            position: relative; /* 자식 요소(아이콘)의 기준점이 됩니다 */
-            width: 340px;       /* 전체 너비 */
-            margin: 8px auto;   /* 중앙 정렬 */
-        }
-        
-        /* inputbox가 그룹 전체를 꽉 채우게 합니다 */
-        .password-group input {
-            width: 100%;
-            padding: 12px;
-            padding-right: 45px; /* 아이콘이 들어갈 공간을 확보합니다 */
-            box-sizing: border-box; /* 패딩이 너비에 포함되게 합니다 */
-        }
-        
-        /* 아이콘을 입력창 내부 오른쪽 끝으로 보냅니다 */
-        #toggle-password {
-            position: absolute;
-            top: 45%;
-            right: 5px;
-            transform: translateY(-50%); /* 정확히 수직 중앙에 배치 */
-            cursor: pointer;
-            user-select: none;
-            font-size: 18px;
-            z-index: 10; /* 다른 요소보다 위에 보이게 함 */
-            padding: 16px;
-        }
-
-        .input-box, 
-        .id-input-group, 
-        .select-container {
-            width: 340px;
-            height: 45px; /* 높이를 명시적으로 고정 */
-            margin: 8px auto;
-            box-sizing: border-box; /* 패딩이 전체 높이에 포함되게 설정 */
-            border: 2px solid #ddd;
+            border: 2px solid #ddd; 
             border-radius: 0px !important;
-        }
-        
-        /* 2. .input-box (일반 텍스트 입력창) 스타일 */
-        .input-box {
-            padding: 10px 12px; /* 위아래 패딩 조정 */
-            display: block;
-        }
-        
-        /* 3. select 요소 내부 정렬 */
-        select.input-box {
-            height: 100%; /* 부모 컨테이너 높이를 꽉 채움 */
-            padding: 0 12px; /* 상하 패딩 삭제 후 중앙 정렬 */
-            border: none !important;
-            background: transparent;
-            appearance: none;
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            cursor: pointer;
-            outline: none !important;
-        }
-        
-        /* 4. 아이디 그룹 등 복합 컴포넌트 높이 맞춤 */
-        .id-input-group {
-            padding: 0;
-            display: flex;
-            align-items: center;
-        }
-        
-        .id-input-group input {
-            height: 100%; /* 부모 높이에 맞춤 */
-        }
-        
-        /* 모든 input과 버튼의 둥근 모서리를 강제로 제거 */
-        input, select, button, .box, .id-input-group {
-            border-radius: 0px !important;
-        }
-        
-        /* 폼 내부의 테두리 설정도 0px로 명시 */
-        .input-box, .id-input-group {
-            border-radius: 0px !important;
-            border: 2px solid #ddd; /* 테두리 두께 유지 */
-        }
-
-        /* input이 포커스되었을 때 부모(id-input-group)의 테두리 색상 변경 */
-        .id-input-group:has(input:focus) {
-            border: 2px solid #000 !important;
-            border-radius: 0px !important;
-        }
-        
-        /* 포커스(클릭) 되었을 때 생기는 기본 둥근 효과 제거 */
-        input:focus, select:focus, button:focus {
-            outline: none;
-            border: 2px solid #000;
+            box-sizing: border-box;
         }
     
-        .error-border { border: 2px solid #ff4d4d !important; }
-        .error-text { font-size: 13px; color: #ff4d4d; margin-top: -5px; margin-bottom: 10px; display: none; text-align: left; padding-left: 10%; }
-        
-        /* 버튼 스타일 (가입하기 및 소셜 로그인 버튼 공통) */
-        button { 
-            width: 340px; 
-            background-color: #2f63c7; 
-            color: white; 
-            border: none; 
-            padding: 12px; 
-            margin-top: 10px; 
-            cursor: pointer; 
-            font-weight: bold; 
+        /* 일반 input 박스 */
+        .input-box { padding: 10px 12px; }
+    
+        /* 아이디 입력 그룹 (flex 정렬) */
+        .id-input-group { display: flex; align-items: center; padding: 0; }
+        .id-input-group input { border: none !important; outline: none !important; flex: 1; padding: 12px; height: 100%; }
+    
+        /* 이메일 뒷부분 */
+        .email-suffix { color: #777; padding-right: 12px; font-size: 14px; white-space: nowrap; }
+    
+        /* 비밀번호 그룹 */
+        .password-group { position: relative; padding: 0; }
+        .password-group input { width: 100%; height: 100%; border: none !important; padding: 12px; padding-right: 45px; box-sizing: border-box; }
+        #toggle-password { position: absolute; top: 50%; right: 5px; transform: translateY(-50%); cursor: pointer; user-select: none; font-size: 18px; padding: 10px; }
+    
+        /* select 컨테이너와 내부 처리 (높이 정렬 및 화살표 추가) */
+        .select-container { position: relative; padding: 0; overflow: hidden; }
+        select.input-box { 
+            width: 100%; height: 100%; border: none !important; background: transparent; 
+            padding: 0 12px; cursor: pointer; outline: none !important; appearance: none;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>');
+            background-repeat: no-repeat; background-position: right 12px center;
+            caret-color: transparent !important; /* 커서 숨김 */
         }
+    
+        /* 포커스 시 테두리 색상 처리 */
+        .input-box:focus, .id-input-group:has(input:focus), .select-container:focus-within, .password-group:has(input:focus) {
+            border: 2px solid #000 !important;
+        }
+    
+        /* 에러 스타일 */
+        .error-border { border: 2px solid #ff4d4d !important; }
+        .error-text { font-size: 13px; color: #ff4d4d; margin-top: -5px; margin-bottom: 10px; display: none; text-align: left; padding-left: 40px; }
+    
+        /* 버튼 스타일 */
+        button { width: 340px; background-color: #2f63c7; color: white; border: none; padding: 12px; margin-top: 10px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
