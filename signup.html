@@ -84,7 +84,7 @@
             </div>
         
             <div class="input-wrapper">
-                <input type="text" id="answer" class="input-field" placeholder="질문에 대한 답(비밀번호를 잃어버렸을 때 필요하니까 꼭 기억해요!)" required>
+                <input type="text" id="answer" class="input-field" placeholder="질문에 대한 답(나중에 필요할 수 있어요. 꼭 기억해요!)" required>
             </div>
             <div id="answer-error" class="error-text"></div>
             
@@ -201,7 +201,7 @@
                 if (authErr.message.includes("already registered")) {
                     showError('user-id', "이미 사용 중인 아이디입니다.");
                 } else if (authErr.message.includes("password")) {
-                    showError('password', "비밀번호가 안전하지 않아요! (8자 이상, 대소문자/숫자/기호 포함)");
+                    showError('password', "비밀번호가 안전하지 않아요! (8글자보다 길게, 알파벳 대문자, 소문자, 숫자, 기호 포함)");
                 } else {
                     alert("가입 중 오류가 발생했습니다: " + authErr.message);
                 }
