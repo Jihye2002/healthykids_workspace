@@ -184,7 +184,12 @@
             if (supabaseInstance) return supabaseInstance;
             const res = await fetch('/get-config');
             const config = await res.json();
-            return createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+
+            console.log("URL 값:", config.SUPABASE_URL);
+            console.log("Key 값:", config.SUPABASE_ANON_KEY);
+        
+            supabaseInstance = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+            return supabaseInstance;
         }
     
         function showError(inputId, message) {
