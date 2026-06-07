@@ -171,9 +171,9 @@
             const question = document.getElementById('question').value;
         
             // 유효성 검사
-            if (!/^[a-zA-Z가-힣\s]{2,12}$/.test(name)) { showError('name', "이름은 2~12자의 한글 또는 영문!"); return; }
-            if (!/^(?=.*[a-z])(?=.*\d)[a-z0-9]{3,12}$/.test(userId)) { showError('user-id', "아이디는 3~12자의 영문/숫자!"); return; }
-            if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{8,}$/.test(password)) { showError('password', "비밀번호는 대소문자, 숫자, 기호로 8글자 이상으로!"); return; }
+            if (!/^[a-zA-Z가-힣\s]{2,12}$/.test(name)) { showError('name', "이름은 2~12자의 한글 또는 영문을 써주세요!"); return; }
+            if (!/^(?=.*[a-z])(?=.*\d)[a-z0-9]{3,12}$/.test(userId)) { showError('user-id', "아이디는 3~12자의 알파벳과 숫자로 써주세요!"); return; }
+            if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{8,}$/.test(password)) { showError('password', "비밀번호는 알파벳 대문자, 소문자, 숫자, 기호로 8글자 이상으로 써주세요!"); return; }
             if (!nickname) { showError('nickname', "별명을 입력해 주세요!"); return; }
             if (!/^[가-힣]+$/.test(answer)) { showError('answer', "답은 한글로 입력해 주세요! 비밀번호를 잃어버렸을 때 필요하니까 꼭 기억해요!"); return; }
         
