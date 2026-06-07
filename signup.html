@@ -140,6 +140,29 @@
                 errorDiv.style.display = 'block';
             }
         }
+
+        function setupRealtimeErrorRemoval() {
+            const inputs = document.querySelectorAll('.input-field');
+            inputs.forEach(input => {
+                input.addEventListener('input', () => {
+                    // 입력 시 테두리 원상복구
+                    if (input.id === 'user-id') {
+                        input.parentElement.classList.remove('error-border');
+                    } else {
+                        input.classList.remove('error-border');
+                    }
+                    
+                    // 해당 input의 에러 메시지 숨기기
+                    const errorDiv = document.getElementById(input.id + '-error');
+                    if (errorDiv) {
+                        errorDiv.style.display = 'none';
+                    }
+                });
+            });
+        }
+        
+        // 폼 로드 시 실행
+        setupRealtimeErrorRemoval();
         
         document.getElementById('signup-form').addEventListener('submit', async (e) => {
             e.preventDefault();
