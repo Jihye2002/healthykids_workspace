@@ -82,8 +82,13 @@
                         if (p.gender) insertData.gender = p.gender;
                         if (p.birthyear) insertData.birthyear = p.birthyear;
                         if (p.nickname) insertData.nickname = p.nickname;
-                        if (p.birthday) insertData.birthday = p.birthday;
-                        if (p.age) insertData.age = p.age;
+                        if (p.birthyear && p.birthday) {
+                            insertData.birthday = `${p.birthyear}-${p.birthday}`;
+                        }
+                        
+                        if (p.age) {
+                            insertData.age = parseInt(p.age);
+                        }
     
                         const { data: newUser, error: insertErr } = await supabase
                             .from('users')
