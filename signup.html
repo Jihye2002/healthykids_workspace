@@ -83,38 +83,45 @@
             padding: 16px;
         }
 
+        .input-box, 
+        .id-input-group, 
         .select-container {
             width: 340px;
+            height: 45px; /* 높이를 명시적으로 고정 */
             margin: 8px auto;
+            box-sizing: border-box; /* 패딩이 전체 높이에 포함되게 설정 */
             border: 2px solid #ddd;
-            background-color: white;
-            position: relative;
-            overflow: hidden; 
+            border-radius: 0px !important;
         }
         
+        /* 2. .input-box (일반 텍스트 입력창) 스타일 */
+        .input-box {
+            padding: 10px 12px; /* 위아래 패딩 조정 */
+            display: block;
+        }
+        
+        /* 3. select 요소 내부 정렬 */
         select.input-box {
-            width: 100%;
-            border: none !important; 
+            height: 100%; /* 부모 컨테이너 높이를 꽉 채움 */
+            padding: 0 12px; /* 상하 패딩 삭제 후 중앙 정렬 */
+            border: none !important;
             background: transparent;
             appearance: none;
             -webkit-appearance: none;
             -moz-appearance: none;
-            padding: 12px;
             cursor: pointer;
             outline: none !important;
-            box-shadow: none !important;
-            position: relative;
-            z-index: 2;
         }
         
-        .select-container:focus-within {
-            border: 2px solid #000 !important;
+        /* 4. 아이디 그룹 등 복합 컴포넌트 높이 맞춤 */
+        .id-input-group {
+            padding: 0;
+            display: flex;
+            align-items: center;
         }
         
-        /* 4. 선택 시 커서 막대기 차단 */
-        select.input-box:focus {
-            caret-color: transparent !important;
-            outline: none !important;
+        .id-input-group input {
+            height: 100%; /* 부모 높이에 맞춤 */
         }
         
         /* 모든 input과 버튼의 둥근 모서리를 강제로 제거 */
