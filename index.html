@@ -591,35 +591,6 @@
             localStorage.removeItem('user_name');
             window.location.reload();
         }
-        
-    
-        async function updateUI(session) {
-            const beforeLogin = document.getElementById('before-login');
-            const afterLogin = document.getElementById('after-login');
-            const welcomeMsg = document.getElementById('welcome-message');
-            
-            if (session) {
-                // 세션이 있을 때 DB에서 닉네임/이름 가져오기
-                const { data } = await window.supabase
-                    .from('users') 
-                    .select('nickname, name')
-                    .eq('id', session.user.id)
-                    .maybeSingle();
-                
-                const displayName = data?.nickname || data?.name || '사용자';
-                beforeLogin.style.display = 'none';
-                afterLogin.style.display = 'flex';
-                welcomeMsg.textContent = displayName;
-            } else {
-                beforeLogin.style.display = 'flex';
-                afterLogin.style.display = 'none';
-            }
-        }
-        
-        async function handleLogout() {
-            await window.supabase.auth.signOut();
-            window.location.reload();
-        }
     
         async function init() {
             const res = await fetch('/get-config');
@@ -628,15 +599,6 @@
     
             document.getElementById('logout-btn')?.addEventListener('click', handleLogout);
     
-            // 회원가입 링크 클릭 시 체크
-            const signupLink = document.querySelector('a[href="signup.html"]');
-            signupLink?.addEventListener('click', async (e) => {
-                const { data: { session } } = await window.supabase.auth.getSession();
-                if (session) {
-                    e.preventDefault(); 
-                    window.showAuthModal("이미 로그인 중이신 것 같아요! 회원가입 대신 서비스를 이용해주세요.");
-                }
-            });
     
             // 상태 변화 감지 및 초기 UI 설정
             const { data: { session } } = await window.supabase.auth.getSession();
@@ -648,41 +610,6 @@
         }
     
         document.addEventListener('DOMContentLoaded', init);
-        
-        async function init() {
-            const res = await fetch('/get-config');
-            const config = await res.json();
-            window.supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
-        
-            document.getElementById('logout-btn')?.addEventListener('click', handleLogout);
-        
-            const signupLink = document.querySelector('a[href="signup.html"]');
-            signupLink?.addEventListener('click', (e) => {
-                const userName = localStorage.getItem('user_name');
-                if (userName) {
-                    e.preventDefault(); 
-                    showAuthModal(`${userName}님은 이미 가입되어 있어요! 이제 로그인을 해주시면 좋을 것 같아요!`);
-                }
-            });
-        
-            const { data: { session } } = await window.supabase.auth.getSession();
-            
-            window.supabase.auth.onAuthStateChange((event, session) => {
-                if (event === 'SIGNED_OUT' && !window.location.pathname.includes('login.html')) {
-                    window.location.href = 'login.html';
-                }
-                updateUI(session);
-            });
-            
-            if (!session && !window.location.pathname.includes('login.html')) {
-                // 필요 시 페이지 이동
-            }
-            updateUI(session);
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            init();
-        });
     </script>
     <script src="chat-ui.js"></script>
 </body>
