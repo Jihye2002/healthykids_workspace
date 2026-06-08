@@ -69,11 +69,8 @@
                 window.supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
                 
                 document.getElementById('login-form')?.addEventListener('submit', handleLogin);
-                
-                // 실시간 에러 제거 기능
                 setupRealtimeErrorRemoval();
                 
-                // 비밀번호 토글
                 const togglePassword = document.getElementById('toggle-password');
                 const passwordInput = document.getElementById('password');
                 togglePassword?.addEventListener('click', () => {
@@ -84,7 +81,6 @@
             } catch (err) { console.error("초기화 실패:", err); }
         }
     
-        // 에러 상태를 시각적으로 보여주는 함수
         function showError(inputId, message) {
             const input = document.getElementById(inputId);
             const errorDiv = document.getElementById(inputId + '-error');
@@ -95,7 +91,6 @@
             }
         }
     
-        // 입력 시 즉시 에러 스타일 제거
         function setupRealtimeErrorRemoval() {
             document.querySelectorAll('.input-field').forEach(input => {
                 input.addEventListener('input', () => {
@@ -112,20 +107,30 @@
             const password = document.getElementById('password').value;
             const submitBtn = e.target.querySelector('button');
             
-            // 기존 에러 초기화
             document.querySelectorAll('.error-text').forEach(el => el.style.display = 'none');
             document.querySelectorAll('.input-wrapper').forEach(el => el.classList.remove('error-border'));
-            
             submitBtn.disabled = true;
-            
+    
+            const { data: userRecord, error: dbError } = await window.supabase
+                .from('public.users')
+                .select('id')
+                .eq('email', `${userId}@healthykids.com`)
+                .maybeSingle();
+    
+            if (!userRecord) {
+                showError('user-id', "없는 아이디예요! 아이디를 다시 확인해 볼까요?");
+                submitBtn.disabled = false;
+                return;
+            }
+    
+            // 2. 아이디가 있다면 비밀번호 검증
             const { error } = await window.supabase.auth.signInWithPassword({ 
                 email: `${userId}@healthykids.com`, 
                 password 
             });
             
             if (error) {
-                showError('user-id', "가입할 때 썼던 아이디를 여기에 입력해 주세요!");
-                showError('password', "가입할 때 썼던 비밀번호인지 한 번 더 확인해 주세요!");
+                showError('password', "비밀번호가 틀렸어요. 다시 한 번 확인해 주세요!");
                 submitBtn.disabled = false;
             } else {
                 window.location.href = 'index.html';
