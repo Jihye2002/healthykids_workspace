@@ -567,16 +567,14 @@
         
             if (session) {
                 if (naverUserName) {
-                    // 1) 네이버 유저: users 테이블에서 name 조회
-                    const { data, error } = await window.supabase
+                    const { data } = await window.supabase
                         .from('users') 
                         .select('name')
                         .eq('id', session.user.id)
                         .single();
                     displayName = data?.name || naverUserName;
                 } else {
-                    // 2) 자체 로그인 유저: public.users 테이블에서 nickname 조회
-                    const { data, error } = await window.supabase
+                    const { data } = await window.supabase
                         .from('public.users')
                         .select('nickname')
                         .eq('id', session.user.id)
@@ -595,59 +593,47 @@
             }
         }
         
-        // 2. 로그아웃 함수 (가입 이력 유지)
         async function handleLogout() {
-            // Supabase 세션만 로그아웃
             await window.supabase.auth.signOut();
-            localStorage.removeItem('user_name'); // <- 이 줄을 삭제/주석 처리하여 가입 이력 유지
+            localStorage.removeItem('user_name');
             window.location.reload();
         }
         
-        // 3. 모달 표시 함수
         function showAuthModal(message) {
             const modal = document.getElementById('auth-modal');
             const msgElement = document.getElementById('modal-message');
             msgElement.textContent = message;
             modal.style.display = 'flex';
         
-            // 3초 후 이동
             const timer = setTimeout(() => {
                 window.location.href = '/login.html';
             }, 3000);
         
-            // 버튼 클릭 시 타이머 취소
             const btn = modal.querySelector('button');
             btn?.addEventListener('click', () => {
                 clearTimeout(timer);
             });
         }
         
-        // 4. 초기화 함수
         async function init() {
             const res = await fetch('/get-config');
             const config = await res.json();
             window.supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
         
-            // 이벤트 리스너 통합 연결
             document.getElementById('logout-btn')?.addEventListener('click', handleLogout);
         
-            // index.html의 init 함수 내부에 이 부분을 작성하세요
             const signupLink = document.querySelector('a[href="signup.html"]');
-            
             signupLink?.addEventListener('click', (e) => {
-                // 1. 이미 가입된 정보(user_name)가 있는지 확인
                 const userName = localStorage.getItem('user_name');
-                
                 if (userName) {
-                    // 2. 가입된 상태라면 링크 이동을 막고(preventDefault) 모달 띄우기
                     e.preventDefault(); 
                     showAuthModal(`${userName}님은 이미 가입되어 있어요! 이제 로그인을 해주시면 좋을 것 같아요!`);
                 }
-                // 3. 가입된 정보가 없으면 아무런 방해 없이 평소처럼 signup.html로 이동함
             });
         
+            const { data: { session } } = await window.supabase.auth.getSession();
+            
             window.supabase.auth.onAuthStateChange((event, session) => {
-                
                 if (event === 'SIGNED_OUT' && !window.location.pathname.includes('login.html')) {
                     window.location.href = 'login.html';
                 }
@@ -655,10 +641,11 @@
             });
             
             if (!session && !window.location.pathname.includes('login.html')) {
-                window.location.href = 'login.html';
+                // 필요 시 페이지 이동
             }
             updateUI(session);
-        
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             init();
         });
