@@ -69,37 +69,59 @@
                 window.supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
                 
                 const { data: { session } } = await window.supabase.auth.getSession();
-                if (session) { window.location.href = 'index.html'; return; }
-
-                document.getElementById('login-form').addEventListener('submit', handleLogin);
-                document.getElementById('google-btn').addEventListener('click', () => socialLogin('google'));
-                document.getElementById('kakao-btn').addEventListener('click', () => socialLogin('kakao'));
-                document.getElementById('naver-btn').addEventListener('click', handleNaverLogin);
+                // 루프 방지: 현재 페이지가 이미 index.html이 아닐 때만 리다이렉트
+                if (session && window.location.pathname.indexOf('index.html') === -1) { 
+                    window.location.href = 'index.html'; 
+                    return; 
+                }
+    
+                // 각 요소가 존재하는지 확인 후 안전하게 이벤트 연결
+                const loginForm = document.getElementById('login-form');
+                if (loginForm) loginForm.addEventListener('submit', handleLogin);
                 
-                // 비밀번호 토글 설정
+                const googleBtn = document.getElementById('google-btn');
+                if (googleBtn) googleBtn.addEventListener('click', () => socialLogin('google'));
+                
+                const kakaoBtn = document.getElementById('kakao-btn');
+                if (kakaoBtn) kakaoBtn.addEventListener('click', () => socialLogin('kakao'));
+                
+                const naverBtn = document.getElementById('naver-btn');
+                if (naverBtn) naverBtn.addEventListener('click', handleNaverLogin);
+                
+                // 비밀번호 토글 설정 (요소가 있을 때만 실행)
                 const togglePassword = document.getElementById('toggle-password');
                 const passwordInput = document.getElementById('password');
-                togglePassword.addEventListener('click', () => {
-                    const type = passwordInput.type === 'password' ? 'text' : 'password';
-                    passwordInput.type = type;
-                    togglePassword.textContent = type === 'password' ? '🔒' : '🔓';
-                });
+                if (togglePassword && passwordInput) {
+                    togglePassword.addEventListener('click', () => {
+                        const type = passwordInput.type === 'password' ? 'text' : 'password';
+                        passwordInput.type = type;
+                        togglePassword.textContent = type === 'password' ? '🔒' : '🔓';
+                    });
+                }
             } catch (err) { console.error("초기화 실패:", err); }
         }
-        init();
+        
+        // 페이지 로드 완료 후 실행
+        window.addEventListener('DOMContentLoaded', init);
     
         async function handleLogin(e) {
             e.preventDefault();
             const userId = document.getElementById('user-id').value.trim();
             const password = document.getElementById('password').value;
             const submitBtn = e.target.querySelector('button');
-            submitBtn.disabled = true;
+            if(submitBtn) submitBtn.disabled = true;
             
-            const { error } = await window.supabase.auth.signInWithPassword({ email: `${userId}@healthykids.com`, password });
+            const { error } = await window.supabase.auth.signInWithPassword({ 
+                email: `${userId}@healthykids.com`, 
+                password 
+            });
+            
             if (error) {
-                document.getElementById('user-id-error').style.display = 'block';
-                document.getElementById('password-error').style.display = 'block';
-                submitBtn.disabled = false;
+                const idErr = document.getElementById('user-id-error');
+                const pwErr = document.getElementById('password-error');
+                if(idErr) idErr.style.display = 'block';
+                if(pwErr) pwErr.style.display = 'block';
+                if(submitBtn) submitBtn.disabled = false;
             } else {
                 window.location.href = 'index.html';
             }
