@@ -22,6 +22,7 @@
             display: flex;
             align-items: center;
             justify-content: flex-end; 
+            width: 100%;
             white-space: nowrap;
             flex-shrink: 0;
             font-size: 15px;
@@ -33,6 +34,7 @@
         #before-login {
             display: flex;
             align-items: center; /* 로그인, |, 회원가입을 한 줄로 정렬 */
+            gap: 5px;
         }
 
         /* 기존 스타일 아래에 추가 */
@@ -555,6 +557,10 @@
             const afterLogin = document.getElementById('after-login');
             const welcomeMsg = document.getElementById('welcome-message');
         
+            // 회원가입 링크와 구분선 요소를 가져옵니다.
+            const signupLink = document.querySelector('a[href="signup.html"]');
+            const divider = document.querySelector('.divider');
+            
             const naverUserName = localStorage.getItem('user_name');
             let displayName = null;
         
@@ -576,12 +582,22 @@
                 }
             }
         
+            // --- 수정된 UI 제어 로직 ---
             if (!displayName) {
                 beforeLogin.style.display = 'flex';
                 afterLogin.style.display = 'none';
+                
+                // 비로그인 상태일 때는 회원가입 버튼과 구분선을 보여줍니다.
+                if (signupLink) signupLink.style.display = 'block';
+                if (divider) divider.style.display = 'block';
             } else {
-                beforeLogin.style.display = 'none';
+                beforeLogin.style.display = 'flex'; // '로그인' 버튼은 유지하거나 필요시 'none' 처리
                 afterLogin.style.display = 'flex';
+                
+                // 로그인 상태일 때는 회원가입 버튼과 구분선을 숨깁니다.
+                if (signupLink) signupLink.style.display = 'none';
+                if (divider) divider.style.display = 'none';
+                
                 welcomeMsg.textContent = displayName;
             }
         }
