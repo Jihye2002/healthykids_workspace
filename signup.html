@@ -107,23 +107,32 @@
             const { data: { session } } = await supabase.auth.getSession();
             
             if (session) {
+                // 세션이 있다면 프로필을 가져와서 이미 가입된 사용자인지 확인
                 const { data: userProfile } = await supabase
-                    .from('public.users')
+                    .from('users') // 테이블명이 public.users라면 'public.users' 사용
                     .select('nickname')
                     .eq('id', session.user.id)
                     .maybeSingle();
                 
                 if (userProfile) {
-            document.getElementById('modal-message').innerHTML = 
-                `<strong>${userProfile.nickname}</strong>님은 이미 가입되어 있어요!<br>3초 후 로그인 페이지로 이동해요`;
-            document.getElementById('auth-modal').style.display = 'flex';
-            
-            // 3초 후 자동 이동
-            setTimeout(() => {
-                window.location.href = 'login.html';
-            }, 3000);
+                    // 이미 가입된 사용자이므로 폼을 숨기거나 안내 후 리다이렉트
+                    document.getElementById('modal-message').innerHTML = 
+                        `<strong>${userProfile.nickname}</strong>님은 이미 가입되어 있습니다.<br>로그인 페이지로 이동합니다.`;
+                    document.getElementById('auth-modal').style.display = 'flex';
+                    
+                    // 3초 후 이동
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 3000);
+                }
+            }
         }
-        checkAlreadyRegistered();
+        
+        // 돔이 로드되면 체크 실행
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAlreadyRegistered();
+            init(); // 기존 init 함수도 함께 호출
+        });
         
         let supabaseInstance = null;
         
