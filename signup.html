@@ -103,6 +103,17 @@
     <script type="module">
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+        async function checkAlreadyLoggedIn() {
+            const supabase = await initSupabase();
+            const { data: { session } } = await supabase.auth.getSession();
+            
+            // 세션이 있다면 이미 가입/로그인된 상태이므로 로그인 페이지로 즉시 이동
+            if (session) {
+                window.location.href = 'login.html';
+            }
+        }
+        checkAlreadyLoggedIn();
+
         let supabaseInstance = null;
         
         async function initSupabase() {
