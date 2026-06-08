@@ -68,28 +68,22 @@
                 const config = await res.json();
                 window.supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
                 
-                // 1. 세션 체크: 가장 먼저 실행
+                // 1. 세션 확인
                 const { data: { session } } = await window.supabase.auth.getSession();
                 
-                // 2. 오직 세션이 '진짜' 있을 때만 index.html로 보냄
+                // 2. 이미 로그인되어 있다면 index.html로 이동 (이게 다입니다!)
                 if (session) {
-                    console.log("세션 확인됨: 메인 페이지로 이동");
                     window.location.href = 'index.html';
-                    return; // 여기서 멈춤 (아래 코드 실행 안 함)
+                    return; 
                 }
         
-                // 3. 세션이 없을 때만 아래 이벤트 등록
+                // 3. 로그인이 안 되어 있을 때만 아래 이벤트들을 등록합니다.
                 const loginForm = document.getElementById('login-form');
                 if (loginForm) loginForm.addEventListener('submit', handleLogin);
                 
-                const googleBtn = document.getElementById('google-btn');
-                if (googleBtn) googleBtn.addEventListener('click', () => socialLogin('google'));
-                
-                const kakaoBtn = document.getElementById('kakao-btn');
-                if (kakaoBtn) kakaoBtn.addEventListener('click', () => socialLogin('kakao'));
-                
-                const naverBtn = document.getElementById('naver-btn');
-                if (naverBtn) naverBtn.addEventListener('click', handleNaverLogin);
+                document.getElementById('google-btn')?.addEventListener('click', () => socialLogin('google'));
+                document.getElementById('kakao-btn')?.addEventListener('click', () => socialLogin('kakao'));
+                document.getElementById('naver-btn')?.addEventListener('click', handleNaverLogin);
                 
                 const togglePassword = document.getElementById('toggle-password');
                 const passwordInput = document.getElementById('password');
@@ -100,10 +94,11 @@
                         togglePassword.textContent = type === 'password' ? '🔒' : '🔓';
                     });
                 }
-            } catch (err) { 
-                console.error("초기화 실패:", err); 
-            }
+            } catch (err) { console.error("초기화 실패:", err); }
         }
+        
+        // 반드시 DOMContentLoaded 사용!
+        document.addEventListener('DOMContentLoaded', init);
         
         // 페이지 로드 완료 후 실행
         window.addEventListener('DOMContentLoaded', init);
