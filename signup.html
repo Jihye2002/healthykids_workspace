@@ -184,7 +184,15 @@
                 
                 const { data: authData, error: authErr } = await supabase.auth.signUp({
                     email: `${userId}@healthykids.com`,
-                    password: password
+                    password: password,
+                    options: {
+                        data: { // 이 데이터를 트리거가 받아서 public.users 테이블에 저장함
+                            name: name,
+                            nickname: nickname,
+                            question: question,
+                            answer: answer
+                        }
+                    }
                 });
                 
                 if (authErr) {
@@ -192,14 +200,6 @@
                     else showError('password', "가입 오류: " + authErr.message);
                     return;
                 }
-                
-                const { error: dbErr } = await supabase.from('public.users').insert([{ 
-                    id: authData.user.id, 
-                    email: `${userId}@healthykids.com`, 
-                    name, nickname, security_question: question, security_answer: answer 
-                }]);
-        
-                if (dbErr) throw dbErr;
         
                 document.getElementById('modal-message').textContent = "가입 완료!";
                 document.getElementById('auth-modal').style.display = 'flex';
