@@ -15,14 +15,13 @@ app.use(cors());
 app.use(express.json({ limit: "50mb" }));
 
 // 2. API 라우트 (정적 파일보다 무조건 위에 있어야 합니다)
-app.get("/get-config", (req, res) => {
+app.get('/get-config', (req, res) => {
     res.json({
-        SUPABASE_URL: process.env.SUPABASE_URL || "",
-        SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || "",
-        NAVER_CLIENT_ID: process.env.NAVER_CLIENT_ID || "" // 이 줄을 추가하세요!
+        SUPABASE_URL: process.env.SUPABASE_URL,
+        SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY,
+        NAVER_CLIENT_ID: process.env.NAVER_CLIENT_ID // 네이버 키도 필요하면 추가
     });
 });
-
 // server.js 추가 부분
 app.get('/get-naver-profile', async (req, res) => {
     const token = req.query.token;
