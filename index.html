@@ -14,8 +14,21 @@
         .header { display: flex; align-items: center; padding: 10px 20px; flex-wrap: nowrap; gap: 20px; width: 100%;}
         .logo { flex-shrink: 0; }
         .logo img { display: block; width: 100%; max-width: 180px; height: auto; }
-        .container { display: flex; align-items: center; width: 100%; min-width: 0; gap: 20px; flex: 1; }
-        .search-bar { display: flex; align-items: center; margin-left: 0; flex: 1; max-width: 1280px; gap: 8px; }
+        .container { 
+            display: flex; 
+            align-items: center; 
+            width: 100%; 
+            gap: 20px; 
+            flex: 1; 
+            justify-content: space-between;
+        }
+        .search-bar { 
+            display: flex; 
+            align-items: center; 
+            flex: 1;
+            max-width: 800px;
+            gap: 8px; 
+        }
         .search-bar input { flex: 1 1 auto; padding: 10px; font-size: 15px; border: 1px solid #316ef4; min-width: 50px; border-radius: 5px; }
         .search-bar button { background-color: #fff; border: none; cursor: pointer; flex-shrink: 0; width: 30px; }
         .user-menu {
@@ -26,7 +39,6 @@
             flex-shrink: 0;
             font-size: 15px;
             font-weight: 600;
-            padding-right: 10px; 
         }
         
         #before-login {
