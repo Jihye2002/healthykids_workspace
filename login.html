@@ -68,17 +68,16 @@
                 const config = await res.json();
                 window.supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
                 
-                // 1. 세션 확인
+                // 세션 확인
                 const { data: { session } } = await window.supabase.auth.getSession();
                 
-                // 2. 이미 로그인된 상태라면 index.html로 이동
-                // 3. 만약 index.html이 로딩 직후 다시 login.html로 보내지 않는지 확인하세요!
+                // 만약 이미 로그인된 상태라면 index.html로 이동
                 if (session) {
                     window.location.href = 'index.html';
                     return; 
                 }
     
-                // 3. 로그인이 안 되어 있을 때만 아래 이벤트들을 등록합니다.
+                // 이벤트 리스너 등록
                 document.getElementById('login-form')?.addEventListener('submit', handleLogin);
                 document.getElementById('google-btn')?.addEventListener('click', () => socialLogin('google'));
                 document.getElementById('kakao-btn')?.addEventListener('click', () => socialLogin('kakao'));
@@ -96,14 +95,16 @@
             } catch (err) { console.error("초기화 실패:", err); }
         }
     
-        // [수정] 아래와 같이 하나만 남겨서 중복 실행을 막습니다.
+        // 2. 단 한 번만 실행되도록 설정
         document.addEventListener('DOMContentLoaded', init);
         
+        // 로그인 처리 함수
         async function handleLogin(e) {
             e.preventDefault();
             const userId = document.getElementById('user-id').value.trim();
             const password = document.getElementById('password').value;
             const submitBtn = e.target.querySelector('button');
+            
             if(submitBtn) submitBtn.disabled = true;
             
             const { error } = await window.supabase.auth.signInWithPassword({ 
@@ -116,7 +117,7 @@
                 document.getElementById('password-error').style.display = 'block';
                 if(submitBtn) submitBtn.disabled = false;
             } else {
-                // 성공 시에만 index.html로 이동
+                // 로그인 성공 시에만 이동
                 window.location.href = 'index.html';
             }
         }
