@@ -418,9 +418,8 @@
 <body>
 
 <div id="auth-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); justify-content: center; align-items: center; z-index: 9999;">
-    <div style="background: white; padding: 30px; border-radius: 15px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); max-width: 400px; width: 90%;">
+    <div style="background: white; padding: 30px; border-radius: 0px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); max-width: 400px; width: 90%;">
         <p id="modal-message" style="font-size: 18px; font-weight: 600; color: #333; margin-bottom: 20px;"></p>
-        <button onclick="window.location.href='login.html'" style="padding: 12px 24px; background: #03c75a; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">로그인하러 가기</button>
     </div>
 </div>    
 
@@ -602,17 +601,15 @@
         function showAuthModal(message) {
             const modal = document.getElementById('auth-modal');
             const msgElement = document.getElementById('modal-message');
-            msgElement.textContent = message;
+            
+            // 안내 문구 설정
+            msgElement.innerHTML = `${message}<br><br><span style="font-size: 14px; color: #666;">3초 후 로그인 페이지로 이동합니다.</span>`;
             modal.style.display = 'flex';
-        
-            const timer = setTimeout(() => {
-                window.location.href = '/login.html';
+    
+            // 3초 후 자동 이동
+            setTimeout(() => {
+                window.location.href = 'login.html';
             }, 3000);
-        
-            const btn = modal.querySelector('button');
-            btn?.addEventListener('click', () => {
-                clearTimeout(timer);
-            });
         }
         
         async function init() {
