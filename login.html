@@ -126,61 +126,61 @@
 
     <script type="module">
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-    
+
         async function init() {
-            const res = await fetch('/get-config');
-            const config = await res.json();
-            window.supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+            try {
+                // 1. 서버 설정 가져오기 (이미 해결되었다고 하셨으니 그대로 유지)
+                const res = await fetch('/get-config');
+                const config = await res.json();
+                
+                // config가 객체 형태인지 확인 (필요시 보완)
+                if (!config.SUPABASE_URL || !config.SUPABASE_ANON_KEY) {
+                    console.error("설정 정보를 불러올 수 없습니다.", config);
+                    return;
+                }
     
-            const { data: { session } } = await window.supabase.auth.getSession();
-            if (session) {
-                window.location.href = 'index.html';
-                return;
+                window.supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+    
+                // 2. 세션 체크
+                const { data: { session } } = await window.supabase.auth.getSession();
+                if (session) {
+                    window.location.href = 'index.html';
+                    return;
+                }
+                
+                // 3. 이벤트 리스너 연결
+                document.getElementById('login-form').addEventListener('submit', handleLogin);
+                document.getElementById('google-btn').addEventListener('click', () => socialLogin('google'));
+                document.getElementById('kakao-btn').addEventListener('click', () => socialLogin('kakao'));
+                document.getElementById('naver-btn').addEventListener('click', handleNaverLogin);
+    
+            } catch (err) {
+                console.error("초기화 실패:", err);
             }
-            
-            document.getElementById('login-form').addEventListener('submit', handleLogin);
-            document.getElementById('google-btn').addEventListener('click', () => socialLogin('google'));
-            document.getElementById('kakao-btn').addEventListener('click', () => socialLogin('kakao'));
-            document.getElementById('naver-btn').addEventListener('click', handleNaverLogin);
         }
     
         async function handleLogin(e) {
             e.preventDefault();
-            const userId = document.getElementById('user-id').value;
+            const userId = document.getElementById('user-id').value.trim();
             const password = document.getElementById('password').value;
-            const email = `${userId.replace(/\s+/g, '')}@healthykids.com`;
-        
+            const email = `${userId}@healthykids.com`;
+    
+            // 로딩 표시 추가 추천 (버튼 비활성화 등)
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+    
             const { error } = await window.supabase.auth.signInWithPassword({ email, password });
-        
+    
             if (error) {
-                // 공통 에러 메시지 처리 (위치를 구분해서 띄우기)
-                const idInput = document.getElementById('user-id');
-                const passInput = document.getElementById('password');
-                const idError = document.getElementById('user-id-error');
-                const passError = document.getElementById('password-error');
-        
-                // 테두리 빨갛게
-                idInput.classList.add('error-border');
-                passInput.classList.add('error-border');
-        
-                // 메시지 표시
-                idError.style.display = 'block';
-                passError.style.display = 'block';
-                idError.textContent = "아이디를 확인해 주세요..";
-                passError.textContent = "비밀번호가 올바르지 않아요!";
+                console.error("로그인 에러:", error.message);
+                // 에러 시 시각적 피드백 유지
+                document.getElementById('user-id-error').style.display = 'block';
+                document.getElementById('password-error').style.display = 'block';
+                submitBtn.disabled = false;
             } else {
                 window.location.href = 'index.html';
             }
         }
-        
-        // [추가] 로그인 페이지용 입력 시 에러 초기화 로직
-        document.querySelectorAll('input').forEach(input => {
-            input.addEventListener('input', () => {
-                input.classList.remove('error-border');
-                const errorDiv = document.getElementById(input.id + '-error');
-                if (errorDiv) errorDiv.style.display = 'none';
-            });
-        });
     
         async function socialLogin(provider) {
             await window.supabase.auth.signInWithOAuth({
@@ -195,8 +195,6 @@
             const callbackUrl = encodeURIComponent("https://healthykids-workspace.onrender.com/callback.html");
             window.location.href = `https://nid.naver.com/oauth2.0/authorize?response_type=token&client_id=${config.NAVER_CLIENT_ID}&redirect_uri=${callbackUrl}&state=RANDOM`;
         }
-    
-        init();
     </script>
 </body>
 </html>
