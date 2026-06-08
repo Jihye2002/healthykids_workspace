@@ -646,14 +646,21 @@
                 // 3. 가입된 정보가 없으면 아무런 방해 없이 평소처럼 signup.html로 이동함
             });
         
-            // 상태 변화 감지 및 초기 상태 확인
-            window.supabase.auth.onAuthStateChange((event, session) => updateUI(session));
-            const { data: { session } } = await window.supabase.auth.getSession();
+            window.supabase.auth.onAuthStateChange((event, session) => {
+                
+                if (event === 'SIGNED_OUT' && !window.location.pathname.includes('login.html')) {
+                    window.location.href = 'login.html';
+                }
+                updateUI(session);
+            });
+            
+            if (!session && !window.location.pathname.includes('login.html')) {
+                window.location.href = 'login.html';
+            }
             updateUI(session);
-        }
         
         document.addEventListener('DOMContentLoaded', () => {
-            init(); // 페이지 로드가 완료된 후 init() 호출
+            init();
         });
     </script>
     <script src="chat-ui.js"></script>
