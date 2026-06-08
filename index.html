@@ -369,7 +369,7 @@
             color: #737373;
         }
 
-        @media (max-width: 1000px) {
+        @media (max-width: 400px) {
             /* 1. 내비게이션과 카드 컨테이너 설정 */
             .navbar, .card-container {
                 display: flex;
@@ -598,19 +598,76 @@
             window.location.reload();
         }
         
-        function showAuthModal(message) {
+        window.showAuthModal = function(message) {
             const modal = document.getElementById('auth-modal');
             const msgElement = document.getElementById('modal-message');
             
-            // 안내 문구 설정
-            msgElement.innerHTML = `${message}<br><br><span style="font-size: 14px; color: #888;">3초 후에 로그인 페이지로 이동해요..</span>`;
+            msgElement.innerHTML = `
+                <div style="margin-bottom: 15px; font-weight: 600;">${message}</div>
+                <div style="font-size: 14px; color: #888;">3초 후 로그인 페이지로 이동합니다.</div>
+            `;
             modal.style.display = 'flex';
     
-            // 3초 후 자동 이동
             setTimeout(() => {
                 window.location.href = 'login.html';
             }, 3000);
+        };
+    
+        async function updateUI(session) {
+            const beforeLogin = document.getElementById('before-login');
+            const afterLogin = document.getElementById('after-login');
+            const welcomeMsg = document.getElementById('welcome-message');
+            
+            if (session) {
+                // 세션이 있을 때 DB에서 닉네임/이름 가져오기
+                const { data } = await window.supabase
+                    .from('users') 
+                    .select('nickname, name')
+                    .eq('id', session.user.id)
+                    .maybeSingle();
+                
+                const displayName = data?.nickname || data?.name || '사용자';
+                beforeLogin.style.display = 'none';
+                afterLogin.style.display = 'flex';
+                welcomeMsg.textContent = displayName;
+            } else {
+                beforeLogin.style.display = 'flex';
+                afterLogin.style.display = 'none';
+            }
         }
+        
+        async function handleLogout() {
+            await window.supabase.auth.signOut();
+            window.location.reload();
+        }
+    
+        async function init() {
+            const res = await fetch('/get-config');
+            const config = await res.json();
+            window.supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+    
+            document.getElementById('logout-btn')?.addEventListener('click', handleLogout);
+    
+            // 회원가입 링크 클릭 시 체크
+            const signupLink = document.querySelector('a[href="signup.html"]');
+            signupLink?.addEventListener('click', async (e) => {
+                const { data: { session } } = await window.supabase.auth.getSession();
+                if (session) {
+                    e.preventDefault(); 
+                    window.showAuthModal("이미 로그인 중이신 것 같아요! 회원가입 대신 서비스를 이용해주세요.");
+                }
+            });
+    
+            // 상태 변화 감지 및 초기 UI 설정
+            const { data: { session } } = await window.supabase.auth.getSession();
+            window.supabase.auth.onAuthStateChange((event, session) => {
+                if (event === 'SIGNED_OUT') window.location.reload();
+                updateUI(session);
+            });
+            updateUI(session);
+        }
+    
+        document.addEventListener('DOMContentLoaded', init);
         
         async function init() {
             const res = await fetch('/get-config');
