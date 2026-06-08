@@ -70,7 +70,7 @@
                 
                 const { data: { session } } = await window.supabase.auth.getSession();
                 // 루프 방지: 현재 페이지가 이미 index.html이 아닐 때만 리다이렉트
-                if (session && window.location.pathname.indexOf('index.html') === -1) { 
+                if (session && window.location.href.includes('login.html')) {
                     window.location.href = 'index.html'; 
                     return; 
                 }
