@@ -102,38 +102,6 @@
 
     <script type="module">
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-        async function checkAlreadyRegistered() {
-            const supabase = await initSupabase();
-            const { data: { session } } = await supabase.auth.getSession();
-            
-            if (session) {
-                // 세션이 있다면 프로필을 가져와서 이미 가입된 사용자인지 확인
-                const { data: userProfile } = await supabase
-                    .from('users') // 테이블명이 public.users라면 'public.users' 사용
-                    .select('nickname')
-                    .eq('id', session.user.id)
-                    .maybeSingle();
-                
-                if (userProfile) {
-                    // 이미 가입된 사용자이므로 폼을 숨기거나 안내 후 리다이렉트
-                    document.getElementById('modal-message').innerHTML = 
-                        `<strong>${userProfile.nickname}</strong>님은 이미 가입되어 있습니다.<br>로그인 페이지로 이동합니다.`;
-                    document.getElementById('auth-modal').style.display = 'flex';
-                    
-                    // 3초 후 이동
-                    setTimeout(() => {
-                        window.location.href = 'login.html';
-                    }, 3000);
-                }
-            }
-        }
-        
-        // 돔이 로드되면 체크 실행
-        document.addEventListener('DOMContentLoaded', () => {
-            checkAlreadyRegistered();
-            init(); // 기존 init 함수도 함께 호출
-        });
         
         let supabaseInstance = null;
         
@@ -150,6 +118,29 @@
             });
             return supabaseInstance;
         }
+
+        async function checkAlreadyRegistered() {
+            const supabase = await initSupabase();
+            const { data: { session } } = await supabase.auth.getSession();
+            
+            if (session) {
+                // 로그인 상태라면 가입 페이지 접근 차단
+                const modal = document.getElementById('auth-modal');
+                const msgElement = document.getElementById('modal-message');
+                
+                msgElement.innerHTML = `<strong>이미 로그인된 상태입니다!</strong><br>회원가입이 필요하지 않아요. 3초 후 이동합니다.`;
+                modal.style.display = 'flex';
+                
+                setTimeout(() => {
+                    window.location.href = 'index.html'; // 메인으로 리다이렉트
+                }, 3000);
+            }
+        }
+        
+        // 돔 로드 시 체크
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAlreadyRegistered();
+        });
         
         function showError(inputId, message) {
             const input = document.getElementById(inputId);
