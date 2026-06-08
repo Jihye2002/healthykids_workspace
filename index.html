@@ -557,28 +557,41 @@
     <script type="module">
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-        // 1. UI 업데이트 함수
-        function updateUI(session) {
+        async function updateUI(session) {
             const beforeLogin = document.getElementById('before-login');
             const afterLogin = document.getElementById('after-login');
             const welcomeMsg = document.getElementById('welcome-message');
         
-            // 네이버 로그인 유저는 localStorage에, Supabase 로그인 유저는 session에 정보가 있습니다.
             const naverUserName = localStorage.getItem('user_name');
-            const supabaseUserName = session?.user?.user_metadata?.full_name;
-            
-            // 둘 중 하나라도 있으면 로그인된 것으로 간주
-            const userName = naverUserName || supabaseUserName;
+            let displayName = null;
         
-            if (!userName) {
-                // 완전히 로그아웃된 상태
+            if (session) {
+                if (naverUserName) {
+                    // 1) 네이버 유저: users 테이블에서 name 조회
+                    const { data, error } = await window.supabase
+                        .from('users') 
+                        .select('name')
+                        .eq('id', session.user.id)
+                        .single();
+                    displayName = data?.name || naverUserName;
+                } else {
+                    // 2) 자체 로그인 유저: public.users 테이블에서 nickname 조회
+                    const { data, error } = await window.supabase
+                        .from('public.users')
+                        .select('nickname')
+                        .eq('id', session.user.id)
+                        .single();
+                    displayName = data?.nickname;
+                }
+            }
+        
+            if (!displayName) {
                 beforeLogin.style.display = 'flex';
                 afterLogin.style.display = 'none';
             } else {
-                // 로그인된 상태 (네이버든, Supabase든)
                 beforeLogin.style.display = 'none';
                 afterLogin.style.display = 'flex';
-                welcomeMsg.textContent = userName;
+                welcomeMsg.textContent = displayName;
             }
         }
         
