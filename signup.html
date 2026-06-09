@@ -173,7 +173,7 @@
                 const supabase = await initSupabase();
 
                 const { data: existingUser } = await supabase
-                    .from('public.users')
+                    .from('public.public.users')
                     .select('nickname')
                     .eq('nickname', nickname)
                     .maybeSingle();
