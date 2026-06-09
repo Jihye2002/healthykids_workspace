@@ -577,14 +577,14 @@
             if (session) {
                 if (naverUserName) {
                     const { data } = await window.supabase
-                        .from('users') 
+                        .from("users") 
                         .select('name')
                         .eq('id', session.user.id)
-                        .single();
+                        .maybeSingle();
                     displayName = data?.name || naverUserName;
                 } else {
                     const { data } = await window.supabase
-                        .from('public.users')
+                        .from("public.users")
                         .select('nickname')
                         .eq('id', session.user.id)
                         .single();
