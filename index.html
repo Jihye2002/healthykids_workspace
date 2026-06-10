@@ -566,13 +566,14 @@
             const afterLogin = document.getElementById('after-login');
             const welcomeMsg = document.getElementById('welcome-message');
         
-            // 회원가입 링크와 구분선 요소를 가져옵니다.
-           const signupLink = document.querySelector('a[href="signup.html"]');
+            // 요소 가져오기 (null 방지)
+            const signupLink = document.querySelector('a[href="signup.html"]');
             const divider = document.querySelector('.divider');
-            const loginLink = document.querySelector('a[href="login.html"]'); // '로그인' 링크 추가 확보
+            const loginLink = document.querySelector('a[href="login.html"]');
             
-            const naverUserName = localStorage.getItem('user_name');
-            let displayName = null;
+            // 1. 이름 정보 우선 확인 (네이버 로그인은 localStorage, 그 외는 Supabase 세션)
+            const naverUserName = localStorage.getItem('name');
+            let displayName = naverUserName;
         
             if (session) {
                 if (naverUserName) {
@@ -593,29 +594,30 @@
             }
         
             // --- 수정된 UI 제어 로직 ---
-            if (!displayName) {
-                beforeLogin.style.display = 'flex';
-                afterLogin.style.display = 'none';
-                
-                // 비로그인 상태일 때는 회원가입 버튼과 구분선을 보여줍니다.
-                if (signupLink) signupLink.style.display = 'block';
-                if (divider) divider.style.display = 'block';
-            } else {
-                beforeLogin.style.display = 'flex'; // '로그인' 버튼은 유지하거나 필요시 'none' 처리
+            if (displayName) {
+                beforeLogin.style.display = 'none';
                 afterLogin.style.display = 'flex';
                 
-                // 로그인 상태일 때는 회원가입 버튼과 구분선을 숨깁니다.
                 if (signupLink) signupLink.style.display = 'none';
                 if (divider) divider.style.display = 'none';
                 if (loginLink) loginLink.style.display = 'none';
-                
+
                 welcomeMsg.textContent = displayName;
+            } else {
+                beforeLogin.style.display = 'flex'; // '로그인' 버튼은 유지하거나 필요시 'none' 처리
+                afterLogin.style.display = 'none';
+        
+                if (signupLink) signupLink.style.display = 'block';
+                if (divider) divider.style.display = 'block';
+                if (loginLink) loginLink.style.display = 'block';
+                
+                
             }
         }
         
         async function handleLogout() {
             await window.supabase.auth.signOut();
-            localStorage.removeItem('user_name');
+            localStorage.removeItem('name');
             window.location.reload();
         }
     
