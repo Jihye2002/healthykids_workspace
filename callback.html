@@ -31,7 +31,7 @@
 </head>
 <body>
     <div class="spinner"></div>
-    <h2 id="status-message">정보를 확인하고 있습니다...</h2>
+    <h2 id="status-message">가입 정보를 확인하고 있습니다...</h2>
 
     <script type="module">
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -67,7 +67,7 @@
                     if (user) {
                         // 로그인 경우
                         statusMsg.textContent = "로그인 정보를 확인하고 있습니다...";
-                        localStorage.setItem('user_name', user.name);
+                        localStorage.setItem('name', user.name);
                         localStorage.setItem('login_time', new Date().getTime().toString());
                         setTimeout(() => window.location.replace('/index.html'), 1500);
                     } else {
@@ -100,7 +100,7 @@
                             console.error("가입 저장 에러:", insertErr);
                             statusMsg.textContent = "가입 처리 중 오류가 발생했습니다.";
                         } else {
-                            localStorage.setItem('user_name', newUser.name);
+                            localStorage.setItem('name', newUser.name);
                             setTimeout(() => window.location.replace('/index.html'), 1500);
                         }
                     } 
