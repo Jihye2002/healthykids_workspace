@@ -577,15 +577,15 @@
                     if (naverUserName) {
                         // 네이버 로그인: "users" 테이블 사용
                         const { data } = await window.supabase
-                            .from('"users"') // 따옴표로 감싸서 테이블 이름 명시
+                            .from('users') // 따옴표로 감싸서 테이블 이름 명시
                             .select('name')
-                            .eq('id', session.user.id)
+                            .eq('email', session.user.email)
                             .maybeSingle(); // 에러 방지를 위해 single 대신 maybeSingle 사용 추천
                         displayName = data?.name || naverUserName;
                     } else {
                         // 일반 회원가입: "public.users" 테이블 사용
                         const { data } = await window.supabase
-                            .from('"public.users"') 
+                            .from('public.users') 
                             .select('nickname')
                             .eq('id', session.user.id)
                             .maybeSingle();
