@@ -579,7 +579,7 @@
                     const { data } = await window.supabase
                         .from("users") 
                         .select('name')
-                        .eq('id', session.user.id)
+                        .eq('email', userEmail)
                         .maybeSingle();
                     displayName = data?.name || naverUserName;
                 } else {
