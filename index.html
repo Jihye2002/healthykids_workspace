@@ -569,33 +569,47 @@
             const divider = document.querySelector('.divider');
             const loginLink = document.querySelector('a[href="login.html"]');
             
-            // 네이버(localStorage) 또는 Supabase(DB)에서 이름 가져오기
-            const naverUserName = localStorage.getItem('name');
-            let displayName = naverUserName;
+            const naverUserName = localStorage.getItem('user_name');
+            let displayName = null;
         
-            // 네이버가 없으면 Supabase 세션에서 DB 조회
-            if (!displayName && session) {
-                const { data } = await window.supabase
-                    .from("users")
-                    .select('name')
-                    .eq('email', session.user.email)
-                    .maybeSingle();
-                displayName = data?.name;
+            if (session) {
+                try {
+                    if (naverUserName) {
+                        // 네이버 로그인: "users" 테이블 사용
+                        const { data } = await window.supabase
+                            .from('"users"') // 따옴표로 감싸서 테이블 이름 명시
+                            .select('name')
+                            .eq('id', session.user.id)
+                            .maybeSingle(); // 에러 방지를 위해 single 대신 maybeSingle 사용 추천
+                        displayName = data?.name || naverUserName;
+                    } else {
+                        // 일반 회원가입: "public.users" 테이블 사용
+                        const { data } = await window.supabase
+                            .from('"public.users"') 
+                            .select('nickname')
+                            .eq('id', session.user.id)
+                            .maybeSingle();
+                        displayName = data?.nickname;
+                    }
+                } catch (err) {
+                    console.error("UI 업데이트 중 조회 오류:", err);
+                }
             }
         
-            if (displayName) {
-                beforeLogin.style.display = 'none';
-                afterLogin.style.display = 'flex';
-                if (signupLink) signupLink.style.display = 'none';
-                if (divider) divider.style.display = 'none';
-                if (loginLink) loginLink.style.display = 'none';
-                welcomeMsg.textContent = `${displayName}님 환영해요!`;
-            } else {
+            // UI 제어 로직 (기존과 동일)
+            if (!displayName) {
                 beforeLogin.style.display = 'flex';
                 afterLogin.style.display = 'none';
                 if (signupLink) signupLink.style.display = 'block';
                 if (divider) divider.style.display = 'block';
-                if (loginLink) loginLink.style.display = 'block';
+            } else {
+                beforeLogin.style.display = 'none'; // 로그인 후엔 로그인 버튼 숨김
+                afterLogin.style.display = 'flex';
+                if (signupLink) signupLink.style.display = 'none';
+                if (divider) divider.style.display = 'none';
+                if (loginLink) loginLink.style.display = 'none';
+                
+                welcomeMsg.textContent = displayName;
             }
         }
         
