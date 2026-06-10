@@ -570,51 +570,56 @@
             const loginLink = document.querySelector('a[href="login.html"]');
             
             const naverUserName = localStorage.getItem('user_name');
-            let displayName = null;
+            let displayName = naverUserName;
         
             if (session) {
                 try {
-                    if (naverUserName) {
-                        // 네이버 로그인: "users" 테이블 사용
+                    // 이메일로 테이블 구분: @healthykids.com 이면 자체 회원, 아니면 소셜 회원
+                    const isSelfHosted = session.user.email.endsWith('@healthykids.com');
+                    
+                    if (isSelfHosted) {
+                        // public.users 테이블 조회 (id 사용)
                         const { data } = await window.supabase
-                            .from('users') // 따옴표로 감싸서 테이블 이름 명시
-                            .select('name')
-                            .eq('email', session.user.email)
-                            .maybeSingle(); // 에러 방지를 위해 single 대신 maybeSingle 사용 추천
-                        displayName = data?.name || naverUserName;
-                    } else {
-                        // 일반 회원가입: "public.users" 테이블 사용
-                        const { data } = await window.supabase
-                            .from('public.users') 
+                            .from('public.users')
                             .select('nickname')
                             .eq('id', session.user.id)
                             .maybeSingle();
                         displayName = data?.nickname;
+                    } else {
+                        // 소셜 로그인: users 테이블 조회 (email 사용)
+                        const { data } = await window.supabase
+                            .from('users')
+                            .select('name')
+                            .eq('email', session.user.email)
+                            .maybeSingle();
+                        displayName = data?.name || displayName;
                     }
                 } catch (err) {
                     console.error("UI 업데이트 중 조회 오류:", err);
                 }
             }
         
-            // UI 제어 로직 (기존과 동일)
-            if (!displayName) {
-                beforeLogin.style.display = 'flex';
-                afterLogin.style.display = 'none';
-                if (signupLink) signupLink.style.display = 'block';
-                if (divider) divider.style.display = 'block';
-            } else {
-                beforeLogin.style.display = 'none'; // 로그인 후엔 로그인 버튼 숨김
+            if (displayName) {
+                beforeLogin.style.display = 'none';
                 afterLogin.style.display = 'flex';
                 if (signupLink) signupLink.style.display = 'none';
                 if (divider) divider.style.display = 'none';
                 if (loginLink) loginLink.style.display = 'none';
-                
                 welcomeMsg.textContent = displayName;
+            } else {
+                beforeLogin.style.display = 'flex';
+                afterLogin.style.display = 'none';
+                if (signupLink) signupLink.style.display = 'block';
+                if (divider) divider.style.display = 'block';
+                if (loginLink) loginLink.style.display = 'block';
             }
         }
         
-        // --- 2. DB 동기화 함수 (추가) ---
+        // 2. DB 동기화 함수 (소셜 회원 전용)
         async function syncUserWithDatabase(user) {
+            // 자체 회원은 이미 DB에 있으므로 소셜 회원만 동기화
+            if (user.email.endsWith('@healthykids.com')) return;
+        
             try {
                 const { data: existingUser, error: selectError } = await window.supabase
                     .from('users')
@@ -627,17 +632,23 @@
                 if (!existingUser) {
                     const { error: insertError } = await window.supabase.from('users').insert([{
                         email: user.email,
-                        name: user.user_metadata.full_name || user.user_metadata.name || '사용자'
+                        name: user.user_metadata?.full_name || user.user_metadata?.name || '사용자'
                     }]);
-                    
-                    if (insertError) throw insertError; // 여기서 에러가 나면 아래 catch로 이동
+                    if (insertError) throw insertError;
                 }
             } catch (err) {
-                console.error("DB 작업 중 에러 발생:", err);
+                console.error("DB 동기화 실패:", err);
             }
         }
         
-        // --- 3. 초기화 함수 ---
+        // 3. 로그아웃 핸들러 추가 (기존에 누락된 경우를 대비)
+        async function handleLogout() {
+            await window.supabase.auth.signOut();
+            localStorage.removeItem('user_name'); // 네이버용 제거
+            window.location.reload();
+        }
+        
+        // 4. 초기화 함수
         async function init() {
             const res = await fetch('/get-config');
             const config = await res.json();
@@ -652,8 +663,12 @@
             }
         
             window.supabase.auth.onAuthStateChange(async (event, session) => {
-                if (event === 'SIGNED_OUT') window.location.reload();
-                else if (event === 'SIGNED_IN' && session) await syncUserWithDatabase(session.user);
+                if (event === 'SIGNED_OUT') {
+                    localStorage.removeItem('user_name');
+                    window.location.reload();
+                } else if (event === 'SIGNED_IN' && session) {
+                    await syncUserWithDatabase(session.user);
+                }
                 updateUI(session);
             });
         
