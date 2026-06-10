@@ -608,14 +608,20 @@
                     .eq('email', user.email)
                     .maybeSingle();
         
-                // 사용자 정보가 없고, 조회 과정에서 에러가 없을 때만 삽입
-                if (!existingUser && !selectError) {
-                    await window.supabase.from('users').insert([{
+                if (selectError) throw selectError;
+        
+                if (!existingUser) {
+                    const { error: insertError } = await window.supabase.from('users').insert([{
                         email: user.email,
                         name: user.user_metadata.full_name || user.user_metadata.name || '사용자'
                     }]);
+                    
+                    if (insertError) throw insertError; // 여기서 에러가 나면 아래 catch로 이동
                 }
+            } catch (err) {
+                console.error("DB 작업 중 에러 발생:", err);
             }
+        }
         
         // --- 3. 초기화 함수 ---
         async function init() {
