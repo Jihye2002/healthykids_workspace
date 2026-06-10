@@ -145,6 +145,9 @@
                 options: { redirectTo: 'https://healthykids-workspace.onrender.com/index.html' }
             });
         }
+
+        document.getElementById('google-btn')?.addEventListener('click', () => socialLogin('google'));
+        document.getElementById('kakao-btn')?.addEventListener('click', () => socialLogin('kakao'));
     
         async function handleNaverLogin() {
             const res = await fetch('/get-config');
@@ -152,6 +155,8 @@
             const callbackUrl = encodeURIComponent("https://healthykids-workspace.onrender.com/callback.html");
             window.location.href = `https://nid.naver.com/oauth2.0/authorize?response_type=token&client_id=${config.NAVER_CLIENT_ID}&redirect_uri=${callbackUrl}&state=RANDOM`;
         }
+
+        document.getElementById('naver-btn')?.addEventListener('click', () => socialLogin('naver'));
     </script>
 </body>
 </html>
