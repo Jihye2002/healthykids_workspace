@@ -232,21 +232,26 @@
             });
         }
     
-        // 4. 소셜 가입 로직
         const socialSignUp = async (provider) => {
-            const supabase = await initSupabase();
+            const supabase = await initSupabase(); // 기존의 initSupabase 함수 그대로 사용
             await supabase.auth.signInWithOAuth({
                 provider: provider,
-                options: { redirectTo: 'https://healthykids-workspace.onrender.com/login.html' }
+                options: { 
+                    // 회원가입 후 메인 페이지로 바로 이동
+                    redirectTo: 'https://healthykids-workspace.onrender.com/login.html' 
+                }
             });
         };
-    
+        
+        // 버튼 이벤트 리스너 연결
         document.getElementById('google-signup')?.addEventListener('click', () => socialSignUp('google'));
         document.getElementById('kakao-signup')?.addEventListener('click', () => socialSignUp('kakao'));
         
+        // 2. 네이버 로그인 (기존 방식 유지 - callback.html로 이동)
         document.getElementById('naver-signup')?.addEventListener('click', async () => {
             const res = await fetch('/get-config');
             const config = await res.json();
+            // 네이버는 여전히 callback.html을 통해 인증 처리
             const callbackUrl = encodeURIComponent("https://healthykids-workspace.onrender.com/callback.html");
             window.location.href = `https://nid.naver.com/oauth2.0/authorize?response_type=token&client_id=${config.NAVER_CLIENT_ID}&redirect_uri=${callbackUrl}&state=RANDOM`;
         });
