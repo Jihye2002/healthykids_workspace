@@ -3,88 +3,90 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="icon" href="https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/favicon.ico">
+    <link rel="icon" type="image/x-icon" href="https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/favicon.ico">
     <title>헬시키즈 | 아이디와 비밀번호 찾기</title>
     <style>
-        body { font-family: 'Arial', sans-serif; text-align: center; padding: 50px; background-color: #f0f7ff; }
-        .find-container { display: flex; justify-content: center; gap: 40px; margin-top: 30px; flex-wrap: wrap; }
-        .box { background: white; border-radius: 20px; padding: 30px; width: 350px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        .input-box { width: 90%; padding: 12px; margin: 8px 0; border: 2px solid #ddd; border-radius: 10px; transition: border 0.3s; }
-        button { background-color: #2f63c7; color: white; border: none; padding: 12px 20px; border-radius: 10px; cursor: pointer; width: 90%; font-weight: bold; }
-        h2 { color: #2f63c7; margin-bottom: 20px; }
-        .back-link { margin-top: 30px; display: block; color: #555; text-decoration: none; }
+        body { font-family: 'Arial', sans-serif; text-align: center; padding: 30px; background-color: #afe1fc; }
+        .box { background: white; padding: 40px; width: 420px; margin: 20px auto; border: 2px solid #2f63c7; z-index: 1; border-radius: 10px; }
+        .input-wrapper { width: 340px; height: 45px; margin: 8px auto; border: 2px solid #ddd; display: flex; align-items: center; position: relative; background: white; }
+        .input-field { width: 100%; height: 100%; border: none; outline: none; padding: 0 12px; font-size: 14px; }
+        button { width: 340px; background-color: #2f63c7; color: white; border: none; padding: 12px; margin-top: 10px; cursor: pointer; font-weight: bold; }
+        .result-text { margin-top: 20px; font-weight: bold; color: #316ef4; }
     </style>
 </head>
 <body>
 
-    <h1>계정 찾기</h1>
-    <p>잊어버린 아이디나 비밀번호(암호)를 여기서 찾아보세요!</p>
-
-    <div class="find-container">
-        <div class="box">
-            <h2>아이디 찾기</h2>
-            <input type="text" id="find-id-nickname" class="input-box" placeholder="가입한 별명을 입력해요!">
-            <button onclick="findId()">아이디 찾기</button>
+    <div class="box">
+        <h2>계정 찾기</h2>
+        
+        <h3>아이디 찾기</h3>
+        <div class="input-wrapper">
+            <input type="text" id="find-nickname" class="input-field" placeholder="가입 시 등록한 별명을 입력해요!">
         </div>
+        <button onclick="findId()">아이디 찾기</button>
+        <div id="id-result" class="result-text"></div>
 
-        <div class="box">
-            <h2>암호 찾기</h2>
-            <div style="display: flex; align-items: center; justify-content: center; gap: 5px;">
-                <input type="text" id="find-pw-id" class="input-box" placeholder="아이디" style="width: 50%;">
-                <span style="color: #888; font-size: 14px;">@healthykids.com</span>
-            </div>
-            <button onclick="findPw()">암호 재설정</button>
+        <hr style="margin: 30px 0; border-top: 1px solid #eee;">
+
+        <h3>비밀번호 찾기</h3>
+        <div class="input-wrapper">
+            <input type="text" id="find-pw-id" class="input-field" placeholder="아이디를 입력해주세요!">
         </div>
+        <button onclick="checkSecurityQuestion()">비밀번호 질문 확인</button>
+        <div id="pw-result" class="result-text"></div>
+
+        <p style="margin-top: 20px;"><a href="login.html" class="login-link">로그인하러 가기</a></p>
     </div>
-
-    <a href="login.html" class="back-link">← 다시 로그인하러 가기</a>
 
     <script type="module">
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-    
+        
+        let supabase;
         async function init() {
             const res = await fetch('/get-config');
             const config = await res.json();
-            window.supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+            supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
         }
         init();
-    
+
+        // 1. 아이디 찾기 로직
         window.findId = async () => {
-            const nickname = document.getElementById('find-id-nickname').value;
-            const { data, error } = await window.supabase
-                .from('users')
+            const nickname = document.getElementById('find-nickname').value.trim();
+            const { data, error } = await supabase
+                .from('public.users')
                 .select('email')
                 .eq('nickname', nickname)
-                .single();
-    
-            if (error || !data) {
-                alert("별명을 찾을 수 없어요.. 다시 한번 확인해볼까요?");
-            } else {
+                .maybeSingle();
+
+            if (data) {
                 const foundId = data.email.split('@')[0];
-                alert(`찾았다! 아이디는 '${foundId}'예요!`);
+                document.getElementById('id-result').textContent = `찾았다! 아이디는 '${foundId}'예요!`;
                 document.getElementById('find-pw-id').value = foundId;
+            } else {
+                alert("별명을 찾을 수 없어요.. 다시 한번 확인해볼까요?");
             }
         };
-    
-        // find-account.html의 window.findPw 함수 수정 예시
-        window.findPw = async () => {
-            const userId = document.getElementById('find-pw-id').value;
-            if(!userId) { alert("먼저 아이디를 입력해주세요!"); return; }
-        
-            // 1. 유저의 질문을 DB에서 가져옴
-            const { data, error } = await window.supabase
-                .from('users')
-                .select('hint_question, hint_answer')
+
+        // 2. 암호 찾기 로직 (보안 질문 검증)
+        window.checkSecurityQuestion = async () => {
+            const userId = document.getElementById('find-pw-id').value.trim();
+            if(!userId) return alert("먼저 아이디를 입력해주세요!");
+
+            const { data, error } = await supabase
+                .from('public.users')
+                .select('security_question, security_answer')
                 .eq('email', `${userId}@healthykids.com`)
-                .single();
-        
+                .maybeSingle();
+
             if (data) {
-                const answer = prompt(`질문: ${data.hint_question}\n답을 입력해주세요!`);
-                if (answer === data.hint_answer) {
+                const answer = prompt(`질문: ${data.security_question}\n답을 입력해주세요!`);
+                if (answer === data.security_answer) {
                     window.location.href = `update-password.html?id=${userId}`;
                 } else {
-                    alert("답이 틀렸어요... ㅠㅠ 답을 다시 입력해주실래요?");
+                    alert("답이 틀렸어요... ㅠㅠ 답을 다시 확인해주세요.");
                 }
+            } else {
+                alert("해당 아이디를 찾을 수 없어요.");
             }
         };
     </script>
