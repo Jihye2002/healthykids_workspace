@@ -118,8 +118,12 @@
                     resultBox.innerHTML = `앗, 답이 틀렸어요ㅠㅠ<br>힌트: <b>"${displayHint}"</b><br>다시 한번 생각해봐요!`;
                 }
             } else {
-                resultBox.style.color = "red";
-                resultBox.textContent = "해당 아이디를 찾을 수 없어요.";
+                resultBox.style.color = "#ff4d4d";
+                resultBox.innerHTML = `
+                    앗, 해당 아이디를 찾을 수 없어요.<br>
+                    혹시 아직 헬시키즈 친구가 아닌가요?<br><br>
+                    <button onclick="location.href='signup.html'" style="cursor:pointer;">회원가입 하러 가기</button>
+                `;
             }
         };
     </script>
