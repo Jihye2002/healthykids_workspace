@@ -22,6 +22,28 @@
         /* 포커스 시 테두리 검정색 */
         .input-wrapper:has(input:focus) { border: 2px solid #000 !important; }
 
+        .signup-link {
+            color: rgb(128, 128, 128); 
+            text-decoration: none; 
+            font-weight: bold;
+            transition: color 0.3s ease; /* 색상이 부드럽게 변하도록 추가 */
+        }
+    
+        .signup-link:hover {
+            color: rgb(50, 50, 50);
+        }
+
+        .account-link {
+            color: rgb(128, 128, 128); 
+            text-decoration: none; 
+            font-weight: bold;
+            transition: color 0.3s ease; /* 색상이 부드럽게 변하도록 추가 */
+        }
+    
+        .account-link:hover {
+            color: rgb(50, 50, 50);
+        }
+
         .error-border { border: 2px solid #ff4d4d !important; }
         .error-text { font-size: 13px; color: #ff4d4d; margin-top: -5px; margin-bottom: 10px; display: none; text-align: left; padding-left: 40px; }
         
@@ -55,8 +77,8 @@
         <button id="kakao-btn" style="background:#fee500; color:#000;">Kakao로 로그인</button>
         <button id="naver-btn" style="background:#03c75a;">Naver로 로그인</button>
             
-        <p style="margin-top: 20px;">아직 아이디와 비밀번호가 없으신가요? <a href="signup.html" style="color: rgb(50, 50, 50); text-decoration: none; font-weight: bold;">회원가입하기</a></p>
-        <p><a href="find-account.html" style="color: rgb(50, 50, 50); text-decoration: none; font-weight: bold;">아이디와 비밀번호를 잊어버렸어요!</a></p>
+        <p style="margin-top: 20px;">아직 아이디와 비밀번호가 없으신가요? <a href="signup.html" class="signup-link">회원가입하기</a></p>
+        <p><a href="find-account.html" class="account-link">아이디와 비밀번호를 잊어버렸어요!</a></p>
     </div>
 
     <script type="module">
