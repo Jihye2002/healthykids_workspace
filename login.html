@@ -140,24 +140,48 @@
         document.addEventListener('DOMContentLoaded', init);
     
         async function socialLogin(provider) {
-            await window.supabase.auth.signInWithOAuth({
-                provider: provider,
-                options: { redirectTo: 'https://healthykids-workspace.onrender.com/index.html' }
-            });
-        }
-
-        document.getElementById('google-btn')?.addEventListener('click', () => socialLogin('google'));
-        document.getElementById('kakao-btn')?.addEventListener('click', () => socialLogin('kakao'));
+        try {
+            // 인증 시작 전 supabase 객체 확인
+            if (!window.supabase) {
+                console.error("Supabase가 초기화되지 않았습니다.");
+                return;
+            }
     
-        async function handleNaverLogin() {
+            const { error } = await window.supabase.auth.signInWithOAuth({
+                provider: provider,
+                options: { 
+                    redirectTo: 'https://healthykids-workspace.onrender.com/index.html' 
+                }
+            });
+    
+            if (error) throw error;
+        } catch (err) {
+            console.error("소셜 로그인 오류:", err.message);
+        }
+    }
+    
+    document.getElementById('google-btn')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        socialLogin('google');
+    });
+    
+    document.getElementById('kakao-btn')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        socialLogin('kakao');
+    });
+
+    async function handleNaverLogin(e) {
+        e.preventDefault();
+        try {
             const res = await fetch('/get-config');
             const config = await res.json();
             const callbackUrl = encodeURIComponent("https://healthykids-workspace.onrender.com/callback.html");
-            // 직접 네이버 인증 페이지로 보냅니다.
+            
             window.location.href = `https://nid.naver.com/oauth2.0/authorize?response_type=token&client_id=${config.NAVER_CLIENT_ID}&redirect_uri=${callbackUrl}&state=RANDOM`;
+        } catch (err) {
+            console.error("네이버 로그인 처리 중 오류 발생:", err);
         }
-        
-        document.getElementById('naver-btn')?.addEventListener('click', handleNaverLogin);
+    }
     </script>
 </body>
 </html>
