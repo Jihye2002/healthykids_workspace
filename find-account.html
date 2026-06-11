@@ -71,19 +71,27 @@
         window.checkSecurityQuestion = async () => {
             const userId = document.getElementById('find-pw-id').value.trim();
             if(!userId) return alert("먼저 아이디를 입력해주세요!");
-
+        
             const { data, error } = await supabase
                 .from('public.users')
                 .select('security_question, security_answer')
                 .eq('email', `${userId}@healthykids.com`)
                 .maybeSingle();
-
+        
             if (data) {
                 const answer = prompt(`질문: ${data.security_question}\n답을 입력해주세요!`);
+                
                 if (answer === data.security_answer) {
                     window.location.href = `update-password.html?id=${userId}`;
                 } else {
-                    alert("답이 틀렸어요... ㅠㅠ 답을 다시 확인해주세요.");
+                    // 힌트 보여주기 로직: 답이 1글자 초과일 경우 첫 글자와 마지막 글자만 보여줌
+                    let hint = data.security_answer;
+                    if (hint.length > 1) {
+                        hint = hint[0] + "*".repeat(hint.length - 2) + hint[hint.length - 1];
+                    } else {
+                        hint = "*";
+                    }
+                    alert(`앗, 답이 틀렸어요ㅠㅠ 힌트를 줄게요!\n답변은 이런 모양이에요: "${hint}"\n다시 한번 생각해보자!`);
                 }
             } else {
                 alert("해당 아이디를 찾을 수 없어요.");
