@@ -22,7 +22,7 @@
             position: fixed;
             bottom: 50px;
             right: 50px;
-            width: 250px;
+            width: 320px;
             height: 300px;
             display: flex;
             flex-direction: column;
@@ -38,22 +38,18 @@
         }
         
         .tori-img {
-            width: 200px;
-            /* 중심축을 이미지 아래쪽 중앙으로 설정 */
+            width: 280px;
             transform-origin: bottom center; 
-            /* waveTori 애니메이션 적용 */
             animation: waveTori 5s infinite ease-in-out; 
             cursor: pointer;
             transition: transform 0.3s;
         }
         
-        /* 마우스를 올리면 깜짝 놀라며 멈추는 효과 (귀여운 포인트!) */
         .tori-img:hover {
             animation: none;
             transform: scale(1.1);
         }
 
-        /* 주변 도형 스타일 (별, 하트, 원 등) */
         .floating-shape {
             position: fixed;
             z-index: 0;
@@ -65,7 +61,6 @@
             50% { transform: translateY(-30px) rotate(15deg); }
         }
 
-        /* 도형 모양들 */
         .star { color: #b39ddb; font-size: 24px; }
         .heart { color: #ff8a80; font-size: 24px; }
         .circle { width: 20px; height: 20px; border-radius: 50%; background: #80cbc4; }
