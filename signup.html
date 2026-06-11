@@ -30,17 +30,24 @@
             z-index: 100;
         }
 
-        .tori-img {
-            width: 200px;
-            animation: moveTori 4s infinite ease-in-out;
-            cursor: pointer;
-        }
-
-        @keyframes moveTori {
+       @keyframes bounceTori {
             0%, 100% { transform: translateY(0) rotate(0deg); }
-            25% { transform: translateY(-20px) rotate(-5deg); }
+            25% { transform: translateY(-15px) rotate(-3deg); }
             50% { transform: translateY(0) rotate(0deg); }
-            75% { transform: translateY(-10px) rotate(5deg); }
+            75% { transform: translateY(-8px) rotate(3deg); }
+        }
+        
+        .tori-img {
+            width: 200px; /* 원하는 크기로 조절 */
+            animation: bounceTori 3s infinite ease-in-out; /* 3초마다 반복 */
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        
+        /* 마우스를 올리면 깜짝 놀라며 멈추는 효과 (귀여운 포인트!) */
+        .tori-img:hover {
+            animation: none;
+            transform: scale(1.1);
         }
 
         /* 주변 도형 스타일 (별, 하트, 원 등) */
