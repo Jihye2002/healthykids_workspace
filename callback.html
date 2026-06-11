@@ -41,71 +41,71 @@
             const params = new URLSearchParams(hash || window.location.search.substring(1));
             const accessToken = params.get('access_token');
             const statusMsg = document.getElementById('status-message');
-    
+        
             if (!accessToken) {
                 window.location.replace('/index.html');
                 return;
             }
-    
+        
             try {
                 const res = await fetch('/get-config');
                 const config = await res.json();
                 const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
                 const response = await fetch(`/get-naver-profile?token=${accessToken}`);
                 const data = await response.json();
-    
+        
                 if (data.response) {
                     const p = data.response;
-    
+        
                     // 1. DB에서 사용자 조회
                     let { data: user } = await supabase
                         .from('users')
                         .select('*')
                         .eq('email', p.email)
                         .maybeSingle();
-    
+        
                     if (user) {
-                        // 로그인 경우
+                        // [로그인 케이스]
                         statusMsg.textContent = "로그인 정보를 확인하고 있습니다...";
                         localStorage.setItem('name', user.name);
                         localStorage.setItem('login_time', new Date().getTime().toString());
-                        setTimeout(() => window.location.replace('/index.html'), 1500);
-                    } else {
-                        // 회원가입 경우
-                        statusMsg.textContent = "가입 정보를 확인하고 있습니다...";
-                        const insertData = { 
-                            email: p.email, 
-                            name: p.name,
-                        };
                         
+                        // 데이터 기록 확인 후 안전하게 이동
+                        await new Promise(r => setTimeout(r, 500));
+                        window.location.replace('/index.html');
+                    } else {
+                        // [회원가입 케이스]
+                        statusMsg.textContent = "가입 정보를 확인하고 있습니다...";
+                        const insertData = { email: p.email, name: p.name };
                         if (p.profile_image) insertData.profile_image = p.profile_image;
                         if (p.gender) insertData.gender = p.gender;
                         if (p.birthyear) insertData.birthyear = p.birthyear;
                         if (p.nickname) insertData.nickname = p.nickname;
-                        if (p.birthyear && p.birthday) {
-                            insertData.birthday = `${p.birthyear}-${p.birthday}`;
-                        }
-                        
-                        if (p.age) {
-                            insertData.age = parseInt(p.age);
-                        }
-    
+                        if (p.birthyear && p.birthday) insertData.birthday = `${p.birthyear}-${p.birthday}`;
+                        if (p.age) insertData.age = parseInt(p.age);
+        
                         const { data: newUser, error: insertErr } = await supabase
                             .from('users')
                             .insert([insertData])
                             .select()
                             .single();
-                        
+        
                         if (insertErr) {
                             console.error("가입 저장 에러:", insertErr);
                             statusMsg.textContent = "가입 처리 중 오류가 발생했습니다.";
                         } else {
+                            // 중요: 데이터를 localStorage에 명확히 저장
                             localStorage.setItem('name', newUser.name);
-                            setTimeout(() => window.location.replace('/index.html'), 1500);
+                            
+                            // 브라우저가 스토리지에 데이터를 완전히 쓰도록 보장
+                            await new Promise(r => setTimeout(r, 800));
+                            
+                            // index.html로 이동
+                            window.location.replace('/index.html');
                         }
-                    } 
-                } 
-            } catch (err) { 
+                    }
+                }
+            } catch (err) {
                 console.error("연동 실패:", err);
                 window.location.replace('/login.html');
             }
