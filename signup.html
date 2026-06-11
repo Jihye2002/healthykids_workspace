@@ -109,12 +109,6 @@
             if (supabaseInstance) return supabaseInstance;
             const res = await fetch('/get-config');
             const config = await res.json();
-            
-            // 이 부분을 추가해서 확인하세요!
-            console.log("Config loaded:", config); 
-            if (!config.SUPABASE_URL || !config.SUPABASE_ANON_KEY) {
-                throw new Error("Supabase 설정값이 없습니다!");
-            }
         
             supabaseInstance = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
             return supabaseInstance;
