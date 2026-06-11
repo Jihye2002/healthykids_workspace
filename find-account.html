@@ -7,28 +7,32 @@
     <title>헬시키즈 | 계정 찾기</title>
     <style>
         body { font-family: 'Arial', sans-serif; text-align: center; padding: 30px; background-color: #afe1fc; }
-        .box { background: white; padding: 40px; width: 800px; margin: 20px auto; border: 2px solid #2f63c7; border-radius: 10px; text-align: left; }
+        .box { background: white; padding: 40px; width: 700px; margin: 20px auto; border: 2px solid #2f63c7; text-align: left; }
         
-        /* 가로 배치를 위한 컨테이너 */
-        .container { display: flex; gap: 40px; margin-top: 20px; }
-        .section { flex: 1; }
+        .container { display: flex; align-items: stretch; margin-top: 20px; }
+        .section { flex: 1; padding: 0 20px; }
+        
+        .divider { border-left: 2px solid #ccc; margin: 10px 0; }
         
         .input-wrapper { width: 100%; height: 45px; margin: 8px 0; border: 2px solid #ddd; display: flex; align-items: center; background: white; }
         .input-field { width: 100%; height: 100%; border: none; outline: none; padding: 0 12px; font-size: 14px; }
         button { width: 100%; background-color: #2f63c7; color: white; border: none; padding: 12px; margin-top: 5px; cursor: pointer; font-weight: bold; }
-        .result-text { margin-top: 15px; font-weight: bold; color: #316ef4; line-height: 1.6; min-height: 50px; }
+        .result-text { margin-top: 15px; font-weight: bold; color: #316ef4; line-height: 1.6; min-height: 50px; font-size: 14px; }
         
-        /* 모바일 대응: 화면 좁아지면 세로 정렬 */
+        .footer-link { margin-top: 30px; text-align: center; border-top: 1px solid #eee; padding-top: 20px; }
+        .footer-link a { color: #2f63c7; text-decoration: none; font-weight: bold; }
+        
         @media (max-width: 768px) {
             .box { width: 90%; }
             .container { flex-direction: column; }
+            .divider { display: none; }
         }
     </style>
 </head>
 <body>
 
     <div class="box">
-        <h2>계정 찾기</h2>
+        <h2 style="text-align: center;">계정 찾기</h2>
         <div class="container">
             <div class="section">
                 <h3>아이디 찾기</h3>
@@ -38,6 +42,8 @@
                 <button onclick="findId()">아이디 찾기</button>
                 <div id="id-result" class="result-text"></div>
             </div>
+
+            <div class="divider"></div>
 
             <div class="section">
                 <h3>비밀번호 찾기</h3>
@@ -49,7 +55,9 @@
             </div>
         </div>
 
-        <p style="margin-top: 30px; text-align: center;"><a href="login.html">로그인하러 가기</a></p>
+        <div class="footer-link">
+            <a href="login.html">로그인하러 가기</a>
+        </div>
     </div>
     
     <script type="module">
