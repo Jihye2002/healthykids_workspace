@@ -9,7 +9,7 @@
         body { font-family: 'Arial', sans-serif; text-align: center; padding: 30px; background-color: #afe1fc; }
         .box { 
             background: white; 
-            padding: 30px;
+            padding: 40px;
             width: 600px; 
             margin: 40px auto; 
             border: 2px solid #2f63c7; 
@@ -20,7 +20,7 @@
             display: flex; 
             align-items: stretch; 
             margin-top: 20px; 
-            gap: 20px;
+            gap: 60px;
         }
         
         .section { 
@@ -28,11 +28,11 @@
             padding: 0 10px; 
         }
         
-        .divider { border-left: 2px solid #ccc; margin: 10px 0; }
+        .divider { border-left: 1.5px solid #ddd; margin: 10px 0; }
 
         h2 { color: #2f63c7; margin-bottom: 30px; }
         
-        .input-wrapper { width: 100%; height: 45px; margin: 8px 0; border: 2px solid #ddd; display: flex; align-items: center; background: white; }
+        .input-wrapper { width: 100%; height: 45px; margin: 8px 0; border: 2px solid #ddd; display: flex; align-items: center; background: white; margin-bottom: 15px;}
         .input-field { width: 100%; height: 100%; border: none; outline: none; padding: 0 12px; font-size: 14px; }
         button { width: 100%; background-color: #2f63c7; color: white; border: none; padding: 12px; margin-top: 5px; cursor: pointer; font-weight: bold; }
         button:hover { background-color: #2559c5; }
@@ -61,12 +61,21 @@
             .container { flex-direction: column; }
             .divider { display: none; }
         }
+
+        .input-field:focus {
+            border-color: #2f63c7;
+            box-shadow: 0 0 5px rgba(47, 99, 199, 0.3);
+        }
+        
     </style>
 </head>
 <body>
 
     <div class="box">
         <h2 style="text-align: center;">계정 찾기</h2>
+        <p style="text-align: center; color: #666; margin-bottom: 40px;">
+            아이디나 비밀번호를 잊으셨나요? 아래에서 정보를 입력해 주세요!
+        </p>
         <div class="container">
             <div class="section">
                 <h3>아이디 찾기</h3>
