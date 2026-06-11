@@ -19,8 +19,23 @@
         button { width: 100%; background-color: #2f63c7; color: white; border: none; padding: 12px; margin-top: 5px; cursor: pointer; font-weight: bold; }
         .result-text { margin-top: 15px; font-weight: bold; color: #316ef4; line-height: 1.6; min-height: 50px; font-size: 14px; }
         
-        .footer-link { margin-top: 30px; text-align: center; border-top: 1px solid #eee; padding-top: 20px; }
-        .footer-link a { color: #2f63c7; text-decoration: none; font-weight: bold; }
+        .footer-link { 
+            margin-top: 30px; 
+            text-align: center; 
+            border-top: 1px solid #eee; 
+            padding-top: 20px; 
+        }
+        
+        .footer-link a { 
+            color: rgb(128, 128, 128); 
+            text-decoration: none; 
+            font-weight: bold; 
+            transition: color 0.3s ease;
+        }
+        
+        .footer-link a:hover { 
+            color: rgb(50, 50, 50);
+        }
         
         @media (max-width: 768px) {
             .box { width: 90%; }
