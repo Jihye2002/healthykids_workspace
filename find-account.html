@@ -98,16 +98,22 @@
             if (data) {
                 const answer = prompt(`질문: ${data.security_question}\n여기에 답을 써주세요!`);
                 
-                if (answer === null) return;
-        
+                if (answer === null) return; // 사용자가 취소를 눌렀을 때
+            
                 if (answer === data.security_answer) {
                     window.location.href = `update-password.html?id=${userId}`;
                 } else {
                     let hint = data.security_answer;
-                    let displayHint = hint.length > 1 
-                        ? hint[0] + "*".repeat(hint.length - 2) + hint[hint.length - 1] 
-                        : "*";
-        
+                    let displayHint = "";
+            
+                    if (hint.length <= 1) {
+                        displayHint = "*";
+                    } else if (hint.length === 2) {
+                        displayHint = hint[0] + "*";
+                    } else {
+                        displayHint = hint[0] + "*".repeat(hint.length - 2) + hint[hint.length - 1];
+                    }
+            
                     resultBox.style.color = "#ff4d4d";
                     resultBox.innerHTML = `앗, 답이 틀렸어요ㅠㅠ<br>힌트: <b>"${displayHint}"</b><br>다시 한번 생각해봐요!`;
                 }
