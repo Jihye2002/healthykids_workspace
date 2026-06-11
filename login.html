@@ -6,8 +6,72 @@
     <link rel="icon" type="image/x-icon" href="https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/favicon.ico">
     <title>헬시키즈 로그인</title>
     <style>
-        body { font-family: 'Arial', sans-serif; text-align: center; padding: 30px; background-color: #f0f7ff; }
-        .box { background: white; padding: 40px; width: 420px; margin: auto; border: 2px solid #2f63c7; }
+        body { font-family: 'Arial', sans-serif; text-align: center; padding: 30px; background-color: #afe1fc; }
+
+        .background-elements {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .tori-container {
+            position: fixed;
+            bottom: 50px;
+            left: 50px;
+            width: 250px;
+            height: 300px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 100;
+        }
+
+       @keyframes waveTori {
+            0%, 100% { transform: rotate(0deg) translateY(0); }
+            25% { transform: rotate(10deg) translateY(-10px); } /* 오른쪽으로 살짝 기울임 */
+            50% { transform: rotate(0deg) translateY(0); }
+            75% { transform: rotate(-10deg) translateY(-10px); } /* 왼쪽으로 살짝 기울임 */
+        }
+        
+        .tori-img {
+            width: 200px;
+            /* 중심축을 이미지 아래쪽 중앙으로 설정 */
+            transform-origin: bottom center; 
+            /* waveTori 애니메이션 적용 */
+            animation: waveTori 5s infinite ease-in-out; 
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        
+        /* 마우스를 올리면 깜짝 놀라며 멈추는 효과 (귀여운 포인트!) */
+        .tori-img:hover {
+            animation: none;
+            transform: scale(1.1);
+        }
+
+        /* 주변 도형 스타일 (별, 하트, 원 등) */
+        .floating-shape {
+            position: fixed;
+            z-index: 0;
+            animation: floatShape 6s infinite ease-in-out;
+        }
+
+        @keyframes floatShape {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-30px) rotate(15deg); }
+        }
+
+        /* 도형 모양들 */
+        .star { color: #b39ddb; font-size: 24px; }
+        .heart { color: #ff8a80; font-size: 24px; }
+        .circle { width: 20px; height: 20px; border-radius: 50%; background: #80cbc4; }
+        .triangle { width: 0; height: 0; border-left: 10px solid transparent; border-right: 10px solid transparent; border-bottom: 20px solid #ffcc80; }
+        
+        .box { background: white; padding: 40px; width: 420px; margin: 50px auto; border: 2px solid #2f63c7; z-index: 1; }
         
         /* 회원가입 페이지와 동일한 입력창 스타일 */
         .input-wrapper { 
@@ -51,6 +115,23 @@
     </style>
 </head>
 <body>
+
+    <div class="tori-container">
+        <img src="https://github.com/Jihye2002/healthykids_workspace/blob/main/%ED%86%A0%EB%A6%AC-%EB%A1%9C%EA%B7%B8%EC%9D%B8,%ED%9A%8C%EC%9B%90%EA%B0%80%EC%9E%85_%EB%B0%B0%EA%B2%BD.png?raw=true" class="tori-img" alt="토리">
+    </div>
+
+    <div class="background-elements">
+        <div class="floating-shape star" style="top: 15%; left: 10%;">★</div>
+        <div class="floating-shape star" style="top: 45%; left: 8%; font-size: 20px; color: #ffeb3b;">★</div>
+        
+        <div class="floating-shape heart" style="top: 25%; right: 12%;">♥</div>
+        <div class="floating-shape heart" style="top: 70%; right: 10%; font-size: 20px;">♥</div>
+        
+        <div class="floating-shape circle" style="top: 60%; left: 15%;"></div>
+        
+        <div class="floating-shape triangle" style="top: 35%; left: 25%;"></div>
+        <div class="floating-shape triangle" style="top: 80%; right: 15%;"></div>
+    </div>
     
     <div class="box">
         <h2>로그인 | LOGIN</h2>
