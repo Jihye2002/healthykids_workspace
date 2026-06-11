@@ -7,77 +7,57 @@
     <title>헬시키즈 | 계정 찾기</title>
     <style>
         body { font-family: 'Arial', sans-serif; text-align: center; padding: 30px; background-color: #afe1fc; }
-        .box { 
-            background: white; 
-            padding: 40px;
-            width: 600px; 
-            margin: 40px auto; 
-            border: 2px solid #2f63c7; 
-            text-align: left; 
-        }
         
-        .container { 
-            display: flex; 
-            align-items: stretch; 
-            margin-top: 20px; 
-            gap: 60px;
-        }
+        /* 메인 컨테이너 */
+        .main-box { width: 700px; margin: 40px auto; }
         
-        .section { 
+        /* 각 기능을 담을 박스 스타일 */
+        .card-container { display: flex; align-items: stretch; gap: 30px; margin-top: 30px; }
+        .card { 
             flex: 1; 
-            padding: 0 10px; 
+            background: white; 
+            padding: 30px; 
+            border: 2px solid #2f63c7; 
+            border-radius: 15px; 
+            text-align: left; 
         }
         
         .divider { border-left: 1.5px solid #ddd; margin: 10px 0; }
 
-        h2 { color: black; margin-bottom: 30px; }
+        h2 { color: black; margin-bottom: 10px; }
+        h3 { margin-top: 0; color: #2f63c7; }
         
-        .input-wrapper { width: 100%; height: 45px; margin: 8px 0; border: 2px solid #ddd; display: flex; align-items: center; background: white; margin-bottom: 15px;}
-        .input-field { width: 100%; height: 100%; border: none; outline: none; padding: 0 12px; font-size: 14px; }
-        button { width: 100%; background-color: #2f63c7; color: white; border: none; padding: 12px; margin-top: 5px; cursor: pointer; font-weight: bold; }
+        .input-wrapper { width: 100%; height: 45px; margin: 8px 0; border: 2px solid #ddd; display: flex; align-items: center; background: white; margin-bottom: 15px; border-radius: 8px; }
+        .input-field { width: 100%; height: 100%; border: none; outline: none; padding: 0 12px; font-size: 14px; border-radius: 8px; }
+        
+        button { width: 100%; background-color: #2f63c7; color: white; border: none; padding: 12px; margin-top: 5px; cursor: pointer; font-weight: bold; border-radius: 8px; transition: background 0.3s; }
         button:hover { background-color: #2559c5; }
+        
         .result-text { margin-top: 15px; font-weight: bold; color: #316ef4; line-height: 1.6; min-height: 50px; font-size: 14px; }
         
-        .footer-link { 
-            margin-top: 25px; 
-            border-top: 1px solid #eee; 
-            padding-top: 15px; 
-            text-align: center; 
-        }
-        
-        .footer-link a { 
-            color: rgb(128, 128, 128); 
-            text-decoration: none; 
-            font-weight: bold; 
-            transition: color 0.3s ease;
-        }
-        
-        .footer-link a:hover { 
-            color: rgb(50, 50, 50);
-        }
+        .footer-link { margin-top: 30px; text-align: center; }
+        .footer-link a { color: rgb(128, 128, 128); text-decoration: none; font-weight: bold; transition: color 0.3s ease; }
+        .footer-link a:hover { color: rgb(50, 50, 50); }
         
         @media (max-width: 768px) {
-            .box { width: 90%; }
-            .container { flex-direction: column; }
+            .main-box { width: 90%; }
+            .card-container { flex-direction: column; }
             .divider { display: none; }
         }
 
-        .input-field:focus {
-            border-color: #2f63c7;
-            box-shadow: 0 0 5px rgba(47, 99, 199, 0.3);
-        }
-        
+        .input-field:focus { border-color: #2f63c7; box-shadow: 0 0 5px rgba(47, 99, 199, 0.3); }
     </style>
 </head>
 <body>
 
-    <div class="box">
-        <h2 style="text-align: center;">계정 찾기</h2>
-        <p style="text-align: center; color: #666; margin-bottom: 40px;">
+    <div class="main-box">
+        <h2>계정 찾기</h2>
+        <p style="color: #444; margin-bottom: 20px;">
             아이디나 비밀번호를 잊으셨나요? 아래에서 정보를 입력해 주세요!
         </p>
-        <div class="container">
-            <div class="section">
+
+        <div class="card-container">
+            <div class="card">
                 <h3>아이디 찾기</h3>
                 <div class="input-wrapper">
                     <input type="text" id="find-nickname" class="input-field" placeholder="가입 시 별명을 입력해요!">
@@ -86,9 +66,7 @@
                 <div id="id-result" class="result-text"></div>
             </div>
 
-            <div class="divider"></div>
-
-            <div class="section">
+            <div class="card">
                 <h3>비밀번호 찾기</h3>
                 <div class="input-wrapper">
                     <input type="text" id="find-pw-id" class="input-field" placeholder="아이디를 입력해주세요!">
