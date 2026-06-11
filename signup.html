@@ -30,16 +30,19 @@
             z-index: 100;
         }
 
-       @keyframes bounceTori {
-            0%, 100% { transform: translateY(0) rotate(0deg); }
-            25% { transform: translateY(-15px) rotate(-3deg); }
-            50% { transform: translateY(0) rotate(0deg); }
-            75% { transform: translateY(-8px) rotate(3deg); }
+       @keyframes waveTori {
+            0%, 100% { transform: rotate(0deg) translateY(0); }
+            25% { transform: rotate(10deg) translateY(-10px); } /* 오른쪽으로 살짝 기울임 */
+            50% { transform: rotate(0deg) translateY(0); }
+            75% { transform: rotate(-10deg) translateY(-10px); } /* 왼쪽으로 살짝 기울임 */
         }
         
         .tori-img {
-            width: 200px; /* 원하는 크기로 조절 */
-            animation: bounceTori 3s infinite ease-in-out; /* 3초마다 반복 */
+            width: 200px;
+            /* 중심축을 이미지 아래쪽 중앙으로 설정 */
+            transform-origin: bottom center; 
+            /* waveTori 애니메이션 적용 */
+            animation: waveTori 5s infinite ease-in-out; 
             cursor: pointer;
             transition: transform 0.3s;
         }
@@ -53,7 +56,7 @@
         /* 주변 도형 스타일 (별, 하트, 원 등) */
         .floating-shape {
             position: fixed;
-            z-index: 90;
+            z-index: 0;
             animation: floatShape 6s infinite ease-in-out;
         }
 
@@ -106,6 +109,19 @@
         /* 에러 및 버튼 */
         .error-text { font-size: 13px; color: #ff4d4d; margin-top: -5px; margin-bottom: 10px; display: none; text-align: left; padding-left: 40px; }
         button { width: 340px; background-color: #2f63c7; color: white; border: none; padding: 12px; margin-top: 10px; cursor: pointer; font-weight: bold; }
+
+        @media (max-width: 800px) {
+            .floating-shape {
+                transform: scale(0.6); /* 60% 크기로 축소 */
+            }
+        }
+        
+        /* 3. 더 작은 모바일 화면에서는 더 작게 */
+        @media (max-width: 480px) {
+            .floating-shape {
+                transform: scale(0.4); /* 40% 크기로 축소 */
+            }
+        }
     </style>
 </head>
 <body>
