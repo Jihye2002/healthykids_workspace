@@ -140,48 +140,53 @@
         document.addEventListener('DOMContentLoaded', init);
     
         async function socialLogin(provider) {
-        try {
-            // 인증 시작 전 supabase 객체 확인
-            if (!window.supabase) {
-                console.error("Supabase가 초기화되지 않았습니다.");
-                return;
-            }
-    
-            const { error } = await window.supabase.auth.signInWithOAuth({
-                provider: provider,
-                options: { 
-                    redirectTo: 'https://healthykids-workspace.onrender.com/index.html' 
+            try {
+                if (!window.supabase) {
+                    console.error("Supabase가 초기화되지 않았습니다.");
+                    return;
                 }
-            });
-    
-            if (error) throw error;
-        } catch (err) {
-            console.error("소셜 로그인 오류:", err.message);
+        
+                // redirectTo를 index.html로 설정하여 DB 로직이 있는 페이지를 아예 거치지 않게 합니다.
+                const { error } = await window.supabase.auth.signInWithOAuth({
+                    provider: provider,
+                    options: { 
+                        redirectTo: 'https://healthykids-workspace.onrender.com/index.html' 
+                    }
+                });
+        
+                if (error) throw error;
+            } catch (err) {
+                console.error("소셜 로그인 오류:", err.message);
+                alert("로그인 처리 중 문제가 발생했습니다.");
+            }
         }
-    }
-    
-    document.getElementById('google-btn')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        socialLogin('google');
-    });
-    
-    document.getElementById('kakao-btn')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        socialLogin('kakao');
-    });
-
-    async function handleNaverLogin(e) {
-        e.preventDefault();
-        try {
-            const res = await fetch('/get-config');
-            const config = await res.json();
-            const callbackUrl = encodeURIComponent("https://healthykids-workspace.onrender.com/callback.html");
-            
-            window.location.href = `https://nid.naver.com/oauth2.0/authorize?response_type=token&client_id=${config.NAVER_CLIENT_ID}&redirect_uri=${callbackUrl}&state=RANDOM`;
-        } catch (err) {
-            console.error("네이버 로그인 처리 중 오류 발생:", err);
+        
+        // 버튼 연결
+        document.getElementById('google-btn')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            socialLogin('google');
+        });
+        
+        document.getElementById('kakao-btn')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            socialLogin('kakao');
+        });
+        
+        // 2. 네이버 로그인 (기존 방식 유지 - 잘 되고 있으니 그대로)
+        async function handleNaverLogin(e) {
+            if (e) e.preventDefault();
+            try {
+                const res = await fetch('/get-config');
+                const config = await res.json();
+                const callbackUrl = encodeURIComponent("https://healthykids-workspace.onrender.com/callback.html");
+                
+                window.location.href = `https://nid.naver.com/oauth2.0/authorize?response_type=token&client_id=${config.NAVER_CLIENT_ID}&redirect_uri=${callbackUrl}&state=RANDOM`;
+            } catch (err) {
+                console.error("네이버 로그인 처리 중 오류 발생:", err);
+            }
         }
-    }
+        
+        document.getElementById('naver-btn')?.addEventListener('click', handleNaverLogin);
     </script>
 </body>
 </html>
