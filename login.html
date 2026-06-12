@@ -210,13 +210,13 @@
             document.querySelectorAll('.error-text').forEach(el => el.style.display = 'none');
             document.querySelectorAll('.input-wrapper').forEach(el => el.classList.remove('error-border'));
             submitBtn.disabled = true;
-    
+
             const { data: userRecord, error: dbError } = await window.supabase
                 .from('public.users')
-                .select('id')
+                .select('id, is_temp_password') // 여기서 상태값을 가져와야 합니다.
                 .eq('email', `${userId}@healthykids.com`)
                 .maybeSingle();
-    
+        
             if (!userRecord) {
                 showError('user-id', "아이디가 올바르지 않은 것 같아요. 한 번 더 볼까요?");
                 submitBtn.disabled = false;
@@ -233,7 +233,11 @@
                 showError('password', "앗! 비밀번호가 맞지 않는 것 같아요. 한 번 더 봐주세요!");
                 submitBtn.disabled = false;
             } else {
-                window.location.href = 'index.html';
+                if (userRecord.is_temp_password === true) {
+                    window.location.href = 'update-password.html';
+                } else {
+                    window.location.href = 'index.html';
+                }
             }
         }
     
