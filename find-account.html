@@ -78,6 +78,30 @@
         .login-link:hover {
             color: rgb(50, 50, 50);
         }
+
+        #toast {
+            visibility: hidden;
+            min-width: 250px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 5px;
+            padding: 16px;
+            position: fixed;
+            z-index: 1;
+            left: 50%;
+            bottom: 30px;
+            transform: translateX(-50%);
+            font-size: 14px;
+        }
+        
+        #toast.show {
+            visibility: visible;
+            animation: fadein 0.5s, fadeout 0.5s 2s;
+        }
+        
+        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
+        @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
     </style>
 </head>
 <body>
@@ -139,6 +163,8 @@
                         <img src="https://cdn-icons-png.flaticon.com/512/1621/1621635.png" alt="복사" style="width: 22px; height: 22px; filter: invert(1);">
                     </button>
                 </div>
+
+                <div id="toast">비밀번호가 복사되었어요!</div>
 
                 <p class="notice" style="color: #d9534f; font-size: 13px; margin: 10px 0;">
                     ⚠️ <b>주의:</b> 이 임시 비밀번호는 <b>한 번만 사용 가능</b>해요.<br>
@@ -291,12 +317,20 @@
                 resultArea.style.display = "none";
             }
         };
+
+        function showToast() {
+            const toast = document.getElementById("toast");
+            toast.className = "show";
+            setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 2500);
+        }
     
         window.copyPassword = () => {
             const pwInput = document.getElementById('temp-pw-display');
+            
             if (pwInput && pwInput.value) {
-                navigator.clipboard.writeText(pwInput.value);
-                alert("비밀번호가 복사되었습니다!");
+                navigator.clipboard.writeText(pwInput.value).then(() => {
+                    showToast();
+                });
             }
         };
     </script>
