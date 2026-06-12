@@ -109,24 +109,30 @@
         let supabase;
         let currentSecurityAnswer = "";
 
-        function setError(inputElement, message) {
-            let errorSpan = inputElement.nextElementSibling;
-            if (!errorSpan || !errorSpan.classList.contains('error-text')) {
+        const qnaBox = document.getElementById('qna-box');
+        const questionText = document.getElementById('security-question-text');
+
+        function setError(inputField, message) {
+            let errorSpan = inputField.parentElement.querySelector('.error-text');
+            if (!errorSpan) {
                 errorSpan = document.createElement('span');
                 errorSpan.className = 'error-text';
                 errorSpan.style.color = "red";
                 errorSpan.style.fontSize = "12px";
                 errorSpan.style.display = "block";
                 errorSpan.style.marginTop = "5px";
-                inputElement.parentNode.parentNode.appendChild(errorSpan); // input-wrapper 밖으로
+                errorSpan.style.textAlign = "left";
+                inputField.parentElement.before(errorSpan);
             }
             errorSpan.textContent = message;
-            return errorSpan;
         }
 
-        function clearError(inputElement) {
-            const errorSpan = inputElement.parentNode.parentNode.querySelector('.error-text');
-            if (errorSpan) errorSpan.textContent = "";
+        // 에러 메시지 제거
+        function clearError(inputField) {
+            const errorSpan = inputField.parentElement.nextElementSibling;
+            if (errorSpan && errorSpan.classList.contains('error-text')) {
+                errorSpan.remove();
+            }
         }
     
         async function init() {
@@ -198,32 +204,27 @@
         };
     
         window.verifyAnswer = () => {
-            const inputField = document.getElementById('security-answer'); // 답변 입력 input
+            const inputField = document.getElementById('security-answer');
             const inputAnswer = inputField.value.trim();
             const userId = document.getElementById('find-pw-id').value.trim();
             const resultBox = document.getElementById('pw-result');
- 
-            clearError(inputField); 
-            resultBox.textContent = ""; 
             
+            // 1. 에러 및 결과 초기화
+            clearError(inputField); 
+            resultBox.innerHTML = ""; 
+            
+            // 2. 입력 확인
             if (!inputAnswer) {
                 setError(inputField, "답변을 입력해주세요!");
                 return;
             }
             
+            // 3. 정답 확인
             if (inputAnswer === currentSecurityAnswer) {
                 window.location.href = `update-password.html?id=${userId}`;
             } else {
                 let hint = currentSecurityAnswer;
-                let displayHint = "";
-        
-                if (hint.length <= 1) {
-                    displayHint = "*";
-                } else if (hint.length === 2) {
-                    displayHint = hint[0] + "*";
-                } else {
-                    displayHint = hint[0] + "*".repeat(hint.length - 2) + hint[hint.length - 1];
-                }
+                let displayHint = hint.length <= 1 ? "*" : (hint.length === 2 ? hint[0] + "*" : hint[0] + "*".repeat(hint.length - 2) + hint[hint.length - 1]);
         
                 resultBox.style.color = "#ff4d4d";
                 resultBox.innerHTML = `앗, 답이 틀렸어요ㅠㅠ<br>힌트: <b>"${displayHint}"</b><br>다시 한번 생각해봐요!`;
