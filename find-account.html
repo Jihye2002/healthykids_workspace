@@ -120,22 +120,24 @@
             <div id="pw-result" class="result-area" style="display: none;">
                 <p id="pw-message" style="color: #2f63c7; font-weight: bold;"></p>
                 
-                <div style="display: flex; gap: 5px; align-items: stretch; margin-top: 8px;">
-                    <div class="input-wrapper" style="border: 2px dashed #2f63c7; background: #eef6ff; flex: 1; margin: 0;">
-                        <input type="text" id="temp-pw-display" class="input-field" readonly style="text-align:center; font-weight:bold; cursor:pointer; background: transparent;">
+                <div style="display: flex; gap: 8px; align-items: center; margin-top: 8px;">
+                    <div class="input-wrapper" style="border: 2px dashed #2f63c7; background: #eef6ff; flex: 1; margin: 0; height: 45px;">
+                        <input type="text" id="temp-pw-display" class="input-field" readonly style="text-align:center; font-weight:bold; cursor:pointer; background: transparent; height: 100%;">
                     </div>
+                    
                     <button onclick="copyPassword()" title="복사하기" style="
                         margin: 0; 
-                        width: 50px; 
+                        width: 45px; 
+                        height: 45px; 
                         background-color: #ffd700; 
                         border: 2px solid #ffcc00; 
                         border-radius: 8px; 
                         cursor: pointer; 
-                        font-size: 20px; 
                         display: flex; 
                         align-items: center; 
-                        justify-content: center;">
-                        📋
+                        justify-content: center;
+                        padding: 0;">
+                        <img src="https://cdn-icons-png.flaticon.com/512/1621/1621635.png" alt="복사" style="width: 22px; height: 22px;">
                     </button>
                 </div>
 
