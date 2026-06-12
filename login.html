@@ -204,22 +204,34 @@
         // 3. 일반 로그인 핸들러
         async function handleLogin(e) {
             e.preventDefault();
+            
+            // 1. 초기화 보장
             const sb = await initSupabase();
-            if (!sb) return alert("서버 연결에 실패했습니다.");
+            if (!sb) return alert("서버 연결에 실패했습니다. 다시 시도해주세요.");
         
             const userId = document.getElementById('user-id').value.trim();
             const password = document.getElementById('password').value;
             const submitBtn = e.target.querySelector('button');
             
+            // UI 초기화
             document.querySelectorAll('.error-text').forEach(el => el.style.display = 'none');
             document.querySelectorAll('.input-wrapper').forEach(el => el.classList.remove('error-border'));
             submitBtn.disabled = true;
             
-            const { data: userRecord } = await sb
+            // 2. DB 조회 (에러 핸들링 추가)
+            const { data: userRecord, error: fetchError } = await sb
                 .from('public.users')
                 .select('id, is_temp_password, temp_password, temp_password_usage')
                 .eq('email', `${userId}@healthykids.com`)
                 .maybeSingle();
+            
+            // API 키 문제나 서버 에러가 있는지 체크
+            if (fetchError) {
+                console.error("DB 조회 실패:", fetchError);
+                showError('user-id', "서버 통신 오류가 발생했습니다.");
+                submitBtn.disabled = false;
+                return;
+            }
             
             if (!userRecord) {
                 showError('user-id', "아이디가 올바르지 않은 것 같아요. 한 번 더 볼까요?");
@@ -227,6 +239,7 @@
                 return;
             }
             
+            // 3. 임시 비밀번호 로직
             if (userRecord.is_temp_password === true && password === userRecord.temp_password) {
                 if (userRecord.temp_password_usage === 0) {
                     const { error: updateError } = await sb.from('public.users')
@@ -234,24 +247,27 @@
                         .eq('id', userRecord.id);
                     
                     if (updateError) {
+                        console.error("사용 상태 업데이트 실패:", updateError);
                         showError('password', "서버 오류가 발생했습니다.");
                         submitBtn.disabled = false;
                         return;
                     }
                     window.location.href = `update-password.html?userId=${userRecord.id}`;
-                    return;
+                    return; // 반드시 여기서 종료
                 } else {
                     showError('password', "이미 임시 비밀번호를 사용하셨습니다.");
                     submitBtn.disabled = false;
-                    return;
+                    return; // 반드시 여기서 종료
                 }
             }
             
-            const { error } = await sb.auth.signInWithPassword({ 
-                email: `${userId}@healthykids.com`, password 
+            // 4. 일반 로그인 (위의 임시 비번 로직에서 return 되지 않은 경우에만 실행)
+            const { error: authError } = await sb.auth.signInWithPassword({ 
+                email: `${userId}@healthykids.com`, 
+                password 
             });
             
-            if (error) {
+            if (authError) {
                 showError('password', "비밀번호가 맞지 않아요.");
                 submitBtn.disabled = false;
             } else {
