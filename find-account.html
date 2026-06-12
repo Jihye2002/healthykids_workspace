@@ -227,7 +227,6 @@
             }
         }
     
-        // 4. 각 기능 함수 (버튼 클릭 시 호출)
         window.findId = async () => {
             if (!supabase) return alert("데이터 연결 중입니다. 잠시만 기다려주세요.");
             
@@ -286,8 +285,16 @@
         };
         
         window.verifyAnswer = async () => {
-            if (!supabase) return;
-            
+            if (!window.supabase) {
+                console.warn("Supabase 객체가 없습니다. 초기화를 다시 시도합니다.");
+                await initSupabase(); // 페이지 상단에 있는 초기화 함수를 호출
+            }
+        
+            if (!window.supabase) {
+                alert("서버 연결에 실패했습니다. 페이지를 새로고침해주세요.");
+                return;
+            }
+        
             const inputField = document.getElementById('security-answer');
             const inputAnswer = inputField.value.trim();
             const resultArea = document.getElementById('pw-result');
@@ -301,7 +308,8 @@
             if (inputAnswer === currentSecurityAnswer) {
                 const tempPassword = "Temp" + Math.floor(Math.random() * 900000 + 100000) + "!";
                 
-                const { error: dbError } = await supabase.from('public.users')
+                const { error: dbError } = await window.supabase
+                    .from('public.users')
                     .update({ 
                         is_temp_password: true,
                         temp_password: tempPassword,
@@ -309,7 +317,10 @@
                     })
                     .eq('id', currentUserId);
                 
-                if (dbError) return setError(inputField, "서버 오류: " + dbError.message);
+                if (dbError) {
+                    console.error("DB 업데이트 오류:", dbError);
+                    return setError(inputField, "서버 오류: " + dbError.message);
+                }
         
                 pwMessage.textContent = "정답이에요! 아래 비밀번호를 복사해서 로그인하세요.";
                 pwInput.value = tempPassword;
