@@ -258,19 +258,18 @@
                 }
             }
             
-            const { error: authError } = await sb.auth.signInWithPassword({ 
+            const { data: authData, error: authError } = await sb.auth.signInWithPassword({ 
                 email: `${userId}@healthykids.com`, 
-                password: password
+                password: password 
             });
             
             if (authError) {
-                console.error("로그인 실패:", authError.message);
-                showError('password', "비밀번호가 맞지 않아요.");
+                console.error("최종 로그인 실패:", authError.message);
+                showError('password', "아이디 또는 비밀번호가 일치하지 않습니다.");
                 submitBtn.disabled = false;
             } else {
                 window.location.href = 'index.html';
             }
-        }
         
         async function socialLogin(provider) {
             const sb = await initSupabase();
