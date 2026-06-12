@@ -3,68 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/x-icon" href="https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/favicon.ico">
     <title>헬시키즈 | 계정 찾기</title>
     <style>
         body { font-family: 'Arial', sans-serif; text-align: center; padding: 40px; background-color: #afe1fc; }
         
-        .main-box { width: 700px; margin: 40px auto; }
-        
-        /* 카드형 배치를 위해 flex 사용 */
-        .card-container { display: flex; align-items: stretch; gap: 30px; margin-top: 40px; }
-        
-        .card { 
-            flex: 1; 
+        /* 모든 요소를 감싸는 하나의 박스 */
+        .main-box { 
             background: white; 
             padding: 40px; 
+            width: 600px; 
+            margin: 40px auto; 
             border: 2px solid #2f63c7; 
-            /* border-radius 제거 */
             text-align: left; 
         }
         
-        .divider { border-left: 2px solid #2f63c7; margin: 10px 0; }
-
-        h2 { color: black; margin-bottom: 20px; }
-        h3 { margin-top: 0; color: #2f63c7; }
+        h2 { text-align: center; margin-top: 0; }
+        h3 { color: #2f63c7; margin-bottom: 10px; }
         
-        .input-wrapper { width: 100%; height: 45px; margin: 8px 0; border: 2px solid #ddd; display: flex; align-items: center; background: white; margin-bottom: 15px; }
-        .input-field { width: 100%; height: 100%; border: none; outline: none; padding: 0 12px; font-size: 14px; }
+        .container { display: flex; align-items: stretch; gap: 30px; margin-top: 20px; }
+        .section { flex: 1; }
+        .divider { border-left: 2px solid #2f63c7; margin: 10px 0; }
+        
+        .input-wrapper { width: 100%; height: 45px; margin: 8px 0; border: 2px solid #ddd; display: flex; align-items: center; background: white; }
+        .input-field { width: 100%; height: 100%; border: none; outline: none; padding: 0 12px; }
         
         button { width: 100%; background-color: #2f63c7; color: white; border: none; padding: 12px; margin-top: 5px; cursor: pointer; font-weight: bold; }
-        button:hover { background-color: #2559c5; }
         
-        .result-text { margin-top: 15px; font-weight: bold; color: #316ef4; line-height: 1.6; min-height: 50px; font-size: 14px; }
-        
-        .footer-link { margin-top: 30px; text-align: center; }
-        .footer-link a { color: rgb(128, 128, 128); text-decoration: none; font-weight: bold; transition: color 0.3s ease; }
-        .footer-link a:hover { color: rgb(50, 50, 50); }
-        
-        @media (max-width: 768px) {
-            .main-box { width: 90%; }
-            .card-container { flex-direction: row; }
-            
-            .divider { 
-                display: block;
-                border-left: 2px solid #ddd;  
-                width: 80%; 
-                margin: 20px 0; 
-            }
+        /* 비밀번호 질문/답변 전용 박스 */
+        .qna-box { 
+            margin-top: 25px; 
+            padding: 20px; 
+            border: 2px solid #2f63c7; 
+            background-color: #f8fbff; 
+            display: none; /* 초기에는 숨김 */
         }
-
-        /* 포커스 효과는 유지하되 모서리는 직각 */
-        .input-field:focus { border: 2px solid #000; }
+        
+        .result-text { margin-top: 15px; font-weight: bold; color: #316ef4; }
     </style>
 </head>
 <body>
 
     <div class="main-box">
         <h2>계정 찾기</h2>
-        <p style="color: #444; margin-bottom: 20px;">
+        <p style="text-align: center; color: #444; margin-bottom: 30px;">
             아이디나 비밀번호를 잊으셨나요? 아래에서 정보를 입력해 주세요!
         </p>
 
-        <div class="card-container">
-            <div class="card">
+        <div class="container">
+            <div class="section">
                 <h3>아이디 찾기</h3>
                 <div class="input-wrapper">
                     <input type="text" id="find-nickname" class="input-field" placeholder="가입 시 별명을 입력해요!">
@@ -75,18 +61,27 @@
 
             <div class="divider"></div>
 
-            <div class="card">
+            <div class="section">
                 <h3>비밀번호 찾기</h3>
                 <div class="input-wrapper">
                     <input type="text" id="find-pw-id" class="input-field" placeholder="아이디를 입력해주세요!">
                 </div>
-                <button onclick="checkSecurityQuestion()">비밀번호 질문 확인</button>
-                <div id="pw-result" class="result-text"></div>
+                <button onclick="requestSecurityQuestion()">비밀번호 질문 확인</button>
             </div>
         </div>
 
-        <div class="footer-link">
-            <a href="login.html">로그인하러 가기</a>
+        <div id="qna-box" class="qna-box">
+            <h3 style="margin-top: 0;">질문 확인</h3>
+            <p id="security-question-text" style="font-weight: bold;"></p>
+            <div class="input-wrapper">
+                <input type="text" id="security-answer" class="input-field" placeholder="답을 입력하세요!">
+            </div>
+            <button onclick="verifyAnswer()" style="background-color: #3bb350;">답변 확인하기</button>
+            <div id="pw-result" class="result-text"></div>
+        </div>
+
+        <div style="margin-top: 30px; text-align: center;">
+            <a href="login.html" style="color: gray; font-weight: bold; text-decoration: none;">로그인하러 가기</a>
         </div>
     </div>
     
