@@ -239,18 +239,41 @@
                 return;
             }
             
+           // login.html - handleLogin 함수 내부
             if (userRecord.is_temp_password === true && password === userRecord.temp_password) {
-                window.location.href = 'update-password.html';
-                return;
-            }
+                if (userRecord.temp_password_usage === 0) {
+                    
+                    // 1. 임시 비밀번호로 '로그인' 시도 (Auth 세션 생성)
+                    const { error: loginError } = await sb.auth.signInWithPassword({ 
+                        email: `${userId}@healthykids.com`, 
+                        password: password 
+                    });
             
+                    if (loginError) {
+                        showError('password', "임시 비밀번호로 로그인할 수 없습니다.");
+                        submitBtn.disabled = false;
+                        return;
+                    }
+            
+                    // 2. 사용 횟수 1로 업데이트 (db.update는 anon 키로 RLS 정책 하에 가능)
+                    await sb.from('public.users')
+                        .update({ temp_password_usage: 1 })
+                        .eq('id', userRecord.id);
+                    
+                    // 3. 비밀번호를 새로 정하라고 안내 페이지로 이동
+                    window.location.href = 'update-password.html';
+                    return;
+                }
+            }
+        
+            // [기존 로직] 일반 로그인 시도
             const { error } = await sb.auth.signInWithPassword({ 
                 email: `${userId}@healthykids.com`, 
                 password 
             });
-            
+        
             if (error) {
-                showError('password', "앗! 비밀번호가 맞지 않는 것 같아요. 한 번 더 봐주세요!");
+                showError('password', "비밀번호가 맞지 않아요.");
                 submitBtn.disabled = false;
             } else {
                 window.location.href = 'index.html';
