@@ -210,10 +210,11 @@
             document.querySelectorAll('.error-text').forEach(el => el.style.display = 'none');
             document.querySelectorAll('.input-wrapper').forEach(el => el.classList.remove('error-border'));
             submitBtn.disabled = true;
-
-            const { data: userRecord, error: dbError } = await window.supabase
+        
+            // 1. DB에서 사용자 정보 가져오기 (임시 비밀번호 포함)
+            const { data: userRecord } = await window.supabase
                 .from('public.users')
-                .select('id, is_temp_password') // 여기서 상태값을 가져와야 합니다.
+                .select('id, is_temp_password, temp_password')
                 .eq('email', `${userId}@healthykids.com`)
                 .maybeSingle();
         
@@ -222,8 +223,15 @@
                 submitBtn.disabled = false;
                 return;
             }
-    
-            // 2. 아이디가 있다면 비밀번호 검증
+        
+            // 2. [핵심 수정] 임시 비밀번호 사용자라면 별도 검증
+            if (userRecord.is_temp_password === true && password === userRecord.temp_password) {
+                // 임시 비밀번호로 성공했으므로 바로 비밀번호 변경 페이지로 이동
+                window.location.href = 'update-password.html';
+                return;
+            }
+        
+            // 3. 일반 사용자 로그인 시도
             const { error } = await window.supabase.auth.signInWithPassword({ 
                 email: `${userId}@healthykids.com`, 
                 password 
@@ -233,11 +241,8 @@
                 showError('password', "앗! 비밀번호가 맞지 않는 것 같아요. 한 번 더 봐주세요!");
                 submitBtn.disabled = false;
             } else {
-                if (userRecord.is_temp_password === true) {
-                    window.location.href = 'update-password.html';
-                } else {
-                    window.location.href = 'index.html';
-                }
+                // 일반 로그인 성공
+                window.location.href = 'index.html';
             }
         }
     
