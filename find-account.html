@@ -298,6 +298,14 @@
                 resultArea.style.display = "none";
             }
         };
+
+        window.copyPassword = () => {
+            const pwInput = document.getElementById('temp-pw-display');
+            
+            if (pwInput && pwInput.value) {
+                navigator.clipboard.writeText(pwInput.value);
+            }
+        };
     </script>
 </body>
 </html>
