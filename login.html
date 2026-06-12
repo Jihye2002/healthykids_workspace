@@ -257,7 +257,7 @@
         
             const { data: authData, error: authError } = await sb.auth.signInWithPassword({ 
                 email: `${userId}@healthykids.com`, 
-                password: password 
+                password: 'Password123!'
             });
             
             if (authError) {
