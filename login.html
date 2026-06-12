@@ -264,6 +264,7 @@
             });
             
             if (authError) {
+                console.error("로그인 실패:", authError.message);
                 showError('password', "비밀번호가 맞지 않아요.");
                 submitBtn.disabled = false;
             } else {
