@@ -212,7 +212,7 @@
             if (!sb) return alert("서버 연결에 실패했습니다. 다시 시도해주세요.");
         
             const userId = document.getElementById('user-id').value.trim().toLowerCase();
-            const password = document.getElementById('password').value;
+            const password = document.getElementById('password').value.trim();
             const submitBtn = e.target.querySelector('button');
             
             // 에러 상태 초기화
