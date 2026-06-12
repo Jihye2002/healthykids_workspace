@@ -206,7 +206,7 @@
             }
     
             const { data } = await supabase
-                .from('users')
+                .from('public.users')
                 .select('email')
                 .eq('nickname', nickname)
                 .maybeSingle();
