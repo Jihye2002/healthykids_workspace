@@ -336,10 +336,17 @@
         window.copyPassword = () => {
             const pwInput = document.getElementById('temp-pw-display');
             if (pwInput && pwInput.value) {
-                navigator.clipboard.writeText(pwInput.value).then(() => {
+                // .trim()을 사용하여 앞뒤 공백을 제거한 값을 복사합니다.
+                const cleanPassword = pwInput.value.trim();
+                
+                navigator.clipboard.writeText(cleanPassword).then(() => {
                     const toast = document.getElementById("toast");
+                    toast.textContent = "비밀번호가 복사되었습니다!"; // 토스트 메시지도 명확하게
                     toast.className = "show";
                     setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 2500);
+                }).catch(err => {
+                    console.error("복사 실패:", err);
+                    alert("복사에 실패했습니다. 직접 복사해주세요.");
                 });
             }
         };
