@@ -190,7 +190,7 @@
         async function init() {
             const res = await fetch('/get-config');
             const config = await res.json();
-            supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+            window.supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
         }
         init();
     
@@ -209,7 +209,7 @@
                 return;
             }
         
-            const { data } = await supabase
+            const { data } = await window.supabase
                 .from('public.users')
                 .select('email')
                 .eq('nickname', nickname)
