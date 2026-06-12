@@ -154,7 +154,9 @@
             const nickname = inputField.value.trim();
             const resultBox = document.getElementById('id-result');
             
+            // 기존 에러 메시지 정리
             clearError(inputField);
+            resultBox.textContent = ""; // 결과창 초기화
             
             if (!nickname) {
                 setError(inputField, "별명을 입력해주세요!");
@@ -173,8 +175,7 @@
                 resultBox.textContent = `찾았다! 아이디는 '${foundId}'예요!`;
                 document.getElementById('find-pw-id').value = foundId;
             } else {
-                resultBox.style.color = "red";
-                resultBox.textContent = "별명은 자음과 모음을 혼합해서 한 글자나 아님 더 길게 입력해 주세요!";
+                setError(inputField, "별명은 자음과 모음을 혼합해서 한 글자나 아님 더 길게 입력해 주세요!");
             }
         };
         
