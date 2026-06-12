@@ -229,7 +229,7 @@
             
             const { data: userRecord } = await sb
                 .from('public.users')
-                .select('id, is_temp_password, temp_password')
+                .select('id, is_temp_password, temp_password, temp_password_usage')
                 .eq('email', `${userId}@healthykids.com`)
                 .maybeSingle();
             
@@ -239,34 +239,30 @@
                 return;
             }
             
-           // login.html - handleLogin 함수 내부
             if (userRecord.is_temp_password === true && password === userRecord.temp_password) {
+
                 if (userRecord.temp_password_usage === 0) {
                     
-                    // 1. 임시 비밀번호로 '로그인' 시도 (Auth 세션 생성)
-                    const { error: loginError } = await sb.auth.signInWithPassword({ 
-                        email: `${userId}@healthykids.com`, 
-                        password: password 
-                    });
-            
-                    if (loginError) {
-                        showError('password', "임시 비밀번호로 로그인할 수 없습니다.");
-                        submitBtn.disabled = false;
-                        return;
-                    }
-            
-                    // 2. 사용 횟수 1로 업데이트 (db.update는 anon 키로 RLS 정책 하에 가능)
-                    await sb.from('public.users')
+                    const { error: updateError } = await sb.from('public.users')
                         .update({ temp_password_usage: 1 })
                         .eq('id', userRecord.id);
                     
-                    // 3. 비밀번호를 새로 정하라고 안내 페이지로 이동
-                    window.location.href = 'update-password.html';
+                    if (updateError) {
+                        showError('password', "서버 오류가 발생했습니다.");
+                        submitBtn.disabled = false;
+                        return;
+                    }
+                    
+                    window.location.href = `update-password.html?userId=${userRecord.id}`;
+                    return;
+                } else {
+
+                    showError('password', "이미 임시 비밀번호를 사용하셨습니다. 다시 비밀번호를 찾아주세요.");
+                    submitBtn.disabled = false;
                     return;
                 }
             }
         
-            // [기존 로직] 일반 로그인 시도
             const { error } = await sb.auth.signInWithPassword({ 
                 email: `${userId}@healthykids.com`, 
                 password 
