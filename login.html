@@ -162,37 +162,24 @@
     <script type="module">
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-        let supabaseClient = null;
-    
-        async function getSupabase() {
-            if (supabaseClient) return supabaseClient;
-    
+        // 전역에서 사용할 Supabase 인스턴스
+        window.supabase = null;
+        
+        // Supabase 초기화 및 전역 할당 함수
+        async function initSupabase() {
+            if (window.supabase) return window.supabase;
             try {
                 const res = await fetch('/get-config');
                 const config = await res.json();
-                supabaseClient = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
-                return supabaseClient;
+                window.supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+                return window.supabase;
             } catch (err) {
                 console.error("초기화 실패:", err);
                 return null;
             }
         }
-
-        document.addEventListener('DOMContentLoaded', async () => {
-            await getSupabase();
-    
-            document.getElementById('login-form')?.addEventListener('submit', handleLogin);
-            setupRealtimeErrorRemoval();
-            
-            const togglePassword = document.getElementById('toggle-password');
-            const passwordInput = document.getElementById('password');
-            togglePassword?.addEventListener('click', () => {
-                const type = passwordInput.type === 'password' ? 'text' : 'password';
-                passwordInput.type = type;
-                togglePassword.textContent = type === 'password' ? '🔒' : '🔓';
-            });
-        });
-    
+        
+        // 1. 에러 표시 유틸리티
         function showError(inputId, message) {
             const input = document.getElementById(inputId);
             const errorDiv = document.getElementById(inputId + '-error');
@@ -202,7 +189,8 @@
                 errorDiv.style.display = 'block';
             }
         }
-    
+        
+        // 2. 실시간 에러 제거
         function setupRealtimeErrorRemoval() {
             document.querySelectorAll('.input-field').forEach(input => {
                 input.addEventListener('input', () => {
@@ -212,13 +200,13 @@
                 });
             });
         }
-    
+        
+        // 3. 일반 로그인 핸들러
         async function handleLogin(e) {
             e.preventDefault();
-            
-            const sb = await getSupabase();
-            if (!sb) return alert("서버 연결에 실패했습니다. 다시 시도해주세요.");
-    
+            const sb = await initSupabase();
+            if (!sb) return alert("서버 연결에 실패했습니다.");
+        
             const userId = document.getElementById('user-id').value.trim();
             const password = document.getElementById('password').value;
             const submitBtn = e.target.querySelector('button');
@@ -240,9 +228,7 @@
             }
             
             if (userRecord.is_temp_password === true && password === userRecord.temp_password) {
-
                 if (userRecord.temp_password_usage === 0) {
-                    
                     const { error: updateError } = await sb.from('public.users')
                         .update({ temp_password_usage: 1 })
                         .eq('id', userRecord.id);
@@ -252,22 +238,19 @@
                         submitBtn.disabled = false;
                         return;
                     }
-                    
                     window.location.href = `update-password.html?userId=${userRecord.id}`;
                     return;
                 } else {
-
-                    showError('password', "이미 임시 비밀번호를 사용하셨습니다. 다시 비밀번호를 찾아주세요.");
+                    showError('password', "이미 임시 비밀번호를 사용하셨습니다.");
                     submitBtn.disabled = false;
                     return;
                 }
             }
-        
+            
             const { error } = await sb.auth.signInWithPassword({ 
-                email: `${userId}@healthykids.com`, 
-                password 
+                email: `${userId}@healthykids.com`, password 
             });
-        
+            
             if (error) {
                 showError('password', "비밀번호가 맞지 않아요.");
                 submitBtn.disabled = false;
@@ -275,59 +258,47 @@
                 window.location.href = 'index.html';
             }
         }
-    
-        document.addEventListener('DOMContentLoaded', async () => {
-            await getSupabase();
-        })
-    
+        
+        // 4. 소셜 로그인 핸들러 (Google, Kakao)
         async function socialLogin(provider) {
-            try {
-                if (!window.supabase) {
-                    console.error("Supabase가 초기화되지 않았습니다.");
-                    return;
-                }
-        
-                // redirectTo를 index.html로 설정하여 DB 로직이 있는 페이지를 아예 거치지 않게 합니다.
-                const { error } = await window.supabase.auth.signInWithOAuth({
-                    provider: provider,
-                    options: { 
-                        redirectTo: 'https://healthykids-workspace.onrender.com/index.html' 
-                    }
-                });
-        
-                if (error) throw error;
-            } catch (err) {
-                console.error("소셜 로그인 오류:", err.message);
-                alert("로그인 처리 중 문제가 발생했습니다.");
-            }
+            const sb = await initSupabase();
+            if (!sb) return;
+            const { error } = await sb.auth.signInWithOAuth({
+                provider: provider,
+                options: { redirectTo: 'https://healthykids-workspace.onrender.com/index.html' }
+            });
+            if (error) console.error("소셜 로그인 오류:", error.message);
         }
         
-        // 버튼 연결
-        document.getElementById('google-btn')?.addEventListener('click', (e) => {
-            e.preventDefault();
-            socialLogin('google');
-        });
-        
-        document.getElementById('kakao-btn')?.addEventListener('click', (e) => {
-            e.preventDefault();
-            socialLogin('kakao');
-        });
-        
-        // 2. 네이버 로그인 (기존 방식 유지 - 잘 되고 있으니 그대로)
+        // 5. 네이버 로그인 핸들러
         async function handleNaverLogin(e) {
             if (e) e.preventDefault();
             try {
                 const res = await fetch('/get-config');
                 const config = await res.json();
                 const callbackUrl = encodeURIComponent("https://healthykids-workspace.onrender.com/callback.html");
-                
                 window.location.href = `https://nid.naver.com/oauth2.0/authorize?response_type=token&client_id=${config.NAVER_CLIENT_ID}&redirect_uri=${callbackUrl}&state=RANDOM`;
-            } catch (err) {
-                console.error("네이버 로그인 처리 중 오류 발생:", err);
-            }
+            } catch (err) { console.error("네이버 로그인 오류:", err); }
         }
         
-        document.getElementById('naver-btn')?.addEventListener('click', handleNaverLogin);
+        // 전체 통합 로드
+        document.addEventListener('DOMContentLoaded', async () => {
+            await initSupabase();
+            setupRealtimeErrorRemoval();
+            
+            document.getElementById('login-form')?.addEventListener('submit', handleLogin);
+            document.getElementById('google-btn')?.addEventListener('click', () => socialLogin('google'));
+            document.getElementById('kakao-btn')?.addEventListener('click', () => socialLogin('kakao'));
+            document.getElementById('naver-btn')?.addEventListener('click', handleNaverLogin);
+            
+            const togglePassword = document.getElementById('toggle-password');
+            const passwordInput = document.getElementById('password');
+            togglePassword?.addEventListener('click', () => {
+                const type = passwordInput.type === 'password' ? 'text' : 'password';
+                passwordInput.type = type;
+                togglePassword.textContent = type === 'password' ? '🔒' : '🔓';
+            });
+        });
     </script>
 </body>
 </html>
