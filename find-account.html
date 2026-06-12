@@ -26,17 +26,23 @@
         .input-wrapper { width: 100%; height: 45px; margin: 8px 0; border: 2px solid #ddd; display: flex; align-items: center; background: white; }
         .input-field { width: 100%; height: 100%; border: none; outline: none; padding: 0 12px; }
         
-        button { width: 100%; background-color: #2f63c7; color: white; border: none; padding: 30px; margin-top: 5px; cursor: pointer; font-weight: bold; }
+        button { width: 100%; background-color: #2f63c7; color: white; border: none; padding: 12px; margin-top: 30px; cursor: pointer; font-weight: bold; }
 
-        .login-link {
-            color: rgb(128, 128, 128); 
-            text-decoration: none; 
+        .footer-link {
+            margin-top: 30px; 
+            text-align: center;
+            font-size: 14px; /* 글자 크기 조정 */
+        }
+        
+        .footer-link a {
+            color: rgb(128, 128, 128)
+            text-decoration: none; /* 밑줄 제거 */
             font-weight: bold;
             transition: color 0.3s ease;
         }
-    
-        .login-link:hover {
-            color: rgb(50, 50, 50);
+        
+        .footer-link a:hover {
+            color: rgb(50, 50, 50)
         }
             
         
@@ -45,7 +51,7 @@
             padding: 20px; 
             border: 2px solid #2f63c7; 
             background-color: #f8fbff; 
-            display: none; /* 초기에는 숨김 */
+            display: none;
         }
         
         .result-text { margin-top: 15px; font-weight: bold; color: #316ef4; }
@@ -86,13 +92,14 @@
             <div class="input-wrapper">
                 <input type="text" id="security-answer" class="input-field" placeholder="답을 입력하세요!">
             </div>
-            <button onclick="verifyAnswer()" style="background-color: #2C344E">답변 확인하기</button>
+            <button onclick="verifyAnswer()" style="background-color: #3F4B6F">답변 확인하기</button>
             <div id="pw-result" class="result-text"></div>
         </div>
 
-        <div style="margin-top: 30px; text-align: center;">
-            <a href="login.html" style="color: gray; font-weight: bold; text-decoration: none;" class="login-link">로그인하러 가기</a>
-        </div>
+        <p class="footer-link">
+            <a href="login.html">로그인하러 가기</a>
+        </p>
+
     </div>
     
     <script type="module">
