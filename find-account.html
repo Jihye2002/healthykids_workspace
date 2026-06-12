@@ -99,6 +99,8 @@
 
         <p class="footer-link">
             <a href="login.html">로그인하러 가기</a>
+            <br><br>
+            <a href="update-password.html">비밀번호 다시 만들래요!</a>
         </p>
 
     </div>
@@ -153,24 +155,6 @@
             const resultBox = document.getElementById('id-result');
             
             clearError(inputField);
-            if (!nickname) {
-                setError(inputField, "별명을 입력해주세요!");
-                return;
-            }
-        
-            const { data } = await supabase
-                .from('public.users')
-                .select('email')
-                .eq('nickname', nickname)
-                .maybeSingle();
-        
-            window.findId = async () => {
-            const inputField = document.getElementById('find-nickname');
-            const nickname = inputField.value.trim();
-            const resultBox = document.getElementById('id-result');
-            
-            // 1. 초기화: 에러 메시지 지우기
-            clearError(inputField);
             
             if (!nickname) {
                 setError(inputField, "별명을 입력해주세요!");
@@ -183,18 +167,14 @@
                 .eq('nickname', nickname)
                 .maybeSingle();
         
-            // 2. 결과에 따른 색상 설정
             if (data) {
                 const foundId = data.email.split('@')[0];
-                
-                // 성공했을 때는 무조건 안심할 수 있는 파란색으로!
                 resultBox.style.color = "#316ef4"; 
                 resultBox.textContent = `찾았다! 아이디는 '${foundId}'예요!`;
                 document.getElementById('find-pw-id').value = foundId;
             } else {
-                // 실패했을 때만 빨간색
                 resultBox.style.color = "red";
-                resultBox.textContent = "별명은 자음과 모음을 혼합해서 한 글자 혹은 더 길게 입력해 주세요!";
+                resultBox.textContent = "별명은 자음과 모음을 혼합해서 한 글자나 아님 더 길게 입력해 주세요!";
             }
         };
         
