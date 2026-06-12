@@ -261,7 +261,7 @@
         window.verifyAnswer = async () => {
             const inputField = document.getElementById('security-answer');
             const inputAnswer = inputField.value.trim();
-            const userId = document.getElementById('find-pw-id').value.trim(); // userId 가져오기
+            const userId = document.getElementById('find-pw-id').value.trim(); 
             const resultArea = document.getElementById('pw-result');
             const pwMessage = document.getElementById('pw-message');
             const pwInput = document.getElementById('temp-pw-display');
@@ -276,24 +276,26 @@
             if (inputAnswer === currentSecurityAnswer) {
                 const tempPassword = "Temp" + Math.floor(Math.random() * 900000 + 100000) + "!";
                 
-                // 1. Supabase Auth의 비밀번호 업데이트
-                await supabase.auth.updateUser({ password: tempPassword });
-
-                // 2. 데이터베이스에 임시 비밀번호 상태(is_temp_password)를 true로 업데이트
-                await supabase
+                // Auth를 건드리지 않고 DB에 저장
+                const { error: dbError } = await window.supabase
                     .from('public.users')
-                    .update({ is_temp_password: true })
+                    .update({ 
+                        is_temp_password: true,
+                        temp_password: tempPassword // DB에 이 컬럼을 꼭 만드세요!
+                    })
                     .eq('email', `${userId}@healthykids.com`);
-
-                // 3. 화면 표시
+        
+                if (dbError) {
+                    setError(inputField, "서버 오류: " + dbError.message);
+                    return;
+                }
+        
                 pwMessage.textContent = "정답이에요! 아래 비밀번호를 복사해서 로그인하세요.";
                 pwInput.value = tempPassword;
-                
                 resultArea.style.display = "block";
             } else {
                 let hint = currentSecurityAnswer;
                 let displayHint = hint.length <= 1 ? "*" : (hint.length === 2 ? hint[0] + "*" : hint[0] + "*".repeat(hint.length - 2) + hint[hint.length - 1]);
-                
                 setError(inputField, `앗, 다시 생각해봐요! (힌트: ${displayHint})`);
                 resultArea.style.display = "none";
             }
