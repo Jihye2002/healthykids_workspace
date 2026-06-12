@@ -215,30 +215,27 @@
             const password = document.getElementById('password').value;
             const submitBtn = e.target.querySelector('button');
             
+            // 에러 상태 초기화
             document.querySelectorAll('.error-text').forEach(el => el.style.display = 'none');
             document.querySelectorAll('.input-wrapper').forEach(el => el.classList.remove('error-border'));
             submitBtn.disabled = true;
-            
+        
+            // 1. 먼저 public.users에서 임시 비밀번호 정보 조회 (주석 해제 및 변수 정상화)
             const { data: userRecord, error: fetchError } = await sb
                 .from('public.users')
                 .select('id, is_temp_password, temp_password, temp_password_usage')
                 .eq('email', `${userId}@healthykids.com`)
                 .maybeSingle();
-            
+        
             if (fetchError) {
                 console.error("DB 조회 실패:", fetchError);
                 showError('user-id', "서버 통신 오류가 발생했습니다.");
                 submitBtn.disabled = false;
                 return;
             }
-            
-            if (!userRecord) {
-                showError('user-id', "아이디가 올바르지 않습니다.");
-                submitBtn.disabled = false;
-                return;
-            }
-            
-            if (userRecord.is_temp_password === true && password === userRecord.temp_password) {
+        
+            // 2. 임시 비밀번호 처리 로직
+            if (userRecord && userRecord.is_temp_password === true && password === userRecord.temp_password) {
                 if (userRecord.temp_password_usage === 0) {
                     const { error: updateError } = await sb.from('public.users')
                         .update({ temp_password_usage: 1 })
@@ -257,6 +254,10 @@
                     return;
                 }
             }
+        
+            // 3. Supabase Auth 일반 로그인 시도
+            console.log("로그인 시도 이메일:", `${userId}@healthykids.com`);
+            console.log("로그인 시도 비밀번호:", password);
             
             const { data: authData, error: authError } = await sb.auth.signInWithPassword({ 
                 email: `${userId}@healthykids.com`, 
@@ -264,7 +265,6 @@
             });
             
             if (authError) {
-                // [중요] 여기에 찍히는 에러 메시지를 확인하세요.
                 console.error("로그인 실패 상세:", authError.message); 
                 
                 if (authError.message === "Invalid login credentials") {
@@ -279,7 +279,6 @@
             } else {
                 window.location.href = 'index.html';
             }
-
         }
         
         async function socialLogin(provider) {
