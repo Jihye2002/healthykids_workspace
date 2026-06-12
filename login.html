@@ -264,9 +264,18 @@
             });
             
             if (authError) {
-                console.error("최종 로그인 실패:", authError.message);
-                showError('password', "아이디 또는 비밀번호가 일치하지 않습니다.");
+                // [중요] 여기에 찍히는 에러 메시지를 확인하세요.
+                console.error("로그인 실패 상세:", authError.message); 
+                
+                if (authError.message === "Invalid login credentials") {
+                    showError('password', "아이디 또는 비밀번호가 일치하지 않습니다.");
+                } else if (authError.message.includes("Email not confirmed")) {
+                    showError('user-id', "이메일 인증이 필요합니다.");
+                } else {
+                    showError('password', "로그인 오류: " + authError.message);
+                }
                 submitBtn.disabled = false;
+                return;
             } else {
                 window.location.href = 'index.html';
             }
