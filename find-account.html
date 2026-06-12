@@ -180,13 +180,30 @@
     <script type="module">
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
     
-        let supabase;
+        let supabase = null;
         let currentSecurityAnswer = "";
         let currentUserId = "";
     
         const qnaBox = document.getElementById('qna-box');
         const questionText = document.getElementById('security-question-text');
     
+        // 2. 페이지 로드 시 Supabase 설정을 가져오는 함수
+        async function initSupabase() {
+            try {
+                const res = await fetch('/get-config');
+                const config = await res.json();
+                // 전역 supabase 변수에 할당
+                supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+                console.log("Supabase 초기화 완료");
+            } catch (error) {
+                console.error("설정 로드 실패:", error);
+            }
+        }
+    
+        // 페이지 로드 시 바로 초기화 시작
+        initSupabase();
+    
+        // 3. 에러 처리 유틸리티
         function setError(inputField, message) {
             const inputWrapper = inputField.parentElement;
             let errorSpan = inputWrapper.nextElementSibling;
@@ -210,15 +227,10 @@
             }
         }
     
-        async function init() {
-            const res = await fetch('/get-config');
-            const config = await res.json();
-            window.supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
-            supabase = window.supabase;
-        }
-        init();
-    
+        // 4. 각 기능 함수 (버튼 클릭 시 호출)
         window.findId = async () => {
+            if (!supabase) return alert("데이터 연결 중입니다. 잠시만 기다려주세요.");
+            
             const inputField = document.getElementById('find-nickname');
             const nickname = inputField.value.trim();
             const resultBox = document.getElementById('id-result');
@@ -226,10 +238,7 @@
             clearError(inputField);
             resultBox.textContent = "";
             
-            if (!nickname) {
-                setError(inputField, "별명을 입력해주세요!");
-                return;
-            }
+            if (!nickname) return setError(inputField, "별명을 입력해주세요!");
     
             const { data } = await supabase
                 .from('public.users')
@@ -248,15 +257,14 @@
         };
         
         window.requestSecurityQuestion = async () => {
+            if (!supabase) return alert("데이터 연결 중입니다.");
+            
             const inputField = document.getElementById('find-pw-id');
             const userId = inputField.value.trim();
             const pwResult = document.getElementById('pw-result');
             
             clearError(inputField);
-            if (!userId) {
-                setError(inputField, "아이디를 먼저 입력해주세요!");
-                return;
-            }
+            if (!userId) return setError(inputField, "아이디를 먼저 입력해주세요!");
     
             const { data } = await supabase
                 .from('public.users')
@@ -278,6 +286,8 @@
         };
         
         window.verifyAnswer = async () => {
+            if (!supabase) return;
+            
             const inputField = document.getElementById('security-answer');
             const inputAnswer = inputField.value.trim();
             const resultArea = document.getElementById('pw-result');
@@ -286,10 +296,7 @@
             
             clearError(inputField);
             
-            if (!inputAnswer) {
-                setError(inputField, "답변을 입력해주세요!");
-                return;
-            }
+            if (!inputAnswer) return setError(inputField, "답변을 입력해주세요!");
             
             if (inputAnswer === currentSecurityAnswer) {
                 const tempPassword = "Temp" + Math.floor(Math.random() * 900000 + 100000) + "!";
@@ -301,12 +308,9 @@
                         temp_password: tempPassword 
                     })
                     .eq('id', currentUserId);
-        
-                if (dbError) {
-                    setError(inputField, "서버 오류 발생: " + dbError.message);
-                    return;
-                }
-        
+    
+                if (dbError) return setError(inputField, "서버 오류: " + dbError.message);
+    
                 pwMessage.textContent = "정답이에요! 아래 비밀번호를 복사해서 로그인하세요.";
                 pwInput.value = tempPassword;
                 resultArea.style.display = "block";
@@ -317,19 +321,14 @@
                 resultArea.style.display = "none";
             }
         };
-
-        function showToast() {
-            const toast = document.getElementById("toast");
-            toast.className = "show";
-            setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 2500);
-        }
     
         window.copyPassword = () => {
             const pwInput = document.getElementById('temp-pw-display');
-            
             if (pwInput && pwInput.value) {
                 navigator.clipboard.writeText(pwInput.value).then(() => {
-                    showToast();
+                    const toast = document.getElementById("toast");
+                    toast.className = "show";
+                    setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 2500);
                 });
             }
         };
