@@ -301,14 +301,14 @@
             if (inputAnswer === currentSecurityAnswer) {
                 const tempPassword = "Temp" + Math.floor(Math.random() * 900000 + 100000) + "!";
                 
-                await supabase.from('public.users')
+                const { error: dbError } = await supabase.from('public.users')
                     .update({ 
                         is_temp_password: true,
                         temp_password: tempPassword,
                         temp_password_usage: 0
                     })
                     .eq('id', currentUserId);
-        
+                
                 if (dbError) return setError(inputField, "서버 오류: " + dbError.message);
         
                 pwMessage.textContent = "정답이에요! 아래 비밀번호를 복사해서 로그인하세요.";
