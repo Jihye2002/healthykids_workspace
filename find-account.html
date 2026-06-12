@@ -217,7 +217,7 @@
                 let displayHint = hint.length <= 1 ? "*" : (hint.length === 2 ? hint[0] + "*" : hint[0] + "*".repeat(hint.length - 2) + hint[hint.length - 1]);
         
                 resultBox.style.color = "#ff4d4d";
-                resultBox.innerHTML = `앗, 답이 틀렸어요ㅠㅠ<br>힌트: <b>"${displayHint}"</b><br>다시 한번 생각해봐요!`;
+                resultBox.innerHTML = `앗, <br>힌트: <b>"${displayHint}"</b><br>다시 한번 생각해봐요!`;
             }
         };
     </script>
