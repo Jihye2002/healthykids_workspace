@@ -162,24 +162,36 @@
     <script type="module">
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-        async function init() {
+        let supabaseClient = null;
+    
+        async function getSupabase() {
+            if (supabaseClient) return supabaseClient;
+    
             try {
                 const res = await fetch('/get-config');
                 const config = await res.json();
-                window.supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
-                
-                document.getElementById('login-form')?.addEventListener('submit', handleLogin);
-                setupRealtimeErrorRemoval();
-                
-                const togglePassword = document.getElementById('toggle-password');
-                const passwordInput = document.getElementById('password');
-                togglePassword?.addEventListener('click', () => {
-                    const type = passwordInput.type === 'password' ? 'text' : 'password';
-                    passwordInput.type = type;
-                    togglePassword.textContent = type === 'password' ? '🔒' : '🔓';
-                });
-            } catch (err) { console.error("초기화 실패:", err); }
+                supabaseClient = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+                return supabaseClient;
+            } catch (err) {
+                console.error("초기화 실패:", err);
+                return null;
+            }
         }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await getSupabase();
+    
+            document.getElementById('login-form')?.addEventListener('submit', handleLogin);
+            setupRealtimeErrorRemoval();
+            
+            const togglePassword = document.getElementById('toggle-password');
+            const passwordInput = document.getElementById('password');
+            togglePassword?.addEventListener('click', () => {
+                const type = passwordInput.type === 'password' ? 'text' : 'password';
+                passwordInput.type = type;
+                togglePassword.textContent = type === 'password' ? '🔒' : '🔓';
+            });
+        });
     
         function showError(inputId, message) {
             const input = document.getElementById(inputId);
@@ -203,6 +215,10 @@
     
         async function handleLogin(e) {
             e.preventDefault();
+            
+            const sb = await getSupabase();
+            if (!sb) return alert("서버 연결에 실패했습니다. 다시 시도해주세요.");
+    
             const userId = document.getElementById('user-id').value.trim();
             const password = document.getElementById('password').value;
             const submitBtn = e.target.querySelector('button');
@@ -210,29 +226,25 @@
             document.querySelectorAll('.error-text').forEach(el => el.style.display = 'none');
             document.querySelectorAll('.input-wrapper').forEach(el => el.classList.remove('error-border'));
             submitBtn.disabled = true;
-        
-            // 1. DB에서 사용자 정보 가져오기 (임시 비밀번호 포함)
-            const { data: userRecord } = await window.supabase
+            
+            const { data: userRecord } = await sb
                 .from('public.users')
                 .select('id, is_temp_password, temp_password')
                 .eq('email', `${userId}@healthykids.com`)
                 .maybeSingle();
-        
+            
             if (!userRecord) {
                 showError('user-id', "아이디가 올바르지 않은 것 같아요. 한 번 더 볼까요?");
                 submitBtn.disabled = false;
                 return;
             }
-        
-            // 2. [핵심 수정] 임시 비밀번호 사용자라면 별도 검증
+            
             if (userRecord.is_temp_password === true && password === userRecord.temp_password) {
-                // 임시 비밀번호로 성공했으므로 바로 비밀번호 변경 페이지로 이동
                 window.location.href = 'update-password.html';
                 return;
             }
-        
-            // 3. 일반 사용자 로그인 시도
-            const { error } = await window.supabase.auth.signInWithPassword({ 
+            
+            const { error } = await sb.auth.signInWithPassword({ 
                 email: `${userId}@healthykids.com`, 
                 password 
             });
@@ -241,7 +253,6 @@
                 showError('password', "앗! 비밀번호가 맞지 않는 것 같아요. 한 번 더 봐주세요!");
                 submitBtn.disabled = false;
             } else {
-                // 일반 로그인 성공
                 window.location.href = 'index.html';
             }
         }
