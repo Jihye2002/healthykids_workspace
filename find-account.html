@@ -89,13 +89,16 @@
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
         
         let supabase;
+        let currentSecurityAnswer = "";
+    
         async function init() {
             const res = await fetch('/get-config');
             const config = await res.json();
             supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
         }
         init();
-
+    
+        // 1. 아이디 찾기
         window.findId = async () => {
             const nickname = document.getElementById('find-nickname').value.trim();
             const resultBox = document.getElementById('id-result');
@@ -108,7 +111,7 @@
                 return;
             }
         
-            const { data, error } = await supabase
+            const { data } = await supabase
                 .from('public.users')
                 .select('email')
                 .eq('nickname', nickname)
@@ -124,53 +127,64 @@
             }
         };
         
-        window.checkSecurityQuestion = async () => {
+        // 2. [비밀번호 질문 확인] 버튼 클릭 시 (질문 박스 노출)
+        window.requestSecurityQuestion = async () => {
             const userId = document.getElementById('find-pw-id').value.trim();
-            const resultBox = document.getElementById('pw-result');
+            const pwResult = document.getElementById('pw-result');
+            const qnaBox = document.getElementById('qna-box');
+            const questionText = document.getElementById('security-question-text');
             
-            resultBox.textContent = "";
-        
+            pwResult.textContent = "";
+    
             if (!userId) {
-                resultBox.style.color = "red";
-                resultBox.textContent = "먼저 아이디를 입력해주세요!";
+                pwResult.style.color = "red";
+                pwResult.textContent = "먼저 아이디를 입력해주세요!";
                 return;
             }
         
-            const { data, error } = await supabase
+            const { data } = await supabase
                 .from('public.users')
                 .select('security_question, security_answer')
                 .eq('email', `${userId}@healthykids.com`)
                 .maybeSingle();
         
             if (data) {
-                const answer = prompt(`질문: ${data.security_question}\n여기에 답을 써주세요!`);
-                
-                if (answer === null) return; // 사용자가 취소를 눌렀을 때
-            
-                if (answer === data.security_answer) {
-                    window.location.href = `update-password.html?id=${userId}`;
-                } else {
-                    let hint = data.security_answer;
-                    let displayHint = "";
-            
-                    if (hint.length <= 1) {
-                        displayHint = "*";
-                    } else if (hint.length === 2) {
-                        displayHint = hint[0] + "*";
-                    } else {
-                        displayHint = hint[0] + "*".repeat(hint.length - 2) + hint[hint.length - 1];
-                    }
-            
-                    resultBox.style.color = "#ff4d4d";
-                    resultBox.innerHTML = `앗, 답이 틀렸어요ㅠㅠ<br>힌트: <b>"${displayHint}"</b><br>다시 한번 생각해봐요!`;
-                }
+                currentSecurityAnswer = data.security_answer; // 정답 저장
+                questionText.textContent = `질문: ${data.security_question}`;
+                qnaBox.style.display = "block"; // 숨겨진 질문 박스 보이기
             } else {
-                resultBox.style.color = "#ff4d4d";
-                resultBox.innerHTML = `
+                pwResult.style.color = "#ff4d4d";
+                pwResult.innerHTML = `
                     앗, 해당 아이디를 찾을 수 없어요.<br>
                     혹시 아직 헬시키즈 친구가 아닌가요?<br><br>
                     <button onclick="location.href='signup.html'" style="cursor:pointer;">회원가입 하러 가기</button>
                 `;
+                qnaBox.style.display = "none";
+            }
+        };
+    
+        // 3. [답변 확인하기] 버튼 클릭 시 (최종 검증)
+        window.verifyAnswer = () => {
+            const inputAnswer = document.getElementById('security-answer').value.trim();
+            const userId = document.getElementById('find-pw-id').value.trim();
+            const resultBox = document.getElementById('pw-result');
+            
+            if (inputAnswer === currentSecurityAnswer) {
+                window.location.href = `update-password.html?id=${userId}`;
+            } else {
+                let hint = currentSecurityAnswer;
+                let displayHint = "";
+        
+                if (hint.length <= 1) {
+                    displayHint = "*";
+                } else if (hint.length === 2) {
+                    displayHint = hint[0] + "*";
+                } else {
+                    displayHint = hint[0] + "*".repeat(hint.length - 2) + hint[hint.length - 1];
+                }
+        
+                resultBox.style.color = "#ff4d4d";
+                resultBox.innerHTML = `앗, 답이 틀렸어요ㅠㅠ<br>힌트: <b>"${displayHint}"</b><br>다시 한번 생각해봐요!`;
             }
         };
     </script>
