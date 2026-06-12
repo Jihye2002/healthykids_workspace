@@ -108,6 +108,26 @@
         
         let supabase;
         let currentSecurityAnswer = "";
+
+        function setError(inputElement, message) {
+            let errorSpan = inputElement.nextElementSibling;
+            if (!errorSpan || !errorSpan.classList.contains('error-text')) {
+                errorSpan = document.createElement('span');
+                errorSpan.className = 'error-text';
+                errorSpan.style.color = "red";
+                errorSpan.style.fontSize = "12px";
+                errorSpan.style.display = "block";
+                errorSpan.style.marginTop = "5px";
+                inputElement.parentNode.parentNode.appendChild(errorSpan); // input-wrapper 밖으로
+            }
+            errorSpan.textContent = message;
+            return errorSpan;
+        }
+
+        function clearError(inputElement) {
+            const errorSpan = inputElement.parentNode.parentNode.querySelector('.error-text');
+            if (errorSpan) errorSpan.textContent = "";
+        }
     
         async function init() {
             const res = await fetch('/get-config');
@@ -118,14 +138,13 @@
     
         // 1. 아이디 찾기
         window.findId = async () => {
-            const nickname = document.getElementById('find-nickname').value.trim();
+            const inputField = document.getElementById('find-nickname');
+            const nickname = inputField.value.trim();
             const resultBox = document.getElementById('id-result');
             
-            resultBox.style.color = "#316ef4";
-            
+            clearError(inputField);
             if (!nickname) {
-                resultBox.style.color = "red";
-                resultBox.textContent = "별명을 입력해주세요!";
+                setError(inputField, "별명을 입력해주세요!");
                 return;
             }
         
@@ -147,16 +166,13 @@
         
         // 2. [비밀번호 질문 확인] 버튼 클릭 시 (질문 박스 노출)
         window.requestSecurityQuestion = async () => {
-            const userId = document.getElementById('find-pw-id').value.trim();
+            const inputField = document.getElementById('find-pw-id');
+            const userId = inputField.value.trim();
             const pwResult = document.getElementById('pw-result');
-            const qnaBox = document.getElementById('qna-box');
-            const questionText = document.getElementById('security-question-text');
             
-            pwResult.textContent = "";
-    
+            clearError(inputField);
             if (!userId) {
-                pwResult.style.color = "red";
-                pwResult.textContent = "먼저 아이디를 입력해주세요!";
+                setError(inputField, "아이디를 먼저 입력해주세요!");
                 return;
             }
         
@@ -181,11 +197,19 @@
             }
         };
     
-        // 3. [답변 확인하기] 버튼 클릭 시 (최종 검증)
         window.verifyAnswer = () => {
-            const inputAnswer = document.getElementById('security-answer').value.trim();
+            const inputField = document.getElementById('security-answer'); // 답변 입력 input
+            const inputAnswer = inputField.value.trim();
             const userId = document.getElementById('find-pw-id').value.trim();
             const resultBox = document.getElementById('pw-result');
+ 
+            clearError(inputField); 
+            resultBox.textContent = ""; 
+            
+            if (!inputAnswer) {
+                setError(inputField, "답변을 입력해주세요!");
+                return;
+            }
             
             if (inputAnswer === currentSecurityAnswer) {
                 window.location.href = `update-password.html?id=${userId}`;
