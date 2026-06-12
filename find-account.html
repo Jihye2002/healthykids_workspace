@@ -307,13 +307,36 @@
             if (!inputAnswer) return setError(inputField, "답변을 입력해주세요!");
             
             if (inputAnswer === currentSecurityAnswer) {
-                const tempPassword = "Temp" + Math.floor(Math.random() * 900000 + 100000) + "!";
+                // 정규식 규칙에 맞는 임시 비밀번호 생성 (8자 이상)
+                // 대문자, 소문자, 숫자, 기호를 반드시 하나씩 포함
+                const upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+                const lower = "abcdefghijklmnopqrstuvwxyz";
+                const digits = "0123456789";
+                const special = "!@#$%^&*";
+                
+                const getRandom = (chars) => chars[Math.floor(Math.random() * chars.length)];
+                
+                // 규칙 강제 포함
+                let tempPassword = [
+                    getRandom(upper),
+                    getRandom(lower),
+                    getRandom(digits),
+                    getRandom(special)
+                ];
+                
+                // 나머지 4자리를 랜덤으로 채움 (총 8자리)
+                const allChars = upper + lower + digits + special;
+                for (let i = 0; i < 4; i++) {
+                    tempPassword.push(getRandom(allChars));
+                }
+                
+                const finalTempPassword = tempPassword.sort(() => Math.random() - 0.5).join('');
                 
                 const { error: dbError } = await sb
                     .from('public.users')
                     .update({ 
                         is_temp_password: true,
-                        temp_password: tempPassword,
+                        temp_password: finalTempPassword, // 규칙을 만족하는 비밀번호 저장
                         temp_password_usage: 0
                     })
                     .eq('id', currentUserId);
@@ -323,7 +346,7 @@
                     return setError(inputField, "서버 오류가 발생했습니다.");
                 }
                 pwMessage.textContent = "정답이에요! 비밀번호를 복사해서 로그인하세요.";
-                pwInput.value = tempPassword;
+                pwInput.value = finalTempPassword;
                 resultArea.style.display = "block";
             } else {
                 let hint = currentSecurityAnswer;
