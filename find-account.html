@@ -120,11 +120,23 @@
             <div id="pw-result" class="result-area" style="display: none;">
                 <p id="pw-message" style="color: #2f63c7; font-weight: bold;"></p>
                 
-                <div style="display: flex; gap: 5px;">
-                    <div class="input-wrapper" style="border: 2px dashed #2f63c7; background: #eef6ff; flex: 1;">
-                        <input type="text" id="temp-pw-display" class="input-field" readonly onclick="this.select()" style="text-align:center; font-weight:bold; cursor:pointer; background: transparent;">
+                <div style="display: flex; gap: 5px; align-items: stretch; margin-top: 8px;">
+                    <div class="input-wrapper" style="border: 2px dashed #2f63c7; background: #eef6ff; flex: 1; margin: 0;">
+                        <input type="text" id="temp-pw-display" class="input-field" readonly style="text-align:center; font-weight:bold; cursor:pointer; background: transparent;">
                     </div>
-                    <button onclick="copyPassword()" style="margin-top: 8px; width: 80px; padding: 0; background-color: #5cb85c;">복사하기</button>
+                    <button onclick="copyPassword()" title="복사하기" style="
+                        margin: 0; 
+                        width: 50px; 
+                        background-color: #ffd700; 
+                        border: 2px solid #ffcc00; 
+                        border-radius: 8px; 
+                        cursor: pointer; 
+                        font-size: 20px; 
+                        display: flex; 
+                        align-items: center; 
+                        justify-content: center;">
+                        📋
+                    </button>
                 </div>
 
                 <p class="notice" style="color: #d9534f; font-size: 13px; margin: 10px 0;">
