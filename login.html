@@ -255,10 +255,6 @@
                 }
             }
         
-            // 3. Supabase Auth 일반 로그인 시도
-            console.log("로그인 시도 이메일:", `${userId}@healthykids.com`);
-            console.log("로그인 시도 비밀번호:", password);
-            
             const { data: authData, error: authError } = await sb.auth.signInWithPassword({ 
                 email: `${userId}@healthykids.com`, 
                 password: password 
