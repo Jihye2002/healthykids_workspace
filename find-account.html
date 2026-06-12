@@ -301,8 +301,7 @@
             if (inputAnswer === currentSecurityAnswer) {
                 const tempPassword = "Temp" + Math.floor(Math.random() * 900000 + 100000) + "!";
                 
-                const { error: dbError } = await supabase
-                    .from('public.users')
+                await supabase.from('public.users')
                     .update({ 
                         is_temp_password: true,
                         temp_password: tempPassword,
