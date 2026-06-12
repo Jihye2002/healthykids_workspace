@@ -25,6 +25,14 @@
         
         .input-wrapper { width: 100%; height: 45px; margin: 8px 0; border: 2px solid #ddd; display: flex; align-items: center; background: white; }
         .input-field { width: 100%; height: 100%; border: none; outline: none; padding: 0 12px; }
+
+        .notice {
+            background-color: #fff0f0;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ffcccc;
+            line-height: 1.5;
+        }
         
         button { width: 100%; background-color: #2f63c7; color: white; border: none; padding: 12px; margin-top: 30px; cursor: pointer; font-weight: bold; }
 
@@ -42,6 +50,33 @@
             border: 2px solid #2f63c7; 
             background-color: #f8fbff; 
             display: none;
+        }
+
+        .result-area {
+            margin-top: 25px;
+            padding: 15px;
+            border-top: 2px solid #2f63c7;
+            text-align: center;
+        }
+        
+        #temp-pw-display {
+            background-color: transparent !important;
+            font-size: 16px;
+            color: #2f63c7;
+            text-align: center;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .login-link {
+            color: rgb(128, 128, 128); 
+            text-decoration: none; 
+            font-weight: bold;
+            transition: color 0.3s ease;
+        }
+    
+        .login-link:hover {
+            color: rgb(50, 50, 50);
         }
     </style>
 </head>
@@ -81,7 +116,21 @@
                 <input type="text" id="security-answer" class="input-field" placeholder="답을 입력하세요!">
             </div>
             <button onclick="verifyAnswer()" style="background-color: #ffd700; color: #000;">답변 확인하기</button>
-            <div id="pw-result" class="result-text"></div>
+    
+            <div id="pw-result" class="result-area" style="display: none;">
+                <p id="pw-message" style="color: #2f63c7; font-weight: bold;"></p>
+                
+                <div class="input-wrapper" style="border: 2px dashed #2f63c7; background: #eef6ff;">
+                    <input type="text" id="temp-pw-display" class="input-field" readonly onclick="this.select()" style="text-align:center; font-weight:bold; cursor:pointer;">
+                </div>
+
+                <p class="notice" style="color: #d9534f; font-size: 13px; margin: 10px 0;">
+                    ⚠️ <b>주의:</b> 이 임시 비밀번호는 <b>한 번만 사용 가능</b>해.<br>
+                    로그인 후 반드시 '개인정보 수정' 메뉴로 들어가셔서 비밀번호를 새로 만들어 주세요!
+                </p>
+                
+                <a href="login.html" class="login-link">로그인하러 가기</a>
+            </div>
         </div>
 
     </div>
@@ -193,31 +242,44 @@
             }
         };
     
-        window.verifyAnswer = () => {
+        window.verifyAnswer = async () => {
             const inputField = document.getElementById('security-answer');
             const inputAnswer = inputField.value.trim();
-            const userId = document.getElementById('find-pw-id').value.trim();
-            const resultBox = document.getElementById('pw-result');
+            const userId = document.getElementById('find-pw-id').value.trim(); // userId 가져오기
+            const resultArea = document.getElementById('pw-result');
+            const pwMessage = document.getElementById('pw-message');
+            const pwInput = document.getElementById('temp-pw-display');
             
-            // 1. 에러 및 결과 초기화
             clearError(inputField); 
-            resultBox.innerHTML = ""; 
             
-            // 2. 입력 확인
             if (!inputAnswer) {
                 setError(inputField, "답변을 입력해주세요!");
                 return;
             }
             
-            // 3. 정답 확인
             if (inputAnswer === currentSecurityAnswer) {
-                window.location.href = `login.html?id=${userId}`;
+                const tempPassword = "Temp" + Math.floor(Math.random() * 900000 + 100000) + "!";
+                
+                // 1. Supabase Auth의 비밀번호 업데이트
+                await supabase.auth.updateUser({ password: tempPassword });
+
+                // 2. 데이터베이스에 임시 비밀번호 상태(is_temp_password)를 true로 업데이트
+                await supabase
+                    .from('public.users')
+                    .update({ is_temp_password: true })
+                    .eq('email', `${userId}@healthykids.com`);
+
+                // 3. 화면 표시
+                pwMessage.textContent = "정답이에요! 아래 비밀번호를 복사해서 로그인하세요.";
+                pwInput.value = tempPassword;
+                
+                resultArea.style.display = "block";
             } else {
                 let hint = currentSecurityAnswer;
                 let displayHint = hint.length <= 1 ? "*" : (hint.length === 2 ? hint[0] + "*" : hint[0] + "*".repeat(hint.length - 2) + hint[hint.length - 1]);
-        
-                resultBox.style.color = "#ff4d4d";
-                resultBox.innerHTML = `앗, <br>힌트: <b>"${displayHint}"</b><br>다시 한번 생각해봐요!`;
+                
+                setError(inputField, `앗, 다시 생각해봐요! (힌트: ${displayHint})`);
+                resultArea.style.display = "none";
             }
         };
     </script>
