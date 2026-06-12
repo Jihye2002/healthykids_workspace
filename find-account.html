@@ -113,23 +113,27 @@
         const questionText = document.getElementById('security-question-text');
 
         function setError(inputField, message) {
-            let errorSpan = inputField.parentElement.querySelector('.error-text');
-            if (!errorSpan) {
+            const inputWrapper = inputField.parentElement;
+            
+            let errorSpan = inputWrapper.nextElementSibling;
+            if (!errorSpan || !errorSpan.classList.contains('error-text')) {
                 errorSpan = document.createElement('span');
                 errorSpan.className = 'error-text';
                 errorSpan.style.color = "red";
                 errorSpan.style.fontSize = "12px";
                 errorSpan.style.display = "block";
                 errorSpan.style.marginTop = "5px";
+                errorSpan.style.marginBottom = "5px";
                 errorSpan.style.textAlign = "left";
-                inputField.parentElement.before(errorSpan);
+                
+                inputWrapper.after(errorSpan);
             }
             errorSpan.textContent = message;
         }
 
-        // 에러 메시지 제거
         function clearError(inputField) {
-            const errorSpan = inputField.parentElement.nextElementSibling;
+            const inputWrapper = inputField.parentElement;
+            const errorSpan = inputWrapper.nextElementSibling;
             if (errorSpan && errorSpan.classList.contains('error-text')) {
                 errorSpan.remove();
             }
