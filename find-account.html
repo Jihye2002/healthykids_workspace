@@ -276,7 +276,7 @@
         };
     
         window.copyPassword = async function() {
-            const pw = document.getElementById('temp-pw-display').value;
+            const pw = document.getElementById('temp-pw-display').value.trim();
             if(!pw) return;
             await navigator.clipboard.writeText(pw);
             const toast = document.getElementById("toast");
