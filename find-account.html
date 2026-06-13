@@ -197,7 +197,6 @@
                 supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
                 return supabase;
             } catch (error) {
-                console.error("Supabase 초기화 에러:", error);
                 return null;
             }
         };
@@ -287,7 +286,6 @@
             }
         };
     
-        // 기존 PATCH 요청 코드를 삭제하고 아래 RPC 호출 코드로 변경하세요
         window.copyPassword = async function() {
             const pw = document.getElementById('temp-pw-display').value;
             if(!pw) return;
@@ -297,23 +295,18 @@
             const sb = await window.initSupabase();
             if (!sb) return;
         
-            // 1. 상태 업데이트 (RPC 호출)
-            // 함수 이름: force_update_password
-            // 파라미터: target_id, new_password, new_usage, new_is_temp
             const { error } = await sb.rpc('force_update_password', { 
-                target_id: currentUserId, // 아까 정의한 변수 이름
-                new_password: pw,         // 임시 비밀번호를 auth.users에도 동기화
-                new_usage: 0,             // 사용 횟수 초기화
-                new_is_temp: true         // 임시 상태 유지
+                target_id: currentUserId, 
+                new_password: pw,         
+                new_usage: 0,             
+                new_is_temp: true         
             });
         
             if (error) {
-                console.error("업데이트 실패:", error.message);
                 alert("비밀번호 상태 업데이트에 실패했습니다.");
                 return;
             }
         
-            // 2. 클립보드 복사
             navigator.clipboard.writeText(pw).then(() => {
                 const toast = document.getElementById("toast");
                 toast.className = "show";
