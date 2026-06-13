@@ -285,19 +285,38 @@
             const inputAnswer = inputField.value.trim();
             clearError(inputField);
             
-            if (inputAnswer === currentSecurityAnswer) {
-                const finalTempPassword = Math.random().toString(36).slice(-8) + "!A1";
-                await sb.from('public.users').update({ is_temp_password: true, temp_password: finalTempPassword }).eq('id', currentUserId);
-                
-                document.getElementById('pw-result').style.display = "block";
-                document.getElementById('pw-message').textContent = "정답이에요! 아래 비밀번호를 복사하세요.";
-                document.getElementById('temp-pw-display').value = finalTempPassword;
-            } else {
-                let hint = currentSecurityAnswer;
-                let displayHint = hint.length <= 1 ? "*" : (hint.length === 2 ? hint[0] + "*" : hint[0] + "*".repeat(hint.length - 2) + hint[hint.length - 1]);
-                setError(inputField, `앗..다시 써주세요ㅠㅠ (힌트: ${displayHint})`);
+            // 보안 질문 정답 확인 후 임시 비밀번호 생성 및 표시 로직
+        if (inputAnswer === currentSecurityAnswer) {
+            const sb = await initSupabase();
+            // 여기서 직접 랜덤 비밀번호 생성
+            const finalTempPassword = Math.random().toString(36).slice(-8) + "!A1";
+        
+            // DB 업데이트 (이전 찌꺼기 방지를 위해 모든 필드 초기화)
+            const { error } = await sb
+                .from('public.users')
+                .update({ 
+                    is_temp_password: true, 
+                    temp_password: finalTempPassword,
+                    temp_password_usage: 0 // 중요: 사용 횟수 초기화!
+                })
+                .eq('id', currentUserId); // 혹은 .eq('email', email)
+        
+            if (error) {
+                setError(inputField, "서버 연결에 실패했어요. 잠시 후 다시 시도해주세요.");
+                return;
             }
-        };
+        
+            // 결과 화면에 표시 (alert 대신 화면에 바로 출력)
+            document.getElementById('pw-result').style.display = "block";
+            document.getElementById('pw-message').textContent = "정답이에요! 아래 비밀번호를 복사하세요.";
+            document.getElementById('temp-pw-display').value = finalTempPassword;
+        
+        } else {
+            // 오답 시 힌트 제공
+            let hint = currentSecurityAnswer;
+            let displayHint = hint.length <= 1 ? "*" : (hint.length === 2 ? hint[0] + "*" : hint[0] + "*".repeat(hint.length - 2) + hint[hint.length - 1]);
+            setError(inputField, `앗..다시 써주세요ㅠㅠ (힌트: ${displayHint})`);
+        }
         
         window.copyPassword = async function() {
             const pw = document.getElementById('temp-pw-display').value;
