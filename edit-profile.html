@@ -144,25 +144,38 @@
         
             const submitBtn = document.getElementById('submit-btn');
             submitBtn.disabled = true;
-            
+        
             const userId = document.getElementById('user-id').value.trim().toLowerCase();
             const nickname = document.getElementById('nickname').value.trim();
             const question = document.getElementById('question').value;
             const answer = document.getElementById('answer').value.trim();
-            
-            if (!/^[a-z0-9]{3,12}$/.test(userId)) {
-                showMessage("아이디는 알파벳(영어) 소문자와 숫자를 사용해서 3글자~12글자로 적어주세요!", false);
-                submitBtn.disabled = false; return;
+            const newEmail = `${userId}@healthykids.com`;
+        
+            // 1. 아이디 중복 체크 (본인 제외)
+            const { data: { user } } = await sb.auth.getUser();
+            const { data: duplicate } = await sb
+                .from('public.users')
+                .select('id')
+                .eq('email', newEmail)
+                .neq('id', user.id) // 본인은 제외
+                .maybeSingle();
+        
+            if (duplicate) {
+                showMessage("이미 사용 중인 아이디입니다!", false);
+                submitBtn.disabled = false;
+                return;
             }
-            if (!nickname) { showMessage("별명을 입력해주세요!", false); submitBtn.disabled = false; return; }
-            if (!/^[가-힣]+$/.test(answer)) { showMessage("정답은 한글로 적어주세요!", false); submitBtn.disabled = false; return; }
         
             try {
-                const { data: { user } } = await sb.auth.getUser();
-                const newEmail = `${userId}@healthykids.com`;
+                // 2. 먼저 이메일을 변경 (Supabase Auth 이메일 변경이 성공해야 DB도 안전함)
+                if (newEmail !== user.email) {
+                    const { error: authError } = await sb.auth.updateUser({ email: newEmail });
+                    if (authError) throw new Error("계정 이메일 변경 실패: " + authError.message);
+                }
         
+                // 3. 그다음 public.users 테이블 업데이트 (이름은 테이블 생성 방식에 맞춰 수정)
                 const { error: dbError } = await sb
-                    .from('public.users')
+                    .from('public.users') 
                     .update({ 
                         nickname: nickname, 
                         security_question: question, 
@@ -172,11 +185,6 @@
                     .eq('id', user.id);
         
                 if (dbError) throw new Error("DB 업데이트 실패: " + dbError.message);
-        
-                if (newEmail !== user.email) {
-                    const { error: authError } = await sb.auth.updateUser({ email: newEmail });
-                    if (authError) throw new Error("계정 업데이트 실패: " + authError.message);
-                }
         
                 showMessage("성공! 다시 로그인해 주세요.", true);
                 setTimeout(async () => {
