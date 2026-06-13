@@ -180,198 +180,126 @@
     <script type="module">
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-        window.supabase = null;
-        let initPromise = null;
-        
-        async function initSupabase() {
-            if (window.supabase) return window.supabase;
-            if (initPromise) return initPromise;
-        
-            initPromise = (async () => {
-                try {
-                    const res = await fetch('/get-config');
-                    const config = await res.json();
-                    window.supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
-                    console.log("Supabase 초기화 완료");
-                    return window.supabase;
-                } catch (error) {
-                    console.error("설정 로드 실패:", error);
-                    initPromise = null; 
-                    return null;
-                }
-            })();
-            return initPromise;
-        }
-        
-        // 페이지 로드 시 바로 초기화 시작
-        initSupabase();
-        
-        // --- UI 및 로직 ---
+        let supabase;
         let currentSecurityAnswer = "";
         let currentUserId = "";
-        
-        const qnaBox = document.getElementById('qna-box');
-        const questionText = document.getElementById('security-question-text');
-        
+
+        async function initSupabase() {
+            if (supabase) return supabase;
+            try {
+                const res = await fetch('/get-config');
+                if (!res.ok) throw new Error("설정 로드 실패");
+                const config = await res.json();
+                
+                if (!config.SUPABASE_URL || !config.SUPABASE_ANON_KEY) {
+                    throw new Error("환경 설정 누락");
+                }
+                supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+                return supabase;
+            } catch (error) {
+                console.error(error);
+                return null;
+            }
+        }
+
         function setError(inputField, message) {
-            const inputWrapper = inputField.parentElement;
-            let errorSpan = inputWrapper.nextElementSibling;
-            if (!errorSpan || !errorSpan.classList.contains('error-text')) {
-                errorSpan = document.createElement('span');
-                errorSpan.className = 'error-text';
-                errorSpan.style.color = "red";
-                errorSpan.style.fontSize = "12px";
-                errorSpan.style.display = "block";
-                errorSpan.style.marginTop = "5px";
-                inputWrapper.after(errorSpan);
-            }
+            clearError(inputField);
+            const errorSpan = document.createElement('span');
+            errorSpan.className = 'error-text';
+            errorSpan.style.color = "#ff4d4d";
+            errorSpan.style.fontSize = "12px";
+            errorSpan.style.display = "block";
+            errorSpan.style.textAlign = "left";
+            errorSpan.style.marginTop = "5px";
             errorSpan.textContent = message;
+            inputField.parentElement.after(errorSpan);
         }
-        
+
         function clearError(inputField) {
-            const inputWrapper = inputField.parentElement;
-            const errorSpan = inputWrapper.nextElementSibling;
-            if (errorSpan && errorSpan.classList.contains('error-text')) {
-                errorSpan.remove();
+            const next = inputField.parentElement.nextElementSibling;
+            if (next && next.classList.contains('error-text')) {
+                next.remove();
             }
         }
-        
+
         window.findId = async () => {
             const sb = await initSupabase();
-            if (!sb) return alert("서버 연결 중입니다. 잠시만 기다려주세요.");
-            
             const inputField = document.getElementById('find-nickname');
-            const nickname = inputField.value.trim();
-            const resultBox = document.getElementById('id-result');
+            if (!sb) return setError(inputField, "서버 연결 오류. 새로고침 후 다시 시도하세요.");
             
+            const nickname = inputField.value.trim();
             clearError(inputField);
-            resultBox.textContent = "";
             if (!nickname) return setError(inputField, "별명을 입력해주세요!");
-        
-            const { data } = await sb
-                .from('public.users')
-                .select('email')
-                .eq('nickname', nickname)
-                .maybeSingle();
+
+            const { data } = await sb.from('public.users').select('email').eq('nickname', nickname).maybeSingle();
             
             if (data) {
-                const foundId = data.email.split('@')[0];
-                resultBox.style.color = "#316ef4"; 
-                resultBox.textContent = `찾았다! 아이디는 '${foundId}'예요!`;
-                document.getElementById('find-pw-id').value = foundId;
+                document.getElementById('id-result').textContent = `찾았다! 아이디는 '${data.email.split('@')[0]}'예요!`;
+                document.getElementById('find-pw-id').value = data.email.split('@')[0];
             } else {
                 setError(inputField, "일치하는 별명을 찾을 수 없어요.");
             }
         };
-        
+
         window.requestSecurityQuestion = async () => {
             const sb = await initSupabase();
-            if (!sb) return alert("서버 연결 중입니다.");
-            
             const inputField = document.getElementById('find-pw-id');
-            const userId = inputField.value.trim();
-            const pwResult = document.getElementById('pw-result');
+            if (!sb) return setError(inputField, "서버 연결 오류.");
             
+            const userId = inputField.value.trim();
             clearError(inputField);
             if (!userId) return setError(inputField, "아이디를 먼저 입력해주세요!");
-        
-            const { data } = await sb
-                .from('public.users')
-                .select('id, security_question, security_answer')
-                .eq('email', `${userId}@healthykids.com`)
-                .maybeSingle();
+
+            const { data } = await sb.from('public.users').select('id, security_question, security_answer').eq('email', `${userId}@healthykids.com`).maybeSingle();
             
             if (data) {
-                currentUserId = data.id; 
+                currentUserId = data.id;
                 currentSecurityAnswer = data.security_answer;
-                questionText.textContent = `질문: ${data.security_question}`;
-                qnaBox.style.display = "block";
+                document.getElementById('security-question-text').textContent = `질문: ${data.security_question}`;
+                document.getElementById('qna-box').style.display = "block";
             } else {
-                pwResult.style.color = "#ff4d4d";
-                pwResult.innerHTML = `해당 아이디를 찾을 수 없어요.<br><br><button onclick="location.href='signup.html'">회원가입</button>`;
-                qnaBox.style.display = "none";
+                setError(inputField, "해당 아이디를 찾을 수 없어요.");
             }
         };
-        
+
         window.verifyAnswer = async () => {
             const sb = await initSupabase();
-            if (!sb) return alert("서버 연결에 실패했습니다.");
-            
             const inputField = document.getElementById('security-answer');
-            const inputAnswer = inputField.value.trim();
-            const resultArea = document.getElementById('pw-result');
-            const pwMessage = document.getElementById('pw-message');
-            const pwInput = document.getElementById('temp-pw-display');
+            if (!sb) return alert("연결 오류");
             
-            clearError(inputField);
-            if (!inputAnswer) return setError(inputField, "답변을 입력해주세요!");
+            const inputAnswer = inputField.value.trim();
             
             if (inputAnswer === currentSecurityAnswer) {
-                // 정규식 규칙에 맞는 임시 비밀번호 생성 (8자 이상)
-                // 대문자, 소문자, 숫자, 기호를 반드시 하나씩 포함
-                const upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-                const lower = "abcdefghijklmnopqrstuvwxyz";
-                const digits = "0123456789";
-                const special = "!@#$%^&*";
+                const finalTempPassword = Math.random().toString(36).slice(-8) + "!A1"; 
+                await sb.from('public.users').update({ is_temp_password: true, temp_password: finalTempPassword }).eq('id', currentUserId);
                 
-                const getRandom = (chars) => chars[Math.floor(Math.random() * chars.length)];
-                
-                // 규칙 강제 포함
-                let tempPassword = [
-                    getRandom(upper),
-                    getRandom(lower),
-                    getRandom(digits),
-                    getRandom(special)
-                ];
-                
-                // 나머지 4자리를 랜덤으로 채움 (총 8자리)
-                const allChars = upper + lower + digits + special;
-                for (let i = 0; i < 4; i++) {
-                    tempPassword.push(getRandom(allChars));
-                }
-                
-                const finalTempPassword = tempPassword.sort(() => Math.random() - 0.5).join('');
-                
-                const { error: dbError } = await sb
-                    .from('public.users')
-                    .update({ 
-                        is_temp_password: true,
-                        temp_password: finalTempPassword, // 규칙을 만족하는 비밀번호 저장
-                        temp_password_usage: 0
-                    })
-                    .eq('id', currentUserId);
-                
-                if (dbError) {
-                    console.error("DB 업데이트 오류:", dbError);
-                    return setError(inputField, "서버 오류가 발생했습니다.");
-                }
-                pwMessage.textContent = "정답이에요! 비밀번호를 복사해서 로그인하세요.";
-                pwInput.value = finalTempPassword;
-                resultArea.style.display = "block";
+                document.getElementById('pw-result').style.display = "block";
+                document.getElementById('pw-message').textContent = "정답이에요! 아래에 있는 비밀번호를 복사해서 로그인하세요.";
+                document.getElementById('temp-pw-display').value = finalTempPassword;
             } else {
                 let hint = currentSecurityAnswer;
-                let displayHint = hint.length <= 1 ? "*" : (hint.length === 2 ? hint[0] + "*" : hint[0] + "*".repeat(hint.length - 2) + hint[hint.length - 1]);
-                setError(inputField, `앗, 다시 생각해봐요! (힌트: ${displayHint})`);
-                resultArea.style.display = "none";
+                let displayHint = "";
+                
+                if (hint.length <= 1) {
+                    displayHint = "*";
+                } else if (hint.length === 2) {
+                    displayHint = hint[0] + "*";
+                } else {
+                    displayHint = hint[0] + "*".repeat(hint.length - 2) + hint[hint.length - 1];
+                }
+                
+                setError(inputField, `앗..다시 써주세요ㅠㅠ (힌트: ${displayHint})`);
             }
         };
-        
+
         window.copyPassword = () => {
-            const pwInput = document.getElementById('temp-pw-display');
-            if (pwInput && pwInput.value) {
-                // .trim()을 사용하여 앞뒤 공백을 제거한 값을 복사합니다.
-                const cleanPassword = pwInput.value.trim();
-                
-                navigator.clipboard.writeText(cleanPassword).then(() => {
-                    const toast = document.getElementById("toast");
-                    toast.textContent = "비밀번호가 복사되었습니다!"; // 토스트 메시지도 명확하게
-                    toast.className = "show";
-                    setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 2500);
-                }).catch(err => {
-                    console.error("복사 실패:", err);
-                    alert("복사에 실패했습니다. 직접 복사해주세요.");
-                });
-            }
+            const pw = document.getElementById('temp-pw-display').value;
+            if(!pw) return;
+            navigator.clipboard.writeText(pw).then(() => {
+                const toast = document.getElementById("toast");
+                toast.className = "show";
+                setTimeout(() => { toast.className = ""; }, 2500);
+            });
         };
     </script>
 </body>
