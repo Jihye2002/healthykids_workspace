@@ -7,15 +7,26 @@
         body { font-family: 'Arial', sans-serif; text-align: center; padding: 30px; background-color: #afe1fc; }
         .box { background: white; padding: 30px; width: 400px; margin: 0 auto; border: 2px solid #2f63c7; text-align: left; }
         h2 { text-align: center; color: #2f63c7; margin-bottom: 20px; }
+        
         .input-group { margin-bottom: 15px; }
         label { display: block; font-size: 14px; font-weight: bold; color: #555; margin-bottom: 5px; }
-        .input-field { width: 100%; padding: 10px; border: 2px solid #ddd; outline: none; box-sizing: border-box; }
-        .input-field:focus { border: 2px solid #000; }
-        .input-field:disabled { background-color: #f0f0f0; color: #888; cursor: not-allowed; }
+        .guide-text { display: block; font-size: 11px; color: #888; margin-bottom: 5px; }
         
-        /* 아이디 밑 비밀번호 배치 레이아웃 */
+        .input-wrapper { 
+            width: 100%; height: 45px; border: 2px solid #ddd; 
+            box-sizing: border-box; display: flex; align-items: center; background: white;
+        }
+        .input-field { width: 100%; height: 100%; border: none !important; outline: none !important; padding: 0 12px; font-size: 14px; background: transparent; }
+        .input-wrapper:has(input:focus), .input-wrapper:has(select:focus) { border: 2px solid #000 !important; }
+        
+        select.input-field { 
+            appearance: none; cursor: pointer;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>');
+            background-repeat: no-repeat; background-position: right 12px center;
+        }
+
         .pw-container { display: flex; gap: 10px; align-items: center; }
-        .btn-pw { white-space: nowrap; background-color: #2f63c7; color: white; padding: 10px; text-decoration: none; font-size: 12px; font-weight: bold; border: none; cursor: pointer; }
+        .btn-pw { white-space: nowrap; background-color: #2f63c7; color: white; padding: 10px 15px; text-decoration: none; font-size: 12px; font-weight: bold; cursor: pointer; }
 
         #status-msg { margin: 15px 0; padding: 15px; display: none; text-align: center; font-weight: bold; }
         .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
@@ -30,34 +41,48 @@
         <div id="status-msg"></div>
 
         <div class="input-group">
-            <label>이름 (고칠 수 없어요!)</label>
-            <input type="text" id="name" class="input-field" disabled>
+            <label>이름</label>
+            <small class="guide-text">고칠 수 없어요!</small>
+            <div class="input-wrapper"><input type="text" id="name" class="input-field" disabled></div>
         </div>
         
         <div class="input-group">
             <label>아이디</label>
-            <input type="text" id="user-id" class="input-field">
+            <small class="guide-text">알파벳 소문자, 숫자를 섞어서 3글자에서 12글자 사이로 써주세요!</small>
+            <div class="input-wrapper"><input type="text" id="user-id" class="input-field"></div>
         </div>
 
         <div class="input-group">
             <label>비밀번호</label>
+            <small class="guide-text">알파벳 대문자, 소문자, 숫자, 기호(!, #, &, * 등등)를 사용하여 8글자나 더 길게 써주세요!</small>
             <div class="pw-container">
-                <input type="password" value="********" class="input-field" disabled>
+                <div class="input-wrapper" style="flex-grow: 1;"><input type="password" value="********" class="input-field" disabled></div>
                 <a href="update-password.html" class="btn-pw">비밀번호를 바꿀래요!</a>
             </div>
         </div>
 
         <div class="input-group">
-            <label>나만의 특별한 별명</label>
-            <input type="text" id="nickname" class="input-field">
+            <label>별명</label>
+            <small class="guide-text">나만의 특별한 별명을 만들어요!</small>
+            <div class="input-wrapper"><input type="text" id="nickname" class="input-field"></div>
         </div>
+
         <div class="input-group">
             <label>비밀번호 찾기 질문</label>
-            <input type="text" id="question" class="input-field">
+            <small class="guide-text">나중에 비밀번호를 잊었을 때 필요하니까 꼭 기억해요!</small>
+            <div class="input-wrapper">
+                <select id="question" class="input-field">
+                    <option value="내가 제일 좋아하는 동물은?">내가 제일 좋아하는 동물은?</option>
+                    <option value="내가 태어난 곳은?">내가 태어난 곳은?</option>
+                    <option value="내가 제일 좋아하는 음식은?">내가 제일 좋아하는 음식은?</option>
+                </select>
+            </div>
         </div>
+
         <div class="input-group">
-            <label>질문에 대한 답 (한글 1글자 이상)</label>
-            <input type="text" id="answer" class="input-field">
+            <label>비밀번호 찾기 답변</label>
+            <small class="guide-text">질문에 대한 답을 자음과 모음을 합해서 한글로 써주세요!</small>
+            <div class="input-wrapper"><input type="text" id="answer" class="input-field"></div>
         </div>
 
         <button class="btn-save" id="submit-btn" onclick="saveProfile()">저장하기</button>
@@ -98,7 +123,7 @@
             
             const userId = document.getElementById('user-id').value.trim().toLowerCase();
             const nickname = document.getElementById('nickname').value.trim();
-            const question = document.getElementById('question').value.trim();
+            const question = document.getElementById('question').value; // select value
             const answer = document.getElementById('answer').value.trim();
             
             if (!/^[a-z0-9]{3,12}$/.test(userId)) {
@@ -137,6 +162,8 @@
             box.className = isSuccess ? 'success' : 'fail';
             box.style.display = 'block';
         }
+
+        
 
         init();
     </script>
