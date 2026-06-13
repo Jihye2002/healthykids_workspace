@@ -93,7 +93,12 @@
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
         let supabase;
 
+        let isInitialized = false; // [추가] 초기화 상태 체크 변수
+
         async function init() {
+            if (isInitialized) return; // [추가] 이미 실행됐다면 바로 종료
+            isInitialized = true;      // [추가] 실행 표시
+        
             const res = await fetch('/get-config');
             const config = await res.json();
             supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
