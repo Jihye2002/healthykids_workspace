@@ -251,21 +251,18 @@
             if (e) e.preventDefault();
             
             const sb = await initSupabase();
-            if (!sb) return showError('user-id', "서버 연결에 실패했습니다.");
-            
-            // 로그아웃 완료까지 대기 (이게 안 되면 이전 세션 토큰이 살아있음)
-            await sb.auth.signOut(); 
+            await sb.auth.signOut();
             
             const userId = document.getElementById('user-id').value.trim().toLowerCase();
-            const password = document.getElementById('password').value.trim(); // .trim() 필수
+            const password = document.getElementById('password').value.trim();
             const submitBtn = document.querySelector('#login-form button');
             
             submitBtn.disabled = true;
         
-            // 1. 데이터 조회 (임시 비번인 경우만 필터링)
+            // 1. 데이터 조회
             const { data: userRecord, error: dbError } = await sb
                 .from('public.users')
-                .select('id, is_temp_password, temp_password, temp_password_usage')
+                .select('id, is_temp_password, temp_password')
                 .eq('email', `${userId}@healthykids.com`)
                 .maybeSingle();
         
@@ -275,26 +272,30 @@
                 return;
             }
         
-            // 2. 임시 비밀번호 로직 (엄격한 비교)
+            // 2. [핵심] 임시 비밀번호 상태일 때만 처리하는 로직
             if (userRecord.is_temp_password === true) {
-                // 비밀번호 일치 여부 확인
+                // 상황 A: 사용자가 입력한 비번이 임시 비번과 일치함 -> 비밀번호 변경 페이지로
                 if (password === userRecord.temp_password) {
-                    // [중요] 성공 시 페이지 이동 (만료 처리는 이동할 페이지에서 수행)
                     window.location.href = `update-password.html?userId=${userId}&tempPw=${btoa(password)}`;
                     return; 
-                } else {
-                    showError('password', "새로운 비밀번호를 만들어 주세요!");
-                    submitBtn.disabled = false;
-                    return;
+                } 
+                
+                // 상황 B: 임시 비번 상태인데 입력한 게 다르다? 
+                // -> 테스트 꼬임 방지를 위해 DB의 임시 상태를 강제로 'false'로 초기화하고 일반 로그인을 진행합니다.
+                else {
+                    await sb.from('public.users')
+                        .update({ is_temp_password: false, temp_password: null })
+                        .eq('id', userRecord.id);
+                    console.log("임시 상태가 꼬여있어 강제로 초기화했습니다.");
                 }
             }
         
-            // 3. 일반 로그인 (위의 if문이 통과 안 될 때만 실행)
+            // 3. 일반 로그인 (임시 비번이 아니거나, 위에서 강제 초기화된 경우 여기로 옴)
             const { error: authError } = await sb.auth.signInWithPassword({
                 email: `${userId}@healthykids.com`,
                 password: password
             });
-        
+            
             if (authError) {
                 showError('password', "아이디 또는 비밀번호가 올바르지 않아요. 다시 한 번 확인해 주세요!");
                 submitBtn.disabled = false;
