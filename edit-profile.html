@@ -161,7 +161,7 @@
                 // [중요] public."public.users"만 확실하게 업데이트하세요. 
                 // 나머지는 DB 트리거가 실시간으로 auth.users로 동기화합니다.
                 const { error: dbError } = await sb
-                    .from('"public.users"')
+                    .from('public.users')
                     .update({ 
                         nickname: document.getElementById('nickname').value.trim(),
                         security_question: document.getElementById('question').value,
