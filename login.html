@@ -225,6 +225,8 @@
             
             // 에러 제거 리스너 등록
             setupRealtimeErrorRemoval();
+
+            document.getElementById('login-form')?.addEventListener('submit', handleLogin);
         });
         
         window.handleLogin = async function(e) {
@@ -260,6 +262,8 @@
                             temp_password_usage: userRecord.temp_password_usage + 1 
                         })
                         .eq('id', userRecord.id);
+
+                    sessionStorage.setItem('temp_pw_to_fill', password);
         
                     // B. 페이지 이동 (비밀번호 변경 페이지로 전달)
                     window.location.href = `update-password.html?userId=${userId}&tempPw=${btoa(password)}`;
@@ -320,25 +324,6 @@
                 togglePassword.textContent = type === 'password' ? '🔒' : '🔓';
             });
         });
-
-        async function checkInitialRedirect() {
-            const sb = await initSupabase();
-            const { data: { session } } = await sb.auth.getSession();
-            
-            if (session) {
-                // 이미 로그인된 상태라면, DB에서 이 사람이 임시 비밀번호 사용 중인지 확인
-                const { data: userData } = await sb
-                    .from('public.users')
-                    .select('is_temp_password')
-                    .eq('id', session.user.id)
-                    .single();
-        
-                // 임시 비밀번호 상태라면 바로 이동!
-                if (userData?.is_temp_password === true) {
-                    window.location.href = "update-password.html";
-                }
-            }
-        }
     </script>
 </body>
 </html>
