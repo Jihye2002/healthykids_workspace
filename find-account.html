@@ -180,11 +180,11 @@
     <script type="module">
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-        let supabase;
+        let supabase = null;
         let currentSecurityAnswer = "";
         let currentUserId = "";
 
-        async function initSupabase() {
+        window.initSupabase = async function() {
             if (supabase) return supabase;
             try {
                 const res = await fetch('/get-config');
@@ -197,11 +197,11 @@
                 supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
                 return supabase;
             } catch (error) {
-                console.error(error);
+                console.error("Supabase 초기화 에러:", error);
                 return null;
             }
-        }
-
+        };
+    
         function setError(inputField, message) {
             clearError(inputField);
             const errorSpan = document.createElement('span');
@@ -214,53 +214,45 @@
             errorSpan.textContent = message;
             inputField.parentElement.after(errorSpan);
         }
-
+    
         function clearError(inputField) {
             const next = inputField.parentElement.nextElementSibling;
             if (next && next.classList.contains('error-text')) {
                 next.remove();
             }
         }
-
-        window.findId = async () => {
-            const sb = await initSupabase();
+    
+        window.findId = async function() {
+            const sb = await window.initSupabase();
             const inputField = document.getElementById('find-nickname');
             if (!sb) return setError(inputField, "서버 연결 오류. 새로고침 후 다시 시도하세요.");
             
             const nickname = inputField.value.trim();
             clearError(inputField);
             if (!nickname) return setError(inputField, "별명을 입력해주세요!");
-
-            const { data } = await sb.from('public.users').select('email').eq('nickname', nickname).maybeSingle();
+    
+            const { data, error } = await sb.from('users').select('email').eq('nickname', nickname).maybeSingle();
             
             if (data) {
                 const foundId = data.email.split('@')[0];
                 const resultBox = document.getElementById('id-result');
-                
-                resultBox.style.color = "#2f63c7"; // 요청하신 색상 적용
+                resultBox.style.color = "#2f63c7";
                 resultBox.textContent = `찾았다! 아이디는 '${foundId}'예요!`;
-                
                 document.getElementById('find-pw-id').value = foundId;
             } else {
                 setError(inputField, "일치하는 별명을 찾을 수 없어요.");
             }
         };
-
-        window.requestSecurityQuestion = async () => {
-            const sb = await initSupabase();
+    
+        window.requestSecurityQuestion = async function() {
+            const sb = await window.initSupabase();
             const inputField = document.getElementById('find-pw-id');
             if (!sb) return setError(inputField, "서버 연결 오류.");
             
             const userId = inputField.value.trim();
             clearError(inputField);
             
-            // 데이터베이스 email 컬럼에 저장된 값이 '아이디@healthykids.com' 형태가 맞는지 확인 필요!
-            const emailToSearch = `${userId}@healthykids.com`;
-            
-            const { data } = await sb.from('public.users')
-                .select('id, security_question, security_answer')
-                .eq('email', emailToSearch) // 이 부분이 정확해야 합니다.
-                .maybeSingle();
+            const { data } = await sb.from('users').select('id, security_question, security_answer').eq('email', `${userId}@healthykids.com`).maybeSingle();
             
             if (data) {
                 currentUserId = data.id;
@@ -271,38 +263,29 @@
                 setError(inputField, "해당 아이디를 찾을 수 없어요.");
             }
         };
-
-        window.verifyAnswer = async () => {
-            const sb = await initSupabase();
+    
+        window.verifyAnswer = async function() {
+            const sb = await window.initSupabase();
             const inputField = document.getElementById('security-answer');
             if (!sb) return alert("연결 오류");
             
             const inputAnswer = inputField.value.trim();
             
             if (inputAnswer === currentSecurityAnswer) {
-                const finalTempPassword = Math.random().toString(36).slice(-8) + "!A1"; 
-                await sb.from('public.users').update({ is_temp_password: true, temp_password: finalTempPassword }).eq('id', currentUserId);
+                const finalTempPassword = Math.random().toString(36).slice(-8) + "!A1";
+                await sb.from('users').update({ is_temp_password: true, temp_password: finalTempPassword }).eq('id', currentUserId);
                 
                 document.getElementById('pw-result').style.display = "block";
-                document.getElementById('pw-message').textContent = "정답이에요! 아래에 있는 비밀번호를 복사해서 로그인하세요.";
+                document.getElementById('pw-message').textContent = "정답이에요! 아래 비밀번호를 복사하세요.";
                 document.getElementById('temp-pw-display').value = finalTempPassword;
             } else {
                 let hint = currentSecurityAnswer;
-                let displayHint = "";
-                
-                if (hint.length <= 1) {
-                    displayHint = "*";
-                } else if (hint.length === 2) {
-                    displayHint = hint[0] + "*";
-                } else {
-                    displayHint = hint[0] + "*".repeat(hint.length - 2) + hint[hint.length - 1];
-                }
-                
+                let displayHint = hint.length <= 1 ? "*" : (hint.length === 2 ? hint[0] + "*" : hint[0] + "*".repeat(hint.length - 2) + hint[hint.length - 1]);
                 setError(inputField, `앗..다시 써주세요ㅠㅠ (힌트: ${displayHint})`);
             }
         };
-
-        window.copyPassword = () => {
+    
+        window.copyPassword = function() {
             const pw = document.getElementById('temp-pw-display').value;
             if(!pw) return;
             navigator.clipboard.writeText(pw).then(() => {
