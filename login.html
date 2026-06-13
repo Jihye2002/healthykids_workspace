@@ -243,36 +243,53 @@
         });
         
         window.handleLogin = async function(e) {
-            e.preventDefault();
-            const sb = await initSupabase(); // 이제 안전하게 호출됨
+            if (e) e.preventDefault();
+            
+            const sb = await initSupabase();
             if (!sb) return showError('user-id', "서버 연결에 실패했습니다.");
             
             const userId = document.getElementById('user-id').value.trim().toLowerCase();
             const password = document.getElementById('password').value.trim();
-            const submitBtn = e.target.querySelector('button');
+            const submitBtn = document.querySelector('#login-form button'); // 더 명확한 선택
+            
             submitBtn.disabled = true;
         
-            // 데이터 조회
-            const { data: userRecord } = await sb
+            // 1. 데이터 조회 (await 반드시 포함)
+            const { data: userRecord, error: dbError } = await sb
                 .from('public.users') 
                 .select('id, is_temp_password, temp_password, temp_password_usage')
                 .eq('email', `${userId}@healthykids.com`)
                 .maybeSingle();
         
+            if (dbError) {
+                console.error("DB 조회 오류:", dbError);
+                showError('user-id', "사용자 정보를 가져올 수 없습니다.");
+                submitBtn.disabled = false;
+                return;
+            }
+        
+            // 2. 임시 비밀번호 체크 로직
             if (userRecord?.is_temp_password === true && password === userRecord.temp_password) {
                 if (userRecord.temp_password_usage < 2) {
+                    // 사용 횟수 증가
                     await sb.from('public.users')
                         .update({ temp_password_usage: userRecord.temp_password_usage + 1 })
                         .eq('id', userRecord.id);
+                    
                     sessionStorage.setItem('temp_pw_to_fill', password);
+                    
+                    // 페이지 이동
+                    console.log("임시 비밀번호 인증 성공, 이동 중...");
                     window.location.href = `update-password.html?userId=${userId}&tempPw=${btoa(password)}`;
-                    return;
+                    return; // 반드시 여기서 종료
                 } else {
                     showError('password', "임시 비밀번호 사용 기간이 끝났습니다.");
-                    submitBtn.disabled = false; return;
+                    submitBtn.disabled = false; 
+                    return;
                 }
             }
         
+            // 3. 일반 로그인 로직
             const { error: authError } = await sb.auth.signInWithPassword({ 
                 email: `${userId}@healthykids.com`, 
                 password: password
