@@ -162,29 +162,36 @@
     <script type="module">
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-        window.supabase = null;
+        // 1. 전역 상태 관리 (싱글톤 패턴)
+        let supabaseInstance = null;
         let initPromise = null;
-        let isInitialized = false; // [중요] 중복 실행 방지 가드
         
         async function initSupabase() {
-            if (window.supabase) return window.supabase;
+            // 이미 생성된 인스턴스가 있다면 즉시 반환
+            if (supabaseInstance) return supabaseInstance;
+            
+            // 초기화 진행 중이라면 그 Promise를 반환 (중복 호출 방지)
             if (initPromise) return initPromise;
             
             initPromise = (async () => {
                 try {
+                    console.log("Config 및 Supabase 초기화 시작 (1회 실행)");
                     const res = await fetch('/get-config');
                     const config = await res.json();
                     
-                    if (!config || !config.SUPABASE_URL || !config.SUPABASE_ANON_KEY) {
+                    if (!config?.SUPABASE_URL || !config?.SUPABASE_ANON_KEY) {
                         throw new Error("설정값이 없습니다.");
                     }
-                    window.supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
-                    return window.supabase;
+                    
+                    supabaseInstance = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+                    return supabaseInstance;
                 } catch (err) {
-                    initPromise = null; 
+                    console.error("초기화 중 오류:", err);
+                    initPromise = null; // 실패 시 재시도 가능하게 초기화
                     return null;
                 }
             })();
+            
             return initPromise;
         }
         
@@ -210,10 +217,7 @@
         
         // [통합] 모든 초기화 로직은 여기서 한 번만 실행됨
         window.addEventListener('DOMContentLoaded', () => {
-            if (isInitialized) return; 
-            isInitialized = true;
-        
-            // 1. 임시 비밀번호 처리
+            // DOM 관련 이벤트 리스너 등록은 여기에서만 수행
             const savedPw = sessionStorage.getItem('temp_pw_to_fill');
             if (savedPw) {
                 const passwordInput = document.getElementById('password');
@@ -221,8 +225,9 @@
                 sessionStorage.removeItem('temp_pw_to_fill');
             }
             
-            // 2. UI 리스너 등록
             setupRealtimeErrorRemoval();
+            
+            // 버튼 이벤트 연결
             document.getElementById('login-form')?.addEventListener('submit', handleLogin);
             document.getElementById('google-btn')?.addEventListener('click', () => socialLogin('google'));
             document.getElementById('kakao-btn')?.addEventListener('click', () => socialLogin('kakao'));
@@ -239,7 +244,7 @@
         
         window.handleLogin = async function(e) {
             e.preventDefault();
-            const sb = await initSupabase();
+            const sb = await initSupabase(); // 이제 안전하게 호출됨
             if (!sb) return showError('user-id', "서버 연결에 실패했습니다.");
             
             const userId = document.getElementById('user-id').value.trim().toLowerCase();
@@ -247,7 +252,7 @@
             const submitBtn = e.target.querySelector('button');
             submitBtn.disabled = true;
         
-            // 조회 로직
+            // 데이터 조회
             const { data: userRecord } = await sb
                 .from('public.users') 
                 .select('id, is_temp_password, temp_password, temp_password_usage')
