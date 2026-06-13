@@ -321,6 +321,7 @@
         
         async function handleNaverLogin(e) {
             if (e) e.preventDefault();
+            const sb = await initSupabase();
             const res = await fetch('/get-config');
             const config = await res.json();
             const callbackUrl = encodeURIComponent("https://healthykids-workspace.onrender.com/callback.html");
