@@ -279,6 +279,9 @@
             const pw = document.getElementById('temp-pw-display').value.trim();
             if(!pw) return;
             
+            // btoa로 암호화한 뒤, 특수문자까지 URL용으로 변환
+            const encodedPw = encodeURIComponent(btoa(pw));
+            
             // 1. 클립보드 복사
             await navigator.clipboard.writeText(pw);
             
