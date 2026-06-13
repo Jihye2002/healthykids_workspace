@@ -228,16 +228,6 @@
             // 2. 임시 비밀번호 체크 로직
             if (userRecord?.is_temp_password === true && password === userRecord.temp_password) {
                 if (userRecord.temp_password_usage < 2) {
-                    const { data: authData, error: authError } = await sb.auth.signInWithPassword({
-                        email: `${userId}@healthykids.com`,
-                        password: password
-                    });
-    
-                    if (authError) {
-                        showError('password', "임시 비밀번호가 올바르지 않거나 만료되었습니다.");
-                        submitBtn.disabled = false;
-                        return;
-                    }
     
                     await sb.from('public.users')
                         .update({ temp_password_usage: userRecord.temp_password_usage + 1 })
