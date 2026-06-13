@@ -228,9 +228,9 @@
             const submitBtn = e.target.querySelector('button');
             submitBtn.disabled = true;
         
-            // 1. 정보 조회 (테이블 이름을 '"public.users"'로 명시)
+            // 1. 정보 조회 (테이블 이름을 'public.users'로 명시)
             const { data: userRecord } = await sb
-                .from('"public.users"') 
+                .from('public.users') 
                 .select('id, is_temp_password, temp_password, temp_password_usage')
                 .eq('email', `${userId}@healthykids.com`)
                 .maybeSingle();
@@ -246,7 +246,7 @@
                     });
         
                     // B. 횟수 기록 및 상태 업데이트
-                    await sb.from('"public.users"')
+                    await sb.from('public.users')
                         .update({ 
                             temp_password_usage: userRecord.temp_password_usage + 1,
                             is_temp_password: false // 이제 임시 비번 상태 종료
