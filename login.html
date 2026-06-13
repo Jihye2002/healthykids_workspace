@@ -256,12 +256,11 @@
                 .select('id, is_temp_password, temp_password, temp_password_usage')
                 .eq('email', `${userId}@healthykids.com`)
                 .maybeSingle();
+
+            console.log("조회된 사용자 레코드:", userRecord);
         
             // 2. 임시 비밀번호 체크 로직
             if (userRecord?.is_temp_password === true && password === userRecord.temp_password) {
-
-                console.log("임시 비밀번호 일치! 이동 시작...");
-                
                 if (userRecord.temp_password_usage < 2) {
                     
                     // A. 사용 횟수 증가 (공식처럼 사용 중인 .from 업데이트 사용)
