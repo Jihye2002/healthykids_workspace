@@ -213,6 +213,23 @@
                 });
             });
         };
+
+        window.addEventListener('DOMContentLoaded', () => {
+            // sessionStorage에서 저장된 임시 비밀번호 가져오기
+            const savedPw = sessionStorage.getItem('temp_pw_to_fill');
+            
+            if (savedPw) {
+                const passwordInput = document.getElementById('password');
+                if (passwordInput) {
+                    passwordInput.value = savedPw;
+                }
+                // [중요] 한 번 자동 입력된 후에는 보안을 위해 즉시 삭제
+                sessionStorage.removeItem('temp_pw_to_fill');
+            }
+            
+            // 에러 제거 리스너 등록
+            setupRealtimeErrorRemoval();
+        });
         
         window.handleLogin = async function(e) {
             e.preventDefault();
@@ -269,11 +286,6 @@
                 window.location.href = 'index.html';
             }
         };
-    
-        // [추가됨] 페이지 로드 시 호출
-        document.addEventListener('DOMContentLoaded', () => {
-            window.setupRealtimeErrorRemoval();
-        });
         
         async function socialLogin(provider) {
             const sb = await initSupabase();
