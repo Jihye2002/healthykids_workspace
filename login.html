@@ -219,7 +219,7 @@
             
             const sb = await initSupabase();
             if (!sb) {
-                showError('user-id', "서버 연결에 실패했습니다. 다시 시도해주세요.");
+                showError('user-id', "서버 연결에 실패했습니다.");
                 return;
             }
         
@@ -228,7 +228,7 @@
             const submitBtn = e.target.querySelector('button');
             submitBtn.disabled = true;
         
-            // 1. 정보 조회 (테이블 이름을 'public.users'로 명시)
+            // 1. 정보 조회
             const { data: userRecord } = await sb
                 .from('public.users') 
                 .select('id, is_temp_password, temp_password, temp_password_usage')
@@ -239,30 +239,16 @@
             if (userRecord?.is_temp_password === true && password === userRecord.temp_password) {
                 if (userRecord.temp_password_usage < 2) {
                     
-                    // A. [핵심] 임시 비번을 실제 비번으로 강제 업데이트 (RPC 호출)
-                    await sb.rpc('force_update_password', { 
-                        user_id: userRecord.id, 
-                        new_password: password 
-                    });
-        
-                    // B. 횟수 기록 및 상태 업데이트
+                    // A. 사용 횟수 증가 (공식처럼 사용 중인 .from 업데이트 사용)
                     await sb.from('public.users')
                         .update({ 
-                            temp_password_usage: userRecord.temp_password_usage + 1,
-                            is_temp_password: false // 이제 임시 비번 상태 종료
+                            temp_password_usage: userRecord.temp_password_usage + 1 
                         })
                         .eq('id', userRecord.id);
         
-                    // C. 이제 진짜 비밀번호와 일치하므로 즉시 로그인 시도
-                    const { error: authError } = await sb.auth.signInWithPassword({
-                        email: `${userId}@healthykids.com`,
-                        password: password
-                    });
-        
-                    if (!authError) {
-                        window.location.href = 'update-password.html';
-                        return;
-                    }
+                    // B. 페이지 이동 (비밀번호 변경 페이지로 전달)
+                    window.location.href = `update-password.html?userId=${userId}&tempPw=${btoa(password)}`;
+                    return; // 로그인 로직 타지 않고 종료
                 } else {
                     showError('password', "임시 비밀번호 사용 횟수(2회)를 초과했습니다.");
                     submitBtn.disabled = false;
@@ -270,7 +256,7 @@
                 }
             }
         
-            // 3. 일반 로그인 시도 (또는 임시 비번 로직 이후 자동 로그인 실패 시)
+            // 3. 일반 로그인 시도
             const { error: authError } = await sb.auth.signInWithPassword({ 
                 email: `${userId}@healthykids.com`, 
                 password: password
