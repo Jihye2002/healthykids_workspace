@@ -36,6 +36,10 @@
         
         button { width: 100%; background-color: #2f63c7; color: white; border: none; padding: 12px; margin-top: 30px; cursor: pointer; font-weight: bold; text-align: center; }
 
+        #id-result {
+            color: #2f63c7;
+        }
+        
         #pw-result {
             margin-top: 15px;
             font-weight: bold;
@@ -180,25 +184,19 @@
     <script type="module">
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
     
-        let supabaseInstance = null;
-        let initPromise = null;
+        let supabase = null;
         let currentSecurityAnswer = "";
         let currentUserId = "";
     
         // Supabase 초기화
-        window.initSupabase = async function() {
-            if (supabaseInstance) return supabaseInstance;
-            if (initPromise) return initPromise;
-            initPromise = (async () => {
-                const res = await fetch('/get-config');
-                const config = await res.json();
-                supabaseInstance = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
-                return supabaseInstance;
-            })();
-            return initPromise;
-        };
+        async function initSupabase() {
+            if (supabase) return supabase;
+            const res = await fetch('/get-config');
+            const config = await res.json();
+            supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+            return supabase;
+        }
     
-        // 에러 표시 도우미
         function setError(inputField, message) {
             clearError(inputField);
             const errorSpan = document.createElement('span');
@@ -216,27 +214,28 @@
             if (next && next.classList.contains('error-text')) next.remove();
         }
     
-        // [함수들을 window에 직접 할당하여 HTML에서 호출 가능하게 함]
         window.findId = async function() {
-            const sb = await window.initSupabase();
+            const sb = await initSupabase();
             const inputField = document.getElementById('find-nickname');
             const nickname = inputField.value.trim();
             if (!nickname) return setError(inputField, "별명을 입력해주세요!");
     
-            const { data, error } = await sb.from('public.users').select('email').eq('nickname', nickname).maybeSingle();
+            const { data } = await sb.from('public.users').select('email').eq('nickname', nickname).maybeSingle();
             if (data) {
-                document.getElementById('id-result').textContent = `찾았다! 아이디는 '${data.email.split('@')[0]}'예요!`;
-                document.getElementById('find-pw-id').value = data.email.split('@')[0];
+                const foundId = data.email.split('@')[0];
+                document.getElementById('id-result').textContent = `찾았다! 아이디는 '${foundId}'예요!`;
+                document.getElementById('find-pw-id').value = foundId;
             } else {
                 setError(inputField, "일치하는 별명을 찾을 수 없어요.");
             }
         };
     
         window.requestSecurityQuestion = async function() {
-            const sb = await window.initSupabase();
+            const sb = await initSupabase();
             const inputField = document.getElementById('find-pw-id');
             const userId = inputField.value.trim();
             const { data } = await sb.from('public.users').select('id, security_question, security_answer').eq('email', `${userId}@healthykids.com`).maybeSingle();
+            
             if (data) {
                 currentUserId = data.id;
                 currentSecurityAnswer = data.security_answer;
@@ -248,17 +247,26 @@
         };
     
         window.verifyAnswer = async function() {
-            const sb = await window.initSupabase();
+            const sb = await initSupabase();
             const inputField = document.getElementById('security-answer');
             const inputAnswer = inputField.value.trim();
             
             if (inputAnswer === currentSecurityAnswer) {
                 const finalTempPassword = Math.random().toString(36).slice(-8) + "!A1";
-                const { error } = await sb.from('public.users')
-                    .update({ is_temp_password: true, temp_password: finalTempPassword, temp_password_usage: 0 })
-                    .eq('id', currentUserId);
+                
+                // [핵심] 테이블 직접 업데이트 대신 작성해두신 RPC 함수 사용 (더 안전함)
+                const { error } = await sb.rpc('force_update_password', {
+                    target_id: currentUserId,
+                    new_password: finalTempPassword,
+                    new_usage: 0,
+                    new_is_temp: true
+                });
     
-                if (error) return setError(inputField, "서버 오류 발생");
+                if (error) {
+                    console.error("DB 업데이트 오류:", error);
+                    return setError(inputField, "서버 통신 오류가 발생했습니다.");
+                }
+    
                 document.getElementById('pw-result').style.display = "block";
                 document.getElementById('pw-message').textContent = "정답이에요! 아래 비밀번호를 복사하세요.";
                 document.getElementById('temp-pw-display').value = finalTempPassword;
@@ -276,6 +284,6 @@
             setTimeout(() => { toast.className = ""; }, 2500);
             setTimeout(() => { window.location.href = "login.html"; }, 1000);
         };
-   </script>
+    </script>
 </body>
 </html>
