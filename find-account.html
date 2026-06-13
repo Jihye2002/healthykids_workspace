@@ -254,22 +254,22 @@
             if (inputAnswer === currentSecurityAnswer) {
                 const finalTempPassword = Math.random().toString(36).slice(-8) + "!A1";
                 
-                // [핵심] 테이블 직접 업데이트 대신 작성해두신 RPC 함수 사용 (더 안전함)
                 const { error } = await sb.rpc('force_update_password', {
                     target_id: currentUserId,
                     new_password: finalTempPassword,
                     new_usage: 0,
                     new_is_temp: true
                 });
-    
+        
                 if (error) {
                     console.error("DB 업데이트 오류:", error);
                     return setError(inputField, "서버 통신 오류가 발생했습니다.");
                 }
-    
+        
                 document.getElementById('pw-result').style.display = "block";
                 document.getElementById('pw-message').textContent = "정답이에요! 아래 비밀번호를 복사하세요.";
                 document.getElementById('temp-pw-display').value = finalTempPassword;
+        
             } else {
                 setError(inputField, "앗..다시 써주세요ㅠㅠ");
             }
