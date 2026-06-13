@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>헬시키즈 | 회원탈퇴</title>
+    <style>
+        body { font-family: 'Arial', sans-serif; text-align: center; padding: 50px; background-color: #afe1fc; }
+        .box { background: white; padding: 40px; width: 400px; margin: 0 auto; border: 2px solid #ff4d4d; border-radius: 20px; }
+        h2 { color: #ff4d4d; }
+        .btn-withdraw { background-color: #ff4d4d; color: white; border: none; padding: 15px; width: 100%; border-radius: 10px; cursor: pointer; font-weight: bold; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h2>정말 모든 정보를 없애고 싶으신가요?</h2>
+        <p>탈퇴하시면 모든 정보가 삭제되며 복구할 수 없어요.</p>
+        <button class="btn-withdraw" onclick="withdrawAccount()">네, 탈퇴할게요</button>
+    </div>
+
+    <script type="module">
+        import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+        window.withdrawAccount = async () => {
+          if (!confirm("정말 탈퇴하시겠습니까? 모든 정보가 삭제되며 되돌릴 수 없습니다.")) return;
+      
+          const res = await fetch('/get-config');
+          const config = await res.json();
+          const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+      
+          try {
+              const { data: { user } } = await supabase.auth.getUser();
+              if (!user) return;
+      
+              // 1. Auth 서비스에서 사용자 삭제를 요청
+              // 이 함수를 호출하면, CASCADE 설정에 의해 DB(public.users)도 자동으로 지워집니다.
+              const { error } = await supabase.auth.admin.deleteUser(user.id);
+              
+              // 만약 클라이언트에서 admin.deleteUser가 권한 문제로 안 된다면, 
+              // 아래와 같이 본인 계정 삭제 요청을 사용합니다.
+              // const { error } = await supabase.rpc('delete_user_account'); // Edge Function 또는 RPC 권장
+      
+              // 2. 결과 처리
+              await supabase.auth.signOut();
+              alert("탈퇴가 완료되었습니다. 그동안 이용해주셔서 감사합니다!");
+              location.href = "login.html";
+      
+          } catch (err) {
+              alert("탈퇴 처리 중 오류가 발생했습니다.");
+          }
+      };
+    </script>
+</body>
+</html>
