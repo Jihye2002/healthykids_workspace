@@ -122,11 +122,18 @@
         
             const { data: { user } } = await sb.auth.getUser();
             if (!user) return;
-            
-            const { data, error } = await sb.from('public.users')
+        
+            // [중요] 테이블 이름을 정확하게 '"public.users"'로 수정해야 합니다.
+            const { data, error } = await sb
+                .from('public.users') 
                 .select('name, email, nickname, security_question, security_answer')
                 .eq('id', user.id)
                 .single();
+        
+            if (error) {
+                console.error("데이터 로드 실패:", error);
+                return;
+            }
         
             if (data) {
                 document.getElementById('name').value = data.name || "";
