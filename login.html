@@ -167,18 +167,15 @@
         let initPromise = null;
         
         window.initSupabase = async function() {
-            // 1. 메모리에 인스턴스가 있다면 즉시 반환
             if (window.supabaseInstance) return window.supabaseInstance;
         
-            // 2. 이미 초기화된 적이 있다면 (세션 스토리지 확인)
+            // 이미 초기화된 적이 있는지 확인 (중복 fetch 방지)
             if (sessionStorage.getItem('is_sb_initialized') === 'true') {
-                // 이미 생성된 설정값으로 재구성
                 const config = JSON.parse(sessionStorage.getItem('sb_config'));
                 window.supabaseInstance = createClient(config.url, config.key);
                 return window.supabaseInstance;
             }
         
-            // 3. 최초 실행 (진행 중인 Promise가 있다면 반환)
             if (window.initPromise) return window.initPromise;
         
             window.initPromise = (async () => {
@@ -186,7 +183,7 @@
                     const res = await fetch('/get-config');
                     const config = await res.json();
                     
-                    // 결과 저장
+                    // 캐시 저장
                     sessionStorage.setItem('sb_config', JSON.stringify({
                         url: config.SUPABASE_URL,
                         key: config.SUPABASE_ANON_KEY
@@ -196,6 +193,7 @@
                     window.supabaseInstance = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
                     return window.supabaseInstance;
                 } catch (err) {
+                    console.error("초기화 실패:", err);
                     return null;
                 }
             })();
