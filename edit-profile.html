@@ -146,47 +146,35 @@
             submitBtn.disabled = true;
         
             const userId = document.getElementById('user-id').value.trim().toLowerCase();
-            const nickname = document.getElementById('nickname').value.trim();
-            const question = document.getElementById('question').value;
-            const answer = document.getElementById('answer').value.trim();
             const newEmail = `${userId}@healthykids.com`;
         
-            // 1. 아이디 중복 체크 (본인 제외)
-            const { data: { user } } = await sb.auth.getUser();
-            const { data: duplicate } = await sb
-                .from('public.users')
-                .select('id')
-                .eq('email', newEmail)
-                .neq('id', user.id) // 본인은 제외
-                .maybeSingle();
-        
-            if (duplicate) {
-                showMessage("이미 사용 중인 아이디입니다!", false);
-                submitBtn.disabled = false;
-                return;
-            }
-        
             try {
-                // 2. 먼저 이메일을 변경 (Supabase Auth 이메일 변경이 성공해야 DB도 안전함)
-                if (newEmail !== user.email) {
-                    const { error: authError } = await sb.auth.updateUser({ email: newEmail });
-                    if (authError) throw new Error("계정 이메일 변경 실패: " + authError.message);
-                }
+                const { data: { user } } = await sb.auth.getUser();
         
-                // 3. 그다음 public.users 테이블 업데이트 (이름은 테이블 생성 방식에 맞춰 수정)
+                // [중요] public."public.users"만 확실하게 업데이트하세요. 
+                // 나머지는 DB 트리거가 실시간으로 auth.users로 동기화합니다.
                 const { error: dbError } = await sb
-                    .from('public.users') 
+                    .from('"public.users"')
                     .update({ 
-                        nickname: nickname, 
-                        security_question: question, 
-                        security_answer: answer, 
-                        email: newEmail 
+                        nickname: document.getElementById('nickname').value.trim(),
+                        security_question: document.getElementById('question').value,
+                        security_answer: document.getElementById('answer').value.trim(),
+                        email: newEmail // 이메일이 바뀌면 트리거가 auth.users의 이메일도 바꿔줌
                     })
                     .eq('id', user.id);
         
-                if (dbError) throw new Error("DB 업데이트 실패: " + dbError.message);
+                if (dbError) throw new Error("업데이트 실패: " + dbError.message);
         
-                showMessage("성공! 나중에 다시 로그인해 주세요.", true);
+                // 만약 이메일(아이디)이 변경되었다면, 세션 갱신을 위해 auth 시스템에도 알려줌
+                if (newEmail !== user.email) {
+                    await sb.auth.updateUser({ email: newEmail });
+                }
+        
+                showMessage("성공! 다시 로그인해 주세요.", true);
+                setTimeout(async () => {
+                    await sb.auth.signOut();
+                    location.href = "login.html";
+                }, 2000);
         
             } catch (err) {
                 console.error(err);
