@@ -175,17 +175,13 @@
                     const res = await fetch('/get-config');
                     const config = await res.json();
                     
-                    console.log("Config 응답 결과:", config); // <-- 이게 핵심입니다!
-                    
                     if (!config || !config.SUPABASE_URL || !config.SUPABASE_ANON_KEY) {
                         throw new Error("설정값이 서버에서 전달되지 않았습니다. config 객체를 확인하세요.");
                     }
         
                     window.supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
-                    console.log("Supabase 클라이언트 생성 성공!");
                     return window.supabase;
                 } catch (err) {
-                    console.error("초기화 실패 상세 에러:", err);
                     initPromise = null; 
                     return null;
                 }
@@ -233,11 +229,8 @@
         
         window.handleLogin = async function(e) {
             e.preventDefault();
-
-            console.log("handleLogin 함수가 실행되었습니다!");
             
             const sb = await initSupabase();
-            console.log("Supabase 초기화 결과:", sb);
             
             if (!sb) {
                 showError('user-id', "서버 연결에 실패했습니다.");
@@ -246,7 +239,6 @@
         
             const userId = document.getElementById('user-id').value.trim().toLowerCase();
             const password = document.getElementById('password').value.trim();
-            console.log("입력된 ID/PW:", userId, password);
             const submitBtn = e.target.querySelector('button');
             submitBtn.disabled = true;
         
@@ -257,7 +249,6 @@
                 .eq('email', `${userId}@healthykids.com`)
                 .maybeSingle();
 
-            console.log("조회된 사용자 레코드:", userRecord);
         
             // 2. 임시 비밀번호 체크 로직
             if (userRecord?.is_temp_password === true && password === userRecord.temp_password) {
