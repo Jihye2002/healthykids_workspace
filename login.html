@@ -193,7 +193,17 @@
             }
         }
     
-        // 함수 시작 부분 (여기가 누락되어 있었음)
+        // [추가됨] 에러 메시지 실시간 삭제 함수
+        window.setupRealtimeErrorRemoval = function() {
+            document.querySelectorAll('.input-field').forEach(input => {
+                input.addEventListener('input', () => {
+                    input.parentElement.classList.remove('error-border');
+                    const errorDiv = document.getElementById(input.id + '-error');
+                    if (errorDiv) errorDiv.style.display = 'none';
+                });
+            });
+        };
+        
         window.handleLogin = async function(e) {
             e.preventDefault();
             
@@ -215,7 +225,7 @@
                 .eq('email', `${userId}@healthykids.com`)
                 .maybeSingle();
     
-            // 2. 임시 비밀번호 체크 로직 (함수 내부로 이동)
+            // 2. 임시 비밀번호 체크 로직
             if (userRecord?.is_temp_password === true && password === userRecord.temp_password) {
                 if (userRecord.temp_password_usage < 2) {
                     const { data: authData, error: authError } = await sb.auth.signInWithPassword({
@@ -255,6 +265,11 @@
                 window.location.href = 'index.html';
             }
         };
+    
+        // [추가됨] 페이지 로드 시 호출
+        document.addEventListener('DOMContentLoaded', () => {
+            window.setupRealtimeErrorRemoval();
+        });
         
         async function socialLogin(provider) {
             const sb = await initSupabase();
