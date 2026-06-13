@@ -225,8 +225,13 @@
             // DOM 관련 이벤트 리스너 등록은 여기에서만 수행
             const savedPw = sessionStorage.getItem('temp_pw_to_fill');
             if (savedPw) {
-                const passwordInput = document.getElementById('password');
-                if (passwordInput) passwordInput.value = savedPw;
+                setTimeout(() => {
+                    const passwordInput = document.getElementById('password');
+                    if (passwordInput) {
+                        passwordInput.value = savedPw;
+                    }
+                }, 100); // 0.1초 후에 입력
+
                 sessionStorage.removeItem('temp_pw_to_fill');
             }
             
