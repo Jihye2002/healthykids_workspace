@@ -285,9 +285,27 @@
             }
         };
     
-        window.copyPassword = function() {
+        // 기존 PATCH 요청 코드를 삭제하고 아래 RPC 호출 코드로 변경하세요
+        window.copyPassword = async function() {
             const pw = document.getElementById('temp-pw-display').value;
             if(!pw) return;
+        
+            const sb = await window.initSupabase();
+            if (!sb) return;
+        
+            // 1. 상태 업데이트 (RPC 호출)
+            const { error } = await sb.rpc('update_temp_password_status', { 
+                user_uuid: currentUserId, 
+                new_usage: 0, 
+                is_temp: true 
+            });
+        
+            if (error) {
+                console.error("업데이트 실패:", error);
+                return;
+            }
+        
+            // 2. 클립보드 복사
             navigator.clipboard.writeText(pw).then(() => {
                 const toast = document.getElementById("toast");
                 toast.className = "show";
