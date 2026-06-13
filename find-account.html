@@ -305,26 +305,19 @@
         
             sessionStorage.setItem('temp_pw_to_fill', pw);
         
-            const sb = await window.initSupabase();
-            if (!sb) return;
-        
-            const { error } = await sb.rpc('force_update_password', { 
-                target_id: currentUserId, 
-                new_password: pw,          
-                new_usage: 0,              
-                new_is_temp: true         
-            });
-        
-            if (error) {
-                alert("비밀번호 상태 업데이트에 실패했습니다.");
-                return;
-            }
-        
-            navigator.clipboard.writeText(pw).then(() => {
+            try {
+                await navigator.clipboard.writeText(pw);
                 const toast = document.getElementById("toast");
                 toast.className = "show";
                 setTimeout(() => { toast.className = ""; }, 2500);
-            });
+                
+                // 추가: 복사 후 바로 로그인 페이지로 이동 유도
+                setTimeout(() => {
+                    window.location.href = "login.html";
+                }, 1000);
+            } catch (err) {
+                alert("복사에 실패했습니다.");
+            }
         };
     </script>
 </body>
