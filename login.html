@@ -163,7 +163,8 @@
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
         window.supabase = null;
-        let initPromise = null; 
+        let initPromise = null;
+        let isInitialized = false; // [중요] 중복 실행 방지 가드
         
         async function initSupabase() {
             if (window.supabase) return window.supabase;
@@ -171,14 +172,12 @@
             
             initPromise = (async () => {
                 try {
-                    console.log("Fetching /get-config...");
                     const res = await fetch('/get-config');
                     const config = await res.json();
                     
                     if (!config || !config.SUPABASE_URL || !config.SUPABASE_ANON_KEY) {
-                        throw new Error("설정값이 서버에서 전달되지 않았습니다. config 객체를 확인하세요.");
+                        throw new Error("설정값이 없습니다.");
                     }
-        
                     window.supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
                     return window.supabase;
                 } catch (err) {
@@ -198,8 +197,7 @@
                 errorDiv.style.display = 'block';
             }
         }
-    
-        // [추가됨] 에러 메시지 실시간 삭제 함수
+        
         window.setupRealtimeErrorRemoval = function() {
             document.querySelectorAll('.input-field').forEach(input => {
                 input.addEventListener('input', () => {
@@ -209,107 +207,21 @@
                 });
             });
         };
-
+        
+        // [통합] 모든 초기화 로직은 여기서 한 번만 실행됨
         window.addEventListener('DOMContentLoaded', () => {
-            // sessionStorage에서 저장된 임시 비밀번호 가져오기
+            if (isInitialized) return; 
+            isInitialized = true;
+        
+            // 1. 임시 비밀번호 처리
             const savedPw = sessionStorage.getItem('temp_pw_to_fill');
-            
             if (savedPw) {
                 const passwordInput = document.getElementById('password');
-                if (passwordInput) {
-                    passwordInput.value = savedPw;
-                }
-                // [중요] 한 번 자동 입력된 후에는 보안을 위해 즉시 삭제
+                if (passwordInput) passwordInput.value = savedPw;
                 sessionStorage.removeItem('temp_pw_to_fill');
             }
             
-            // 에러 제거 리스너 등록
-            setupRealtimeErrorRemoval();
-
-            document.getElementById('login-form')?.addEventListener('submit', handleLogin);
-        });
-        
-        window.handleLogin = async function(e) {
-            e.preventDefault();
-            
-            const sb = await initSupabase();
-            
-            if (!sb) {
-                showError('user-id', "서버 연결에 실패했습니다.");
-                return;
-            }
-        
-            const userId = document.getElementById('user-id').value.trim().toLowerCase();
-            const password = document.getElementById('password').value.trim();
-            const submitBtn = e.target.querySelector('button');
-            submitBtn.disabled = true;
-        
-            // 1. 정보 조회
-            const { data: userRecord } = await sb
-                .from('public.users') 
-                .select('id, is_temp_password, temp_password, temp_password_usage')
-                .eq('email', `${userId}@healthykids.com`)
-                .maybeSingle();
-
-        
-            // 2. 임시 비밀번호 체크 로직
-            if (userRecord?.is_temp_password === true && password === userRecord.temp_password) {
-                if (userRecord.temp_password_usage < 2) {
-                    
-                    // A. 사용 횟수 증가 (공식처럼 사용 중인 .from 업데이트 사용)
-                    await sb.from('public.users')
-                        .update({ 
-                            temp_password_usage: userRecord.temp_password_usage + 1 
-                        })
-                        .eq('id', userRecord.id);
-
-                    sessionStorage.setItem('temp_pw_to_fill', password);
-        
-                    // B. 페이지 이동 (비밀번호 변경 페이지로 전달)
-                    window.location.href = `update-password.html?userId=${userId}&tempPw=${btoa(password)}`;
-                    return;
-                } else {
-                    showError('password', "임시 비밀번호 사용 기간이 끝난 것 같아요. '아이디와 비밀번호를 잊어버렸어요!'를 눌러주세요.");
-                    submitBtn.disabled = false;
-                    return;
-                }
-            }
-        
-            // 3. 일반 로그인 시도
-            const { error: authError } = await sb.auth.signInWithPassword({ 
-                email: `${userId}@healthykids.com`, 
-                password: password
-            });
-            
-            if (authError) {
-                showError('password', "아이디 또는 비밀번호가 올바르지 않은 것 같아요. 한 번 더 확인해 주세요!");
-                submitBtn.disabled = false;
-            } else {
-                window.location.href = 'index.html';
-            }
-        };
-        
-        async function socialLogin(provider) {
-            const sb = await initSupabase();
-            if (!sb) return;
-            const { error } = await sb.auth.signInWithOAuth({
-                provider: provider,
-                options: { redirectTo: 'https://healthykids-workspace.onrender.com/index.html' }
-            });
-            if (error) console.error("소셜 로그인 오류:", error.message);
-        }
-        
-        async function handleNaverLogin(e) {
-            if (e) e.preventDefault();
-            try {
-                const res = await fetch('/get-config');
-                const config = await res.json();
-                const callbackUrl = encodeURIComponent("https://healthykids-workspace.onrender.com/callback.html");
-                window.location.href = `https://nid.naver.com/oauth2.0/authorize?response_type=token&client_id=${config.NAVER_CLIENT_ID}&redirect_uri=${callbackUrl}&state=RANDOM`;
-            } catch (err) { console.error("네이버 로그인 오류:", err); }
-        }
-        
-        document.addEventListener('DOMContentLoaded', async () => {
+            // 2. UI 리스너 등록
             setupRealtimeErrorRemoval();
             document.getElementById('login-form')?.addEventListener('submit', handleLogin);
             document.getElementById('google-btn')?.addEventListener('click', () => socialLogin('google'));
@@ -324,6 +236,67 @@
                 togglePassword.textContent = type === 'password' ? '🔒' : '🔓';
             });
         });
+        
+        window.handleLogin = async function(e) {
+            e.preventDefault();
+            const sb = await initSupabase();
+            if (!sb) return showError('user-id', "서버 연결에 실패했습니다.");
+            
+            const userId = document.getElementById('user-id').value.trim().toLowerCase();
+            const password = document.getElementById('password').value.trim();
+            const submitBtn = e.target.querySelector('button');
+            submitBtn.disabled = true;
+        
+            // 조회 로직
+            const { data: userRecord } = await sb
+                .from('public.users') 
+                .select('id, is_temp_password, temp_password, temp_password_usage')
+                .eq('email', `${userId}@healthykids.com`)
+                .maybeSingle();
+        
+            if (userRecord?.is_temp_password === true && password === userRecord.temp_password) {
+                if (userRecord.temp_password_usage < 2) {
+                    await sb.from('public.users')
+                        .update({ temp_password_usage: userRecord.temp_password_usage + 1 })
+                        .eq('id', userRecord.id);
+                    sessionStorage.setItem('temp_pw_to_fill', password);
+                    window.location.href = `update-password.html?userId=${userId}&tempPw=${btoa(password)}`;
+                    return;
+                } else {
+                    showError('password', "임시 비밀번호 사용 기간이 끝났습니다.");
+                    submitBtn.disabled = false; return;
+                }
+            }
+        
+            const { error: authError } = await sb.auth.signInWithPassword({ 
+                email: `${userId}@healthykids.com`, 
+                password: password
+            });
+            
+            if (authError) {
+                showError('password', "아이디 또는 비밀번호가 올바르지 않습니다.");
+                submitBtn.disabled = false;
+            } else {
+                window.location.href = 'index.html';
+            }
+        };
+        
+        async function socialLogin(provider) {
+            const sb = await initSupabase();
+            if (!sb) return;
+            await sb.auth.signInWithOAuth({
+                provider: provider,
+                options: { redirectTo: 'https://healthykids-workspace.onrender.com/index.html' }
+            });
+        }
+        
+        async function handleNaverLogin(e) {
+            if (e) e.preventDefault();
+            const res = await fetch('/get-config');
+            const config = await res.json();
+            const callbackUrl = encodeURIComponent("https://healthykids-workspace.onrender.com/callback.html");
+            window.location.href = `https://nid.naver.com/oauth2.0/authorize?response_type=token&client_id=${config.NAVER_CLIENT_ID}&redirect_uri=${callbackUrl}&state=RANDOM`;
+        }
     </script>
 </body>
 </html>
