@@ -168,14 +168,24 @@
         async function initSupabase() {
             if (window.supabase) return window.supabase;
             if (initPromise) return initPromise;
+            
             initPromise = (async () => {
                 try {
+                    console.log("Fetching /get-config...");
                     const res = await fetch('/get-config');
                     const config = await res.json();
+                    
+                    console.log("Config 응답 결과:", config); // <-- 이게 핵심입니다!
+                    
+                    if (!config || !config.SUPABASE_URL || !config.SUPABASE_ANON_KEY) {
+                        throw new Error("설정값이 서버에서 전달되지 않았습니다. config 객체를 확인하세요.");
+                    }
+        
                     window.supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+                    console.log("Supabase 클라이언트 생성 성공!");
                     return window.supabase;
                 } catch (err) {
-                    console.error("초기화 실패:", err);
+                    console.error("초기화 실패 상세 에러:", err);
                     initPromise = null; 
                     return null;
                 }
