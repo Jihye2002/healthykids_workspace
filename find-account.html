@@ -273,7 +273,7 @@
             
             if (inputAnswer === currentSecurityAnswer) {
                 const finalTempPassword = Math.random().toString(36).slice(-8) + "!A1";
-                await sb.from('users').update({ is_temp_password: true, temp_password: finalTempPassword }).eq('id', currentUserId);
+                await sb.from('public.users').update({ is_temp_password: true, temp_password: finalTempPassword }).eq('id', currentUserId);
                 
                 document.getElementById('pw-result').style.display = "block";
                 document.getElementById('pw-message').textContent = "정답이에요! 아래 비밀번호를 복사하세요.";
