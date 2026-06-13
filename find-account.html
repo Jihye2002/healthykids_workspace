@@ -234,8 +234,13 @@
             const { data } = await sb.from('public.users').select('email').eq('nickname', nickname).maybeSingle();
             
             if (data) {
-                document.getElementById('id-result').textContent = `찾았다! 아이디는 '${data.email.split('@')[0]}'예요!`;
-                document.getElementById('find-pw-id').value = data.email.split('@')[0];
+                const foundId = data.email.split('@')[0];
+                const resultBox = document.getElementById('id-result');
+                
+                resultBox.style.color = "#2f63c7"; // 요청하신 색상 적용
+                resultBox.textContent = `찾았다! 아이디는 '${foundId}'예요!`;
+                
+                document.getElementById('find-pw-id').value = foundId;
             } else {
                 setError(inputField, "일치하는 별명을 찾을 수 없어요.");
             }
