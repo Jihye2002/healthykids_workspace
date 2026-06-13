@@ -233,8 +233,12 @@
         
         window.handleLogin = async function(e) {
             e.preventDefault();
+
+            console.log("handleLogin 함수가 실행되었습니다!");
             
             const sb = await initSupabase();
+            console.log("Supabase 초기화 결과:", sb);
+            
             if (!sb) {
                 showError('user-id', "서버 연결에 실패했습니다.");
                 return;
@@ -242,6 +246,7 @@
         
             const userId = document.getElementById('user-id').value.trim().toLowerCase();
             const password = document.getElementById('password').value.trim();
+            console.log("입력된 ID/PW:", userId, password);
             const submitBtn = e.target.querySelector('button');
             submitBtn.disabled = true;
         
@@ -251,8 +256,6 @@
                 .select('id, is_temp_password, temp_password, temp_password_usage')
                 .eq('email', `${userId}@healthykids.com`)
                 .maybeSingle();
-
-            console.log("로그인 시도 데이터:", userRecord);
         
             // 2. 임시 비밀번호 체크 로직
             if (userRecord?.is_temp_password === true && password === userRecord.temp_password) {
