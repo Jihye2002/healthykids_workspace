@@ -231,7 +231,7 @@
             clearError(inputField);
             if (!nickname) return setError(inputField, "별명을 입력해주세요!");
     
-            const { data, error } = await sb.from('users').select('email').eq('nickname', nickname).maybeSingle();
+            const { data, error } = await sb.from('public.users').select('email').eq('nickname', nickname).maybeSingle();
             
             if (data) {
                 const foundId = data.email.split('@')[0];
@@ -252,7 +252,7 @@
             const userId = inputField.value.trim();
             clearError(inputField);
             
-            const { data } = await sb.from('users').select('id, security_question, security_answer').eq('email', `${userId}@healthykids.com`).maybeSingle();
+            const { data } = await sb.from('public.users').select('id, security_question, security_answer').eq('email', `${userId}@healthykids.com`).maybeSingle();
             
             if (data) {
                 currentUserId = data.id;
