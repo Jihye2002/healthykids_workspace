@@ -294,14 +294,18 @@
             if (!sb) return;
         
             // 1. 상태 업데이트 (RPC 호출)
-            const { error } = await sb.rpc('update_temp_password_status', { 
-                user_uuid: currentUserId, 
-                new_usage: 0, 
-                is_temp: true 
+            // 함수 이름: force_update_password
+            // 파라미터: target_id, new_password, new_usage, new_is_temp
+            const { error } = await sb.rpc('force_update_password', { 
+                target_id: currentUserId, // 아까 정의한 변수 이름
+                new_password: pw,         // 임시 비밀번호를 auth.users에도 동기화
+                new_usage: 0,             // 사용 횟수 초기화
+                new_is_temp: true         // 임시 상태 유지
             });
         
             if (error) {
-                console.error("업데이트 실패:", error);
+                console.error("업데이트 실패:", error.message);
+                alert("비밀번호 상태 업데이트에 실패했습니다.");
                 return;
             }
         
