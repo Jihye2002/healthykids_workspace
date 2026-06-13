@@ -265,7 +265,7 @@
                     window.location.href = `update-password.html?userId=${userId}&tempPw=${btoa(password)}`;
                     return;
                 } else {
-                    showError('password', "임시 비밀번호 사용 횟수(2회)를 초과했습니다.");
+                    showError('password', "임시 비밀번호 사용 기간이 끝난 것 같아요. '아이디와 비밀번호를 잊어버렸어요!'를 눌러주세요.");
                     submitBtn.disabled = false;
                     return;
                 }
