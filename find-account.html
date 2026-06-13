@@ -180,27 +180,41 @@
     <script type="module">
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-        let supabase = null;
+        // 1. 전역 상태 관리
+        let supabaseInstance = null;
+        let initPromise = null;
         let currentSecurityAnswer = "";
         let currentUserId = "";
-
+        
         window.initSupabase = async function() {
-            if (supabase) return supabase;
-            try {
-                const res = await fetch('/get-config');
-                if (!res.ok) throw new Error("설정 로드 실패");
-                const config = await res.json();
-                
-                if (!config.SUPABASE_URL || !config.SUPABASE_ANON_KEY) {
-                    throw new Error("환경 설정 누락");
+            // 이미 생성된 인스턴스가 있다면 즉시 반환
+            if (supabaseInstance) return supabaseInstance;
+            
+            // 초기화 진행 중이라면 그 Promise를 반환 (중복 호출 방지)
+            if (initPromise) return initPromise;
+            
+            initPromise = (async () => {
+                try {
+                    console.log("Config 및 Supabase 초기화 시작 (1회 실행)");
+                    const res = await fetch('/get-config');
+                    if (!res.ok) throw new Error("설정 로드 실패");
+                    const config = await res.json();
+                    
+                    if (!config.SUPABASE_URL || !config.SUPABASE_ANON_KEY) {
+                        throw new Error("환경 설정 누락");
+                    }
+                    supabaseInstance = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+                    return supabaseInstance;
+                } catch (error) {
+                    console.error("초기화 중 오류:", error);
+                    initPromise = null; // 실패 시 재시도 가능하게 초기화
+                    return null;
                 }
-                supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
-                return supabase;
-            } catch (error) {
-                return null;
-            }
+            })();
+            
+            return initPromise;
         };
-    
+        
         function setError(inputField, message) {
             clearError(inputField);
             const errorSpan = document.createElement('span');
@@ -213,14 +227,14 @@
             errorSpan.textContent = message;
             inputField.parentElement.after(errorSpan);
         }
-    
+        
         function clearError(inputField) {
             const next = inputField.parentElement.nextElementSibling;
             if (next && next.classList.contains('error-text')) {
                 next.remove();
             }
         }
-    
+        
         window.findId = async function() {
             const sb = await window.initSupabase();
             const inputField = document.getElementById('find-nickname');
@@ -229,7 +243,7 @@
             const nickname = inputField.value.trim();
             clearError(inputField);
             if (!nickname) return setError(inputField, "별명을 입력해주세요!");
-    
+        
             const { data, error } = await sb.from('public.users').select('email').eq('nickname', nickname).maybeSingle();
             
             if (data) {
@@ -242,7 +256,7 @@
                 setError(inputField, "일치하는 별명을 찾을 수 없어요.");
             }
         };
-    
+        
         window.requestSecurityQuestion = async function() {
             const sb = await window.initSupabase();
             const inputField = document.getElementById('find-pw-id');
@@ -262,14 +276,13 @@
                 setError(inputField, "해당 아이디를 찾을 수 없어요.");
             }
         };
-    
+        
         window.verifyAnswer = async function() {
             const sb = await window.initSupabase();
             const inputField = document.getElementById('security-answer');
             if (!sb) return alert("연결 오류");
             
             const inputAnswer = inputField.value.trim();
-
             clearError(inputField);
             
             if (inputAnswer === currentSecurityAnswer) {
@@ -285,11 +298,11 @@
                 setError(inputField, `앗..다시 써주세요ㅠㅠ (힌트: ${displayHint})`);
             }
         };
-    
+        
         window.copyPassword = async function() {
             const pw = document.getElementById('temp-pw-display').value;
             if(!pw) return;
-
+        
             sessionStorage.setItem('temp_pw_to_fill', pw);
         
             const sb = await window.initSupabase();
@@ -297,8 +310,8 @@
         
             const { error } = await sb.rpc('force_update_password', { 
                 target_id: currentUserId, 
-                new_password: pw,         
-                new_usage: 0,             
+                new_password: pw,          
+                new_usage: 0,              
                 new_is_temp: true         
             });
         
