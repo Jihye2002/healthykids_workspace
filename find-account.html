@@ -253,9 +253,14 @@
             
             const userId = inputField.value.trim();
             clearError(inputField);
-            if (!userId) return setError(inputField, "아이디를 먼저 입력해주세요!");
-
-            const { data } = await sb.from('public.users').select('id, security_question, security_answer').eq('email', `${userId}@healthykids.com`).maybeSingle();
+            
+            // 데이터베이스 email 컬럼에 저장된 값이 '아이디@healthykids.com' 형태가 맞는지 확인 필요!
+            const emailToSearch = `${userId}@healthykids.com`;
+            
+            const { data } = await sb.from('public.users')
+                .select('id, security_question, security_answer')
+                .eq('email', emailToSearch) // 이 부분이 정확해야 합니다.
+                .maybeSingle();
             
             if (data) {
                 currentUserId = data.id;
