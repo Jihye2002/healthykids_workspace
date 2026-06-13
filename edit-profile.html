@@ -6,19 +6,21 @@
     <style>
         body { font-family: 'Arial', sans-serif; text-align: center; padding: 30px; background-color: #afe1fc; }
         .box { background: white; padding: 30px; width: 400px; margin: 0 auto; border: 2px solid #2f63c7; text-align: left; border-radius: 20px; }
-        h2 { text-align: center; color: #2f63c7; }
-        .input-group { margin-bottom: 12px; }
-        label { display: block; font-size: 14px; font-weight: bold; color: #555; margin-bottom: 3px; }
-        .input-field { width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 10px; outline: none; }
-        .error-text { font-size: 12px; color: #ff6b6b; margin-top: 3px; display: none; font-weight: bold; }
+        h2 { text-align: center; color: #2f63c7; margin-bottom: 20px; }
+        .input-group { margin-bottom: 15px; }
+        label { display: block; font-size: 14px; font-weight: bold; color: #555; margin-bottom: 5px; }
+        .input-field { width: 100%; padding: 10px; border: 2px solid #ddd; outline: none; box-sizing: border-box; border-radius: 8px; }
+        .input-field:focus { border: 2px solid #000; }
         
-        /* 알림 박스 스타일 */
-        #status-msg { margin: 15px 0; padding: 15px; border-radius: 15px; display: none; text-align: center; font-weight: bold; }
+        /* 수정 불가 필드 스타일 */
+        .input-field:disabled { background-color: #e0e0e0; color: #666; cursor: not-allowed; border-color: #ccc; }
+        
+        #status-msg { margin: 15px 0; padding: 15px; border-radius: 10px; display: none; text-align: center; font-weight: bold; }
         .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
         .fail { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
 
-        .btn-save { background-color: #2f63c7; color: white; border: none; padding: 15px; cursor: pointer; width: 100%; font-weight: bold; border-radius: 10px; font-size: 16px; }
-        .btn-pw { display:block; margin-top:15px; text-align:center; color: #2f63c7; text-decoration: none; font-weight: bold; }
+        .btn-save { background-color: #2f63c7; color: white; border: none; padding: 15px; cursor: pointer; width: 100%; font-weight: bold; border-radius: 10px; font-size: 16px; margin-top: 10px; }
+        .btn-pw { display:block; margin-top:20px; text-align:center; color: #2f63c7; text-decoration: underline; font-weight: bold; font-size: 14px; }
     </style>
 </head>
 <body>
@@ -28,20 +30,18 @@
         <div id="status-msg"></div>
 
         <div class="input-group">
-            <label>이름</label>
-            <input type="text" id="name" class="input-field" disabled style="background-color: #f9f9f9; color: #888; cursor: not-allowed;">
+            <label>이름 (고칠 수 없어요!)</label>
+            <input type="text" id="name" class="input-field" disabled>
         </div>
 
         <div class="input-group">
-            <label>아이디 (영어와 숫자로!)</label>
+            <label>아이디 (알파벳과 숫자를 같이 3글자~12글자 써주세요!)</label>
             <input type="text" id="user-id" class="input-field">
-            <div id="user-id-error" class="error-text"></div>
         </div>
 
         <div class="input-group">
-            <label>별명 (특별한 별명을 지어주세요!)</label>
+            <label>나만의 특별한 별명을 지어봐요!</label>
             <input type="text" id="nickname" class="input-field">
-            <div id="nickname-error" class="error-text"></div>
         </div>
 
         <div class="input-group">
@@ -50,13 +50,13 @@
         </div>
 
         <div class="input-group">
-            <label>정답 (자음과 모음을 합해서 한 글자나 더 길게 써주세요!)</label>
+            <label>질문에 대한 답을 자음과 모음을 섞어서 한글로 1글자나 더 길게 써주세요!</label>
             <input type="text" id="answer" class="input-field">
-            <div id="answer-error" class="error-text"></div>
         </div>
 
         <button class="btn-save" id="submit-btn" onclick="saveProfile()">저장하기</button>
-        <a href="update-password.html" class="btn-pw">비밀번호 바꾸러 가기</a>
+        
+        <a href="update-password.html" class="btn-pw">비밀번호를 바꾸고 싶어요!</a>
     </div>
 
     <script type="module">
@@ -70,23 +70,21 @@
             loadUserData();
         }
 
-        function showMessage(msg, isSuccess) {
-            const box = document.getElementById('status-msg');
-            box.textContent = msg;
-            box.className = isSuccess ? 'success' : 'fail';
-            box.style.display = 'block';
-        }
-
         async function loadUserData() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
-            const { data } = await supabase.from('public.users').select('*').eq('email', user.email).single();
+            
+            const { data } = await supabase.from('public.users')
+                .select('*')
+                .eq('id', user.id) // 고유 ID로 조회
+                .single();
+
             if (data) {
                 document.getElementById('name').value = data.name;
                 document.getElementById('user-id').value = data.email.split('@')[0];
                 document.getElementById('nickname').value = data.nickname;
-                document.getElementById('question').value = data.security_question;
-                document.getElementById('answer').value = data.security_answer;
+                document.getElementById('question').value = data.security_question || "";
+                document.getElementById('answer').value = data.security_answer || "";
             }
         }
 
@@ -96,48 +94,47 @@
             
             const userId = document.getElementById('user-id').value.trim().toLowerCase();
             const nickname = document.getElementById('nickname').value.trim();
-            const question = document.getElementById('question').value;
+            const question = document.getElementById('question').value.trim();
             const answer = document.getElementById('answer').value.trim();
             
-            document.querySelectorAll('.error-text').forEach(el => el.style.display = 'none');
-
-            // 유효성 검사 (따뜻하게 안내)
-            if (!/^(?=.*[a-z])(?=.*\d)[a-z0-9]{3,12}$/.test(userId)) { 
-                showMessage("아이디는 영어와 숫자를 섞어서 3~12글자로 적어주세요!", false); 
-                submitBtn.disabled = false; return; 
+            if (!/^(?=.*[a-z])(?=.*\d)[a-z0-9]{3,12}$/.test(userId)) {
+                showMessage("아이디는 영어+숫자 조합 3~12글자로 적어주세요!", false);
+                submitBtn.disabled = false; return;
             }
-            if (!nickname) { 
-                showMessage("멋진 별명을 입력해주세요!", false); 
-                submitBtn.disabled = false; return; 
-            }
-            if (!/^[가-힣]+$/.test(answer)) { 
-                showMessage("정답은 한글로 적어주세요!", false); 
-                submitBtn.disabled = false; return; 
-            }
+            if (!nickname) { showMessage("별명을 써주세요!", false); submitBtn.disabled = false; return; }
+            if (!/^[가-힣]+$/.test(answer)) { showMessage("정답은 한글로 적어주세요!", false); submitBtn.disabled = false; return; }
 
             const { data: { user } } = await supabase.auth.getUser();
             const newEmail = `${userId}@healthykids.com`;
 
-            if (newEmail !== user.email) {
-                const { error: authError } = await supabase.auth.updateUser({ email: newEmail });
-                if (authError) { showMessage("아이디를 바꿀 수 없어요. 다시 시도해볼까요?", false); submitBtn.disabled = false; return; }
-            }
-
+            // DB 업데이트
             const { error } = await supabase.from('public.users').update({
                 nickname, security_question: question, security_answer: answer, email: newEmail
             }).eq('id', user.id);
 
+            // 이메일 변경 처리
+            if (newEmail !== user.email) {
+                await supabase.auth.updateUser({ email: newEmail });
+            }
+
             if (error) { 
-                showMessage("정보를 저장하다가 오류가 났어요. 잠시 후에 다시 해봐요!", false); 
+                showMessage("오류가 발생했어요. 다시 시도해 주세요!", false); 
                 submitBtn.disabled = false; 
             } else { 
-                showMessage("성공! 변경된 정보로 다시 로그인해 주세요. 5초 뒤 이동해요!", true);
+                showMessage("성공! 변경된 정보로 다시 아이디와 비밀번호를 써봐요!", true);
                 setTimeout(async () => {
                     await supabase.auth.signOut(); 
                     location.href = "login.html"; 
-                }, 5000);
+                }, 3000);
             }
         };
+
+        function showMessage(msg, isSuccess) {
+            const box = document.getElementById('status-msg');
+            box.textContent = msg;
+            box.className = isSuccess ? 'success' : 'fail';
+            box.style.display = 'block';
+        }
 
         init();
     </script>
