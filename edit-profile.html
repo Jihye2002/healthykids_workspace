@@ -176,25 +176,6 @@
             box.className = isSuccess ? 'success' : 'fail';
             box.style.display = 'block';
         }
-
-        async function checkInitialRedirect() {
-            const sb = await initSupabase();
-            const { data: { session } } = await sb.auth.getSession();
-            
-            if (session) {
-                // 이미 로그인된 상태라면, DB에서 이 사람이 임시 비밀번호 사용 중인지 확인
-                const { data: userData } = await sb
-                    .from('public.users')
-                    .select('is_temp_password')
-                    .eq('id', session.user.id)
-                    .single();
-        
-                // 임시 비밀번호 상태라면 바로 이동!
-                if (userData?.is_temp_password === true) {
-                    window.location.href = "update-password.html";
-                }
-            }
-        }
         
         init();
     </script>
