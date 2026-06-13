@@ -561,45 +561,70 @@
     <script type="module">
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-        // 1. 전역 인스턴스 및 초기화 관리
-        let supabaseClient = null;
+        // 1. 전역 상태 관리 (싱글톤)
+        window.supabaseInstance = null;
+        window.initPromise = null;
         
-        async function getSupabase() {
-            if (supabaseClient) return supabaseClient;
-            const res = await fetch('/get-config');
-            const config = await res.json();
-            supabaseClient = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
-            window.supabase = supabaseClient; // 기존 코드 호환성 유지
-            return supabaseClient;
+        async function initSupabase() {
+            if (window.supabaseInstance) return window.supabaseInstance;
+            
+            // 캐시 확인
+            if (sessionStorage.getItem('is_sb_initialized') === 'true') {
+                const config = JSON.parse(sessionStorage.getItem('sb_config'));
+                window.supabaseInstance = createClient(config.url, config.key);
+                return window.supabaseInstance;
+            }
+        
+            if (window.initPromise) return window.initPromise;
+        
+            window.initPromise = (async () => {
+                try {
+                    const res = await fetch('/get-config');
+                    const config = await res.json();
+                    
+                    sessionStorage.setItem('sb_config', JSON.stringify({
+                        url: config.SUPABASE_URL,
+                        key: config.SUPABASE_ANON_KEY
+                    }));
+                    sessionStorage.setItem('is_sb_initialized', 'true');
+                    
+                    window.supabaseInstance = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+                    return window.supabaseInstance;
+                } catch (err) {
+                    console.error("초기화 실패:", err);
+                    return null;
+                }
+            })();
+            return window.initPromise;
         }
         
         // 2. UI 업데이트
         async function updateUI(session) {
-            const sb = await getSupabase();
+            const sb = await initSupabase();
             const beforeLogin = document.getElementById('before-login');
             const afterLogin = document.getElementById('after-login');
             const welcomeMsg = document.getElementById('welcome-message');
             
-            // 네이버 사용자 이름 우선 표시
             const naverUserName = localStorage.getItem('user_name');
             let displayName = naverUserName;
         
             if (session) {
                 try {
                     const isSelfHosted = session.user.email.endsWith('@healthykids.com');
+                    // 테이블 명칭 통일 (public.users)
                     const { data } = isSelfHosted 
                         ? await sb.from('public.users').select('nickname').eq('id', session.user.id).maybeSingle()
-                        : await sb.from('users').select('name').eq('email', session.user.email).maybeSingle();
+                        : await sb.from('public.users').select('name').eq('email', session.user.email).maybeSingle();
                     
-                    displayName = data?.nickname || data?.name || displayName;
+                    displayName = data?.nickname || data?.name || displayName || "사용자";
                 } catch (err) { console.error("UI 업데이트 오류:", err); }
             }
         
             if (beforeLogin && afterLogin) {
-                if (displayName) {
+                if (session) {
                     beforeLogin.style.display = 'none';
                     afterLogin.style.display = 'flex';
-                    welcomeMsg.textContent = displayName;
+                    if (welcomeMsg) welcomeMsg.textContent = displayName;
                 } else {
                     beforeLogin.style.display = 'flex';
                     afterLogin.style.display = 'none';
@@ -610,21 +635,22 @@
         // 3. DB 동기화
         async function syncUserWithDatabase(user) {
             if (!user || user.email.endsWith('@healthykids.com')) return;
-            const sb = await getSupabase();
-            const { data: existingUser } = await sb.from('users').select('*').eq('email', user.email).maybeSingle();
+            const sb = await initSupabase();
+            const { data: existingUser } = await sb.from('public.users').select('*').eq('email', user.email).maybeSingle();
             if (!existingUser) {
-                await sb.from('users').insert([{
+                await sb.from('public.users').insert([{
                     email: user.email,
                     name: user.user_metadata?.full_name || user.user_metadata?.name || '사용자'
                 }]);
             }
         }
         
-        // 4. 초기화
+        // 4. 초기화 로직
         async function init() {
-            const sb = await getSupabase();
+            const sb = await initSupabase();
+            if (!sb) return;
         
-            // 로그아웃 이벤트
+            // 로그아웃 버튼 이벤트
             document.getElementById('logout-btn')?.addEventListener('click', async () => {
                 await sb.auth.signOut();
                 localStorage.removeItem('user_name');
@@ -636,7 +662,7 @@
             if (session) await syncUserWithDatabase(session.user);
             updateUI(session);
         
-            // 이벤트 리스너는 딱 한 번만 등록
+            // 상태 변경 감지
             sb.auth.onAuthStateChange(async (event, session) => {
                 if (event === 'SIGNED_OUT') {
                     localStorage.removeItem('user_name');
