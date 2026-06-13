@@ -270,6 +270,8 @@
             if (!sb) return alert("연결 오류");
             
             const inputAnswer = inputField.value.trim();
+
+            clearError(inputField);
             
             if (inputAnswer === currentSecurityAnswer) {
                 const finalTempPassword = Math.random().toString(36).slice(-8) + "!A1";
