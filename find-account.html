@@ -278,7 +278,14 @@
         window.copyPassword = async function() {
             const pw = document.getElementById('temp-pw-display').value.trim();
             if(!pw) return;
+            
+            // 1. 클립보드 복사
             await navigator.clipboard.writeText(pw);
+            
+            // 2. [핵심] 세션 스토리지에 비밀번호 저장
+            sessionStorage.setItem('temp_pw_to_fill', pw);
+            
+            // 3. UI 알림 후 이동
             const toast = document.getElementById("toast");
             toast.className = "show";
             setTimeout(() => { toast.className = ""; }, 2500);
