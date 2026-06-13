@@ -253,13 +253,16 @@
             const sb = await initSupabase();
             if (!sb) return showError('user-id', "서버 연결에 실패했습니다.");
             
+            // [추가] 로그인 시도 전에 기존 세션을 정리하여 400 에러 방지
+            await sb.auth.signOut(); 
+        
             const userId = document.getElementById('user-id').value.trim().toLowerCase();
             const password = document.getElementById('password').value.trim();
-            const submitBtn = document.querySelector('#login-form button'); // 더 명확한 선택
+            const submitBtn = document.querySelector('#login-form button');
             
             submitBtn.disabled = true;
         
-            // 1. 데이터 조회 (await 반드시 포함)
+            // 1. 데이터 조회
             const { data: userRecord, error: dbError } = await sb
                 .from('public.users') 
                 .select('id, is_temp_password, temp_password, temp_password_usage')
@@ -267,7 +270,6 @@
                 .maybeSingle();
         
             if (dbError) {
-                console.error("DB 조회 오류:", dbError);
                 showError('user-id', "사용자 정보를 가져올 수 없습니다.");
                 submitBtn.disabled = false;
                 return;
@@ -276,17 +278,13 @@
             // 2. 임시 비밀번호 체크 로직
             if (userRecord?.is_temp_password === true && password === userRecord.temp_password) {
                 if (userRecord.temp_password_usage < 2) {
-                    // 사용 횟수 증가
                     await sb.from('public.users')
                         .update({ temp_password_usage: userRecord.temp_password_usage + 1 })
                         .eq('id', userRecord.id);
                     
                     sessionStorage.setItem('temp_pw_to_fill', password);
-                    
-                    // 페이지 이동
-                    console.log("임시 비밀번호 인증 성공, 이동 중...");
                     window.location.href = `update-password.html?userId=${userId}&tempPw=${btoa(password)}`;
-                    return; // 반드시 여기서 종료
+                    return;
                 } else {
                     showError('password', "임시 비밀번호 사용 기간이 끝났습니다.");
                     submitBtn.disabled = false; 
@@ -301,6 +299,7 @@
             });
             
             if (authError) {
+                // [중요] 400 에러가 발생해도 사용자에게는 명확한 메시지를 보여줌
                 showError('password', "아이디 또는 비밀번호가 올바르지 않습니다.");
                 submitBtn.disabled = false;
             } else {
