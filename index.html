@@ -661,8 +661,15 @@
             if (session) {
                 await syncUserWithDatabase(session.user);
             }
+
+            let currentSession = session;
         
             window.supabase.auth.onAuthStateChange(async (event, session) => {
+
+                if (session && currentSession && session.user.id === currentSession.user.id) return;
+        
+                currentSession = session;
+                
                 if (event === 'SIGNED_OUT') {
                     localStorage.removeItem('user_name');
                     window.location.reload();
