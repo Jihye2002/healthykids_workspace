@@ -57,26 +57,38 @@
             
                     // 2. 업데이트 또는 삽입
                     if (user) {
-                        statusMsg.textContent = "로그인 중...";
-                        const { error: updateErr } = await supabase.from('users').update({ name: p.name }).eq('email', p.email);
-                        if (updateErr) console.error("업데이트 실패:", updateErr);
-                    } else {
-                        statusMsg.textContent = "회원가입 진행 중...";
-                        const { error: insertErr } = await supabase.from('users').insert({ 
+                    statusMsg.textContent = "로그인 중...";
+                    const { error: updateErr } = await supabase
+                        .from('users')
+                        .update({ name: p.name })
+                        .eq('email', p.email);
+                    
+                    if (updateErr) {
+                        console.error("업데이트 실패:", updateErr);
+                        // 업데이트 실패 시 강제로 멈추거나 예외 처리
+                        throw new Error("DB 업데이트 실패: " + updateErr.message);
+                    }
+                    console.log("DB 업데이트 성공!");
+                } else {
+                    statusMsg.textContent = "회원가입 진행 중...";
+                    const { error: insertErr } = await supabase
+                        .from('users')
+                        .insert({ 
                             email: p.email, 
                             name: p.name 
                         });
-                        
-                        if (insertErr) {
-                            console.error("DB 삽입 실패! 에러 상세:", insertErr);
-                            alert("DB 저장 실패: " + insertErr.message); // RLS 에러시 여기 확인
-                        } else {
-                            console.log("DB 삽입 성공!");
-                        }
+                    
+                    if (insertErr) {
+                        console.error("DB 삽입 실패! 에러 상세:", insertErr);
+                        // 삽입 실패 시 강제로 멈추거나 예외 처리
+                        throw new Error("DB 삽입 실패: " + insertErr.message);
                     }
-            
-                    statusMsg.textContent = "완료되었습니다!";
-                    window.location.replace('/index.html');
+                    console.log("DB 삽입 성공!");
+                }
+                
+                // 위 로직이 모두 에러 없이 통과되면 여기로 넘어옵니다.
+                statusMsg.textContent = "완료되었습니다!";
+                window.location.replace('/index.html');
                 } else {
                     throw new Error("네이버 프로필 정보를 가져올 수 없습니다.");
                 }
