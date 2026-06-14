@@ -38,7 +38,6 @@
             
                 if (data.response) {
                     const p = data.response;
-                    console.log("네이버 프로필 데이터:", p);
             
                     localStorage.setItem('user', JSON.stringify({
                         email: p.email,
@@ -71,6 +70,10 @@
                     console.log("DB 업데이트 성공!");
                 } else {
                     statusMsg.textContent = "회원가입 진행 중...";
+    
+                    // 혹시 모를 잔여 데이터 삭제 (안전장치)
+                    await supabase.from('users').delete().eq('email', p.email);
+                    
                     const { error: insertErr } = await supabase
                         .from('users')
                         .insert({ 
