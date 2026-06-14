@@ -606,39 +606,36 @@
                 try {
                     const email = session.user.email;
                     const meta = session.user.user_metadata || {};
-                    const provider = session.user.app_metadata.provider; 
-        
-                    // 1. 소셜 로그인 (Google, Kakao, Naver)
-                    // Naver는 이메일 도메인으로도 판별 가능하게 처리
-                    if (provider === 'google' || provider === 'kakao' || email.includes('naver.com')) {
-                        // 소셜은 이름(name)만 사용
-                        displayName = meta.full_name || meta.name || "사용자";
+                    
+                    // 1. 네이버(users 테이블)
+                    if (email.includes('naver.com')) {
+                        const { data } = await sb.from('users').select('name').eq('email', email).maybeSingle();
+                        displayName = data?.name || meta.name || "사용자";
                     } 
-                    // 2. 일반 로그인 (public.users 테이블 이용)
+                    // 2. Google/Kakao (Auth 메타데이터 바로 사용)
+                    else if (!email.endsWith('@healthykids.com')) {
+                        displayName = meta.full_name || meta.name || "사용자";
+                    }
+                    // 3. 일반 로그인(public.users)
                     else {
-                        const { data } = await sb.from('public.users')
-                            .select('nickname')
-                            .eq('email', email)
-                            .maybeSingle();
-                        
-                        // 일반 로그인은 닉네임만 우선 사용
+                        const { data } = await sb.from('public.users').select('nickname').eq('id', session.user.id).maybeSingle();
                         displayName = data?.nickname || "사용자";
                     }
-                } catch (err) { console.error("UI 업데이트 오류:", err); }
-            }
-        
+                } catch (err) { console.error(err); }
+            } 
+            
             if (beforeLogin && afterLogin) {
-                if (session) {
-                    beforeLogin.style.display = 'none';
-                    afterLogin.style.display = 'flex';
-                    // 통일된 환영 메시지 출력
-                    if (welcomeMsg) welcomeMsg.textContent = `${displayName}님 환영해요!`;
-                } else {
-                    beforeLogin.style.display = 'flex';
-                    afterLogin.style.display = 'none';
+                    if (session) {
+                        beforeLogin.style.display = 'none';
+                        afterLogin.style.display = 'flex';
+                        // 통일된 환영 메시지 출력
+                        if (welcomeMsg) welcomeMsg.textContent = `${displayName}님 환영해요!`;
+                    } else {
+                        beforeLogin.style.display = 'flex';
+                        afterLogin.style.display = 'none';
+                    }
                 }
             }
-        }
         
         // 3. DB 동기화
         async function syncUserWithDatabase(user) {
