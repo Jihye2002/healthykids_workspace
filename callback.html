@@ -2,6 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
+    <title>로그인 처리 중...</title>
     <style>
         body {
             display: flex;
@@ -48,46 +49,45 @@
             }
         
             try {
+                // 1. Supabase 클라이언트 설정
                 const res = await fetch('/get-config');
                 const config = await res.json();
                 const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+                
+                // 2. 네이버 프로필 가져오기
                 const response = await fetch(`/get-naver-profile?token=${accessToken}`);
                 const data = await response.json();
             
                 if (data.response) {
                     const p = data.response; // 네이버 프로필 정보
             
-                    // 1. [로컬 저장] 네이버 사용자 정보 저장 (index.html에서 식별용)
+                    // 3. [로컬 저장] index.html 식별용
                     localStorage.setItem('user', JSON.stringify({
                         email: p.email,
                         name: p.name,
                         provider: 'naver'
                     }));
             
-                    // 2. [DB 처리] users 테이블에서 사용자 조회
+                    // 4. [DB 처리] 기존 유저 확인
                     let { data: user } = await supabase
                         .from('users')
                         .select('*')
                         .eq('email', p.email)
                         .maybeSingle();
             
-                    // 3. [DB 업데이트 또는 삽입]
+                    // 5. DB 업데이트 또는 신규 삽입
                     if (user) {
                         statusMsg.textContent = "로그인 중...";
                         await supabase.from('users').update({ name: p.name }).eq('email', p.email);
                     } else {
-                        console.log("네이버에서 받아온 정보:", p); // p가 제대로 들어오는지 확인
-
-                        const { data: insertData, error: insertErr } = await supabase.from('users').insert([{ 
+                        statusMsg.textContent = "회원가입 진행 중...";
+                        const { error: insertErr } = await supabase.from('users').insert([{ 
                             email: p.email, 
                             name: p.name 
                         }]);
                         
-                        if (insertErr) {
-                            console.error("DB 삽입 실패 상세내용:", insertErr); // 이 에러를 보면 바로 알 수 있습니다!
-                        } else {
-                            console.log("DB 삽입 성공!");
-                        }
+                        if (insertErr) throw insertErr;
+                    }
             
                     statusMsg.textContent = "완료되었습니다!";
                     window.location.replace('/index.html');
