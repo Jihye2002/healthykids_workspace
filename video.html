@@ -314,7 +314,7 @@
 <script type="module">
     import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-    // 1. Supabase 초기화 및 전역 설정 (index.html과 동일)
+    // 1. Supabase 초기화 및 전역 설정
     window.supabaseInstance = null;
     window.initPromise = null;
 
@@ -337,7 +337,6 @@
         return window.initPromise;
     }
 
-    // 2. UI 업데이트 함수 (index.html 로직 이식)
     async function updateUI(session) {
         const sb = await initSupabase();
         const beforeLogin = document.getElementById('before-login');
@@ -374,13 +373,11 @@
         } catch (err) { console.error("UI 업데이트 오류:", err); }
     }
 
-    // 3. 비디오 데이터 및 로직
     async function init() {
         const sb = await initSupabase();
         const { data: { session } } = await sb.auth.getSession();
         updateUI(session);
 
-        // 로그아웃 버튼 이벤트
         document.getElementById('logout-btn')?.addEventListener('click', async () => {
             await sb.auth.signOut();
             localStorage.clear();
@@ -403,6 +400,25 @@
         const video = document.getElementById('main-video');
         video.src = data.src;
         document.getElementById('video-title').innerText = data.title;
+
+        // [데이터 불러오기 및 이어보기 적용]
+        const naverUser = JSON.parse(localStorage.getItem('user'));
+        const userEmail = session?.user.email || naverUser?.email;
+
+        if (userEmail) {
+            const { data: progressData } = await sb
+                .from('video_progress')
+                .select('progress_time')
+                .eq('user_email', userEmail)
+                .eq('video_id', type)
+                .maybeSingle();
+
+            if (progressData && progressData.progress_time > 0) {
+                video.addEventListener('loadedmetadata', () => {
+                    video.currentTime = (progressData.progress_time / 100) * video.duration;
+                }, { once: true });
+            }
+        }
         
         const quizButtons = document.getElementById('quiz-buttons');
         quizButtons.innerHTML = "";
@@ -413,7 +429,6 @@
             a.appendChild(button); quizButtons.appendChild(a);
         });
 
-        // 5초마다 현재 재생 위치 저장
         video.addEventListener('timeupdate', async () => {
             const currentTime = video.currentTime;
             const duration = video.duration;
@@ -421,7 +436,6 @@
 
             const progress = (currentTime / duration) * 100;
             
-            // 5초에 한 번씩만 서버에 저장
             if (Math.round(currentTime) % 5 === 0) {
                 const { data: { session } } = await sb.auth.getSession();
                 const naverUser = JSON.parse(localStorage.getItem('user'));
@@ -439,7 +453,6 @@
             }
         });
 
-        // 영상 종료 시 로직
         video.addEventListener('ended', async () => {
             const { data: { session } } = await sb.auth.getSession();
             const naverUser = JSON.parse(localStorage.getItem('user'));
@@ -456,7 +469,7 @@
             }
             document.getElementById('quiz-section').style.display = "block";
         });
-    }
+    } // init 함수 종료
 
     document.addEventListener('DOMContentLoaded', init);
 </script>
