@@ -116,6 +116,22 @@
     <div id="pdf-viewer"></div>
 
     <script>
+        import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+        // ... config 설정 코드 ...
+        const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+    
+        // 페이지 진입 시 로그인 확인
+        async function checkAuth() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                alert("로그인이 필요한 서비스입니다.");
+                location.href = "login.html"; // 비로그인 시 로그인 페이지로 이동
+            }
+        }
+        
+        // 기존 window.onload 앞에 실행
+        checkAuth();
+        
         window.onload = function() {
             const urlParams = new URLSearchParams(window.location.search);
             const fileName = urlParams.get('file');
