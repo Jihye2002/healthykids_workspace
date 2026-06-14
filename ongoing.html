@@ -62,10 +62,21 @@
         mainContent.style.display = 'block';
 
         // 3. 검증된 이메일(user.email)을 사용하여 데이터 조회
-        const { data: progressList } = await supabase
+        console.log("조회할 이메일:", userEmail); // 이 값이 정확한지 콘솔 확인!
+
+        const { data: progressList, error } = await supabase
             .from('video_progress')
             .select('*')
-            .eq('user_email', user.email);
+            .eq('user_email', userEmail);
+        
+        if (error) {
+            console.error("DB 조회 오류:", error);
+        } else {
+            console.log("조회된 진행률 데이터:", progressList); // 데이터가 비어있는지 확인!
+        }
+        
+        // 이후 렌더링 로직 (데이터가 없으면 빈 배열로 처리)
+        const list = progressList || [];
 
         const contentDB = {
             hygiene: { title: '토리와 함께 세균을 퇴치해봐요!' },
