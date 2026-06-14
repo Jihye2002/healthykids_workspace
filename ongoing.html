@@ -62,12 +62,12 @@
         mainContent.style.display = 'block';
 
         // 3. 검증된 이메일(user.email)을 사용하여 데이터 조회
-        console.log("조회할 이메일:", userEmail); // 이 값이 정확한지 콘솔 확인!
+        console.log("조회할 이메일:", user.email); // 이 값이 정확한지 콘솔 확인!
 
         const { data: progressList, error } = await supabase
             .from('video_progress')
             .select('*')
-            .eq('user_email', user.Email);
+            .eq('user_email', user.email);
         
         if (error) {
             console.error("DB 조회 오류:", error);
