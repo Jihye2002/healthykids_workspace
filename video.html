@@ -378,7 +378,22 @@
         const { data: { session } } = await sb.auth.getSession();
         updateUI(session);
 
+        let isSeeking = false; // [수정] 변수를 함수 최상단에서 선언
+
         document.getElementById('logout-btn')?.addEventListener('click', async () => {
+            // [추가] 로그아웃 전, 현재 사용자의 영상 기록을 삭제합니다.
+            const { data: { session } } = await sb.auth.getSession();
+            const naverUser = JSON.parse(localStorage.getItem('user'));
+            const userEmail = session?.user.email || naverUser?.email;
+
+            if (userEmail) {
+                // 특정 사용자의 모든 영상 기록을 삭제 (또는 특정 조건으로 삭제)
+                await sb.from('video_progress')
+                        .delete()
+                        .eq('user_email', userEmail);
+                console.log("로그아웃: 영상 기록이 초기화되었습니다.");
+            }
+
             await sb.auth.signOut();
             localStorage.clear();
             sessionStorage.clear();
@@ -391,7 +406,7 @@
             hygiene: { title: '토리와 함께 세균을 퇴치해봐요!', src: 'https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/%EC%9C%84%EC%83%9D%EC%95%88%EC%A0%84.mp4', kahoot: ['https://kahoot.it/challenge/01812841', 'https://kahoot.it/challenge/03183156'] },
             crosswalk: { title: '토리와 함께 길 건널 때 어떻게 하면 되는지 알아가요!', src: 'https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/%EC%8B%A4%EC%99%B8%EC%95%88%EC%A0%84.mp4', kahoot: ['https://kahoot.it/challenge/07121259'] },
             foodsafety: { title: '토리와 올바르게 먹는 방법을 알아가요!', src: 'https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/%EC%83%9D%ED%99%9C%EA%B1%B4%EA%B0%95.mp4', kahoot: ['https://kahoot.it/challenge/04466674'] },
-            precaution: { title: '토리와 감기와 독감 바이러스를 물리쳐요!', src: 'https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/%EC%A7%88%EB%B3%91%EC%98%88%EB%B0%A9.mp4', kahoot: ['https://kahoot.it/challenge/07815381'] }
+            precaution: { title: '토리와 감기와 독감 바이러스를 물리쳐요!', src: 'https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/%EC%A7%88%EB%B3%91%EC%98%88%EA%B0%99.mp4', kahoot: ['https://kahoot.it/challenge/07815381'] }
         };
 
         const data = contentDB[type];
@@ -401,7 +416,6 @@
         video.src = data.src;
         document.getElementById('video-title').innerText = data.title;
 
-        // [데이터 불러오기 및 이어보기 적용]
         const naverUser = JSON.parse(localStorage.getItem('user'));
         const userEmail = session?.user.email || naverUser?.email;
 
@@ -414,9 +428,19 @@
                 .maybeSingle();
 
             if (progressData && progressData.progress_time > 0) {
-                video.addEventListener('loadedmetadata', () => {
-                    video.currentTime = (progressData.progress_time / 100) * video.duration;
+                isSeeking = true; 
+                video.addEventListener('canplaythrough', () => {
+                    const savedTime = (progressData.progress_time / 100) * video.duration;
+                    if (video.currentTime < 1) {
+                        video.currentTime = savedTime;
+                    }
+                    setTimeout(() => { isSeeking = false; }, 1000);
                 }, { once: true });
+                
+                if (video.readyState >= 3) {
+                    video.currentTime = (progressData.progress_time / 100) * video.duration;
+                    setTimeout(() => { isSeeking = false; }, 1000);
+                }
             }
         }
         
@@ -430,6 +454,8 @@
         });
 
         video.addEventListener('timeupdate', async () => {
+            if (isSeeking) return; // [중요] 점프 중에는 저장 로직 작동 안 함
+            
             const currentTime = video.currentTime;
             const duration = video.duration;
             if (!duration) return;
@@ -437,6 +463,7 @@
             const progress = (currentTime / duration) * 100;
             
             if (Math.round(currentTime) % 5 === 0) {
+                // 저장 로직은 그대로
                 const { data: { session } } = await sb.auth.getSession();
                 const naverUser = JSON.parse(localStorage.getItem('user'));
                 const userEmail = session?.user.email || naverUser?.email;
@@ -469,7 +496,7 @@
             }
             document.getElementById('quiz-section').style.display = "block";
         });
-    } // init 함수 종료
+    } // [수정] 여기가 올바른 끝입니다.
 
     document.addEventListener('DOMContentLoaded', init);
 </script>
