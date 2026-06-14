@@ -26,10 +26,37 @@
         .divider { margin: 0 8px; color: #6d6d6d; }
 
         .navbar { background-color: #2f63c7; position: relative; flex-shrink: 0; }
-        .menu-list { width: 100%; display: flex; justify-content: center; align-items: center; list-style: none; padding: 0; margin: 0; }
-        .menu-list > li { flex: 1; padding: 0 20px; text-align: center; position: relative; }
-        .menu-list > li > a { display: block; padding: 10px 15px; color: white; text-decoration: none; font-weight: 600; transition: background 0.3s; }
-        .menu-list > li:hover > a { background-color: #1e4fa8; }
+        .menu-list { 
+            width: 100%;
+            display: flex; 
+            justify-content: center; /* 메뉴를 가로 중앙으로 정렬 */
+            align-items: center;
+            flex-wrap: nowrap;
+            white-space: nowrap;
+            list-style: none; 
+            padding: 0;         /* 위아래 적절한 여백 */
+            margin: 0;
+            overflow-x: visible;
+        }
+
+        .menu-list > li { 
+            flex: 1; 
+            padding: 0 20px;
+            text-align: center;
+            position: relative;
+            white-space: nowrap;
+        }
+
+        /* 상단 메인 메뉴 링크 스타일 */
+        .menu-list > li { 
+            display: block; 
+            padding: 10px 15px; 
+            color: white; 
+            text-decoration: none; 
+            font-weight: 600;
+            transition: background 0.3s;
+            white-space: nowrap;
+        }
 
         /* 메가메뉴 */
         .mega-menu { display: none; position: absolute; top: 100%; left: 0; width: 100%; background-color: #ffffff; border-bottom: 3px solid #2f63c7; box-shadow: 0 5px 10px rgba(0,0,0,0.1); z-index: 1000; }
@@ -60,15 +87,15 @@
 
     <nav class="navbar">
         <ul class="menu-list">
-            <li><a href="#">회원정보</a></li>
-            <li><a href="#">영상보기</a></li>
-            <li><a href="#">놀이&활동자료 다운로드</a></li>
-            <li><a href="#">안전수칙자료 다운로드</a></li>
-            <li><a href="#">Q&A</a></li>
+            <li>회원정보</li>
+            <li>영상보기</li>
+            <li>놀이&활동자료 다운로드</li>
+            <li>안전수칙자료 다운로드</li>
+            <li>Q&A</li>
         </ul>
         <div class="mega-menu">
             <div class="mega-content">
-                <div class="column"><ul><li><a href="edit-profile.html">개인정보 수정</a></li><li><a href="#">회원탈퇴</a></li></ul></div>
+                <div class="column"><ul><li><a href="edit-profile.html">개인정보 수정</a></li><li><a href="withdraw.html">회원탈퇴</a></li></ul></div>
                 <div class="column"><ul><li><a href="#">진행중인 영상</a></li><li><a href="video.html?type=hygiene">위생안전</a></li><li><a href="video.html?type=crosswalk">실외안전</a></li><li><a href="video.html?type=foodsafety">생활건강</a></li><li><a href="video.html?type=precaution">질병예방</a></li></ul></div>
                 <div class="column">
                     <ul>
@@ -77,7 +104,7 @@
                         </li>
                 
                         <li><a href="#">퀴즈</a></li>
-                        <li><a href="#">놀이학습자료</a></li>
+                        <li><a href="#">활동</a></li>
                     </ul>
                 </div>
                 <div class="column"><ul><li><a href="viewer.html?file=위생안전수칙.pdf">위생안전자료</a></li><li><a href="viewer.html?file=실외안전수칙.pdf">실외안전자료</a></li><li><a href="viewer.html?file=생활건강수칙.pdf">생활건강자료</a></li><li><a href="viewer.html?file=질병예방수칙.pdf">질병예방자료</a></li></ul></div>
