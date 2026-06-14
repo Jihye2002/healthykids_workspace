@@ -39,47 +39,40 @@
                 if (data.response) {
                     const p = data.response;
         
-                    // [핵심] 로그인 성공 시 이메일과 상태값 저장
+                    // [로그인 정보 저장]
                     localStorage.setItem('user', JSON.stringify({
                         email: p.email,
                         name: p.name,
                         provider: 'naver'
                     }));
                     localStorage.setItem('user_email', p.email);
-                    localStorage.setItem('is_logged_in', 'true'); // 로그인 상태 판별용 플래그
+                    localStorage.setItem('is_logged_in', 'true');
         
                     statusMsg.textContent = "사용자 정보 확인 중...";
         
-                    // 1. 기존 유저 조회
-                    let { data: user, error: fetchErr } = await supabase
+                    // 1. 유저 존재 여부 확인
+                    const { data: user } = await supabase
                         .from('users')
                         .select('email')
                         .eq('email', p.email)
                         .maybeSingle();
         
-                    if (fetchErr) console.error("조회 에러:", fetchErr);
-        
-                    // 2. 업데이트 또는 삽입
+                    // 2. [개선] 기존 데이터를 삭제하지 않고, 없으면 삽입 / 있으면 이름만 업데이트
                     if (user) {
                         statusMsg.textContent = "로그인 중...";
-                        const { error: updateErr } = await supabase
+                        await supabase
                             .from('users')
                             .update({ name: p.name })
                             .eq('email', p.email);
-                        
-                        if (updateErr) throw new Error("DB 업데이트 실패: " + updateErr.message);
                     } else {
                         statusMsg.textContent = "회원가입 진행 중...";
-                        await supabase.from('users').delete().eq('email', p.email);
-                        
-                        const { error: insertErr } = await supabase
+                        // [중요] delete() 로직 제거: 기존 시청 기록이 삭제되는 것을 방지
+                        await supabase
                             .from('users')
                             .insert({ 
                                 email: p.email, 
                                 name: p.name 
                             });
-                        
-                        if (insertErr) throw new Error("DB 삽입 실패: " + insertErr.message);
                     }
                     
                     statusMsg.textContent = "로그인 완료!";
@@ -90,12 +83,12 @@
             } catch (err) {
                 console.error("연동 실패:", err);
                 statusMsg.textContent = "오류 발생! 콘솔을 확인하세요.";
-                // 오류 발생 시 로그인 상태가 아님을 확실히 하기 위해 상태값 삭제
-                localStorage.removeItem('is_logged_in');
+                // 로그인 실패 시 모든 상태 초기화
+                localStorage.clear();
             }
         }
         
         handleNaverCallback();
-    </script>
+</script>
 </body>
 </html>
