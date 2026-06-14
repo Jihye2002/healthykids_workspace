@@ -21,6 +21,9 @@
         
         .info-card p { margin: 0; padding: 0; }
         
+        /* 비밀번호 전용 스타일 (동그라미 표현) */
+        .password-mask { font-family: monospace; letter-spacing: 2px; color: #333; font-weight: bold; }
+        
         .btn-withdraw { background-color: #2f63c7; color: white; border: none; padding: 15px; width: 100%; cursor: pointer; margin-top: 10px; }
         .btn-cancel { background: none; border: none; color: #777; cursor: pointer; margin-top: 15px; }
         
@@ -60,16 +63,18 @@
             const providers = user.app_metadata.providers || [];
             const isSocial = providers.length > 0;
             
-            // 안내 문구 색상: 연한 파란색(#2c7dbf) 적용
+            // 이모티콘 추가 및 내어쓰기 제거
             const socialGuide = isSocial 
-                ? `<div style="margin-bottom: 20px;">
-                    <strong style="color: #d9534f;">알려드려요!</strong><br>
-                    <div style="padding-left: 15px; color: #1a5f96;">
-                        구글, 카카오, 네이버 계정 정보도 모두 사라져요! <br>
+                ? `<div style="margin-bottom: 15px;">
+                    <div style="color: #d9534f; font-weight: bold; margin-bottom: 5px;">
+                        📢 알려드려요!
+                    </div>
+                    <div style="color: #1a5f96; line-height: 1.5;">
+                        구글, 카카오, 네이버 계정 정보도 모두 사라져요!<br>
                         탈퇴하셔도 나중에 같은 계정으로 다시 오시면 처음부터 다시 시작할 수 있어요.
                     </div>
                    </div>`
-                : `<p style="color: #555; margin-bottom: 20px;">일반 계정으로 로그인 중입니다.</p>`;
+                : `<p style="color: #555; margin-bottom: 15px;">일반 계정으로 로그인 중입니다.</p>`;
 
             const { data } = await supabase.from('public.users')
                 .select('name, email, nickname, security_question, security_answer')
@@ -78,7 +83,8 @@
 
             if (data) {
                 const userId = data.email ? data.email.split('@')[0] : '없음';
-                const passwordDisplay = isSocial ? '없음 (소셜 로그인)' : '●●●●●●●●';
+                // 실제 비밀번호 대신 마스킹 처리된 동그라미 표기
+                const passwordDisplay = isSocial ? '없음 (소셜 로그인)' : '<span class="password-mask">●●●●●●●●</span>';
 
                 document.getElementById('user-info').innerHTML = `
                     ${socialGuide}
@@ -103,7 +109,7 @@
         }
         
         window.withdrawAccount = async () => {
-            if (!confirm("정말 탈퇴하실 건가요? 사용자님의 모든 정보가 사라져서 되돌릴 수 없어요!")) return;
+            if (!confirm("정말 탈퇴하실 건가요? 모든 정보가 사라져서 되돌릴 수 없어요!")) return;
         
             try {
                 const { error } = await supabase.rpc('delete_my_account');
