@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>헬시키즈 | 진행 중인 영상</title>
+    <style>
+        body { font-family: 'Nanum Gothic', sans-serif; padding: 40px; background-color: #f4f8ff; color: #333; }
+        .box { max-width: 800px; margin: 0 auto; background: white; padding: 40px; border-radius: 20px; border: 2px solid #2f63c7; box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
+        h2 { color: #2f63c7; margin-bottom: 30px; text-align: center; }
+        
+        /* 비로그인 안내 메시지 스타일 */
+        #auth-alert { display: none; text-align: center; padding: 60px 20px; }
+        #auth-alert h2 { color: #2f63c7; margin-bottom: 15px; }
+        .login-btn { display: inline-block; background: #2f63c7; color: white; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: bold; margin-top: 20px; }
+
+        .video-item { border-bottom: 1px solid #eee; padding: 25px 0; }
+        .video-item h3 { margin-bottom: 15px; color: #1a5f96; }
+        .progress-bar-bg { background: #e0e0e0; height: 12px; border-radius: 6px; margin: 10px 0; overflow: hidden; }
+        .progress-bar-fill { background: #2f63c7; height: 100%; transition: width 0.5s ease-in-out; }
+        .btn-link { display: inline-block; background: #2f63c7; color: white; padding: 8px 15px; border-radius: 5px; text-decoration: none; font-size: 0.9em; margin-top: 10px; }
+        .quiz-links { margin-top: 10px; font-size: 0.9em; color: #666; }
+        .quiz-links a { color: #d9534f; font-weight: bold; text-decoration: none; margin-right: 10px; }
+    </style>
+</head>
+<body>
+
+<div id="auth-alert" class="box">
+    <h2>앗, 로그인이 필요해요!</h2>
+    <p>회원님만 볼 수 있는 소중한 시청 기록이에요.<br>로그인 후 이용해 주세요!</p>
+    <a href="login.html" class="login-btn">로그인 하러 가기</a>
+</div>
+
+<div id="main-content" class="box" style="display: none;">
+    <h2>🎥 진행 중인 영상</h2>
+    <div id="video-list">목록을 불러오는 중이에요...</div>
+</div>
+
+<script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+    const res = await fetch('/get-config');
+    const config = await res.json();
+    const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+
+    const contentDB = {
+        hygiene: { title: '손씻기 • 마스크착용 • 기침예절', kahoot: ['https://kahoot.it/challenge/01812841', 'https://kahoot.it/challenge/03183156'] },
+        crosswalk: { title: '횡단보도 안전', kahoot: ['https://kahoot.it/challenge/07121259'] },
+        foodsafety: { title: '올바른 식습관', kahoot: ['https://kahoot.it/challenge/04466674'] },
+        precaution: { title: '감기 • 독감 예방', kahoot: ['https://kahoot.it/challenge/07815381'] }
+    };
+
+    async function loadOngoingVideos() {
+        const { data: { user } } = await supabase.auth.getUser();
+
+        // 1. 비로그인 처리
+        if (!user) {
+            document.getElementById('auth-alert').style.display = 'block';
+            return;
+        }
+
+        // 2. 로그인 상태면 메인 콘텐츠 표시
+        document.getElementById('main-content').style.display = 'block';
+
+        const { data: progressList } = await supabase.from('video_progress')
+            .select('*').eq('user_id', user.id);
+
+        const container = document.getElementById('video-list');
+        let html = '';
+
+        for (const [id, info] of Object.entries(contentDB)) {
+            const record = progressList?.find(p => p.video_id === id) || { progress_time: 0 };
+            
+            const videoDuration = 100; 
+            const percent = Math.min(100, Math.round((record.progress_time / videoDuration) * 100));
+
+            html += `
+                <div class="video-item">
+                    <h3>${info.title}</h3>
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar-fill" style="width: ${percent}%"></div>
+                    </div>
+                    <p style="font-size: 0.85em; color: #777;">진행률: ${percent}%</p>
+                    <a href="video.html?type=${id}" class="btn-link">이어보기</a>
+                    <div class="quiz-links">
+                        퀴즈 참여: ${info.kahoot.map((k, i) => `<a href="${k}" target="_blank">문제 ${i+1}</a>`).join('')}
+                    </div>
+                </div>`;
+        }
+        container.innerHTML = html || '<p>아직 시청한 영상이 없어요!</p>';
+    }
+
+    loadOngoingVideos();
+</script>
+</body>
+</html>
