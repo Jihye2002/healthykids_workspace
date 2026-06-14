@@ -35,7 +35,7 @@
 
     <script type="module">
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-    
+        
         async function handleNaverCallback() {
             const hash = window.location.hash.substring(1);
             const params = new URLSearchParams(hash || window.location.search.substring(1));
@@ -55,22 +55,27 @@
                 const data = await response.json();
             
                 if (data.response) {
-                    const p = data.response; // 네이버에서 받아온 정보 (name, email 등)
+                    const p = data.response; // 네이버 프로필 정보
             
-                    // 1. DB에서 사용자 조회
+                    // 1. [로컬 저장] 네이버 사용자 정보 저장 (index.html에서 식별용)
+                    localStorage.setItem('user', JSON.stringify({
+                        email: p.email,
+                        name: p.name,
+                        provider: 'naver'
+                    }));
+            
+                    // 2. [DB 처리] users 테이블에서 사용자 조회
                     let { data: user } = await supabase
                         .from('users')
                         .select('*')
                         .eq('email', p.email)
                         .maybeSingle();
             
-                    // 2. DB 업데이트 또는 삽입
+                    // 3. [DB 업데이트 또는 삽입]
                     if (user) {
-                        // [로그인] 기존 유저: 이름 업데이트
                         statusMsg.textContent = "로그인 중...";
                         await supabase.from('users').update({ name: p.name }).eq('email', p.email);
                     } else {
-                        // [회원가입] 신규 유저
                         statusMsg.textContent = "회원가입 진행 중...";
                         const { error: insertErr } = await supabase.from('users').insert([{ 
                             email: p.email, 
@@ -79,9 +84,6 @@
                         if (insertErr) throw insertErr;
                     }
             
-                    // 3. Auth 메타데이터 업데이트 (index.html에서 참조용)
-                    await supabase.auth.updateUser({ data: { name: p.name } });
-                    
                     statusMsg.textContent = "완료되었습니다!";
                     window.location.replace('/index.html');
                 } else {
@@ -93,8 +95,7 @@
                 setTimeout(() => window.location.replace('/login.html'), 2000);
             }
         }
-    
-        // 함수 호출
+        
         handleNaverCallback();
     </script>
 </body>
