@@ -149,3 +149,19 @@
                 window.showMessage("소중한 정보를 모두 정리했어요. 다음에 또 만나요!", true);
                 setTimeout(() => { window.location.replace('index.html?status=withdrawn'); }, 1500);
             } catch (err) {
+                window.showMessage("앗! 정리가 잠시 멈췄어요. 다시 시도해볼까요?", false);
+            }
+        };
+
+        window.showMessage = (msg, isSuccess) => {
+            const box = document.getElementById('status-msg');
+            box.textContent = msg;
+            box.className = isSuccess ? 'success' : 'fail';
+            box.style.display = 'block';
+            setTimeout(() => { box.style.display = 'none'; }, 2500);
+        };
+
+        initSupabase();
+    </script>
+</body>
+</html>
