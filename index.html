@@ -592,14 +592,20 @@
             return window.initPromise;
         }
         
-        // 2. UI 업데이트
         async function updateUI(session) {
             const sb = await initSupabase();
             const beforeLogin = document.getElementById('before-login');
             const afterLogin = document.getElementById('after-login');
             const welcomeMsg = document.getElementById('welcome-message');
+        
+            // 1. Supabase 세션 또는 localStorage(네이버) 정보 확인
+            const naverUser = JSON.parse(localStorage.getItem('user'));
             
-            if (!session) {
+            // 네이버 유저라면 로컬 스토리지 정보를 우선 사용
+            const isNaver = naverUser && naverUser.provider === 'naver';
+            const currentUser = session?.user || (isNaver ? naverUser : null);
+        
+            if (!currentUser) {
                 beforeLogin.style.display = 'flex';
                 afterLogin.style.display = 'none';
                 return;
@@ -609,29 +615,33 @@
             afterLogin.style.display = 'flex';
         
             try {
-                const { data: { user } } = await sb.auth.getUser();
-                const provider = user.app_metadata?.provider;
-                const socialProviders = ['naver', 'google', 'kakao'];
-                const isSocial = socialProviders.includes(provider);
-        
                 let displayName = "사용자";
         
-                if (isSocial) {
-                    // [소셜 로그인] users 테이블에서 name을 가져옴
+                if (isNaver) {
+                    // [네이버] users 테이블에서 name 조회
                     const { data: dbUser } = await sb.from('users')
                         .select('name')
-                        .eq('email', user.email)
+                        .eq('email', naverUser.email)
                         .maybeSingle();
-                    
-                    displayName = dbUser?.name || user.user_metadata?.name || "사용자";
+                    displayName = dbUser?.name || naverUser.name || "사용자";
                 } else {
-                    // [자체 로그인] public.users 테이블에서 nickname을 가져옴
-                    const { data: dbUser } = await sb.from('public.users')
-                        .select('nickname')
-                        .eq('email', user.email)
-                        .maybeSingle();
+                    // [기존 Supabase 로그인] 기존 로직 유지
+                    const provider = currentUser.app_metadata?.provider;
+                    const isSocial = ['google', 'kakao'].includes(provider);
                     
-                    displayName = dbUser?.nickname || user.user_metadata?.nickname || "사용자";
+                    if (isSocial) {
+                        const { data: dbUser } = await sb.from('users')
+                            .select('name')
+                            .eq('email', currentUser.email)
+                            .maybeSingle();
+                        displayName = dbUser?.name || currentUser.user_metadata?.name || "사용자";
+                    } else {
+                        const { data: dbUser } = await sb.from('public.users')
+                            .select('nickname')
+                            .eq('email', currentUser.email)
+                            .maybeSingle();
+                        displayName = dbUser?.nickname || currentUser.user_metadata?.nickname || "사용자";
+                    }
                 }
                 
                 if (welcomeMsg) welcomeMsg.textContent = displayName;
@@ -639,8 +649,8 @@
                 console.error("UI 업데이트 중 오류:", err);
             }
         }
-        
-        // 3. DB 동기화
+
+        // 3. DB 동기화 (기존에 작성하셨던 이 함수가 꼭 있어야 합니다!)
         async function syncUserWithDatabase(user) {
             if (!user || user.email.endsWith('@healthykids.com')) return;
             const sb = await initSupabase();
@@ -650,7 +660,6 @@
             const isSocial = socialProviders.includes(provider);
         
             if (isSocial) {
-                // [소셜 로그인] users 테이블 처리
                 const { data: existingUser } = await sb
                     .from('users')
                     .select('email')
@@ -664,7 +673,6 @@
                     }]);
                 }
             } else {
-                // [자체 로그인] public.users 테이블 처리
                 const { data: existingUser } = await sb
                     .from('public.users')
                     .select('email')
@@ -680,27 +688,26 @@
             }
         }
         
-        // 4. 초기화 로직
+        // [수정된] 4. 초기화 로직 (로그아웃 처리 보강)
         async function init() {
             const sb = await initSupabase();
             if (!sb) return;
         
-            // 로그아웃 버튼 이벤트
+            // 로그아웃 시 localStorage 정보도 함께 삭제
             document.getElementById('logout-btn')?.addEventListener('click', async () => {
                 await sb.auth.signOut();
-                localStorage.removeItem('user_name');
+                localStorage.removeItem('user'); // 네이버 정보 삭제
                 window.location.reload();
             });
         
-            // 세션 체크 및 UI 초기화
             const { data: { session } } = await sb.auth.getSession();
-            if (session) await syncUserWithDatabase(session.user);
+            
+            // 세션이 없어도 네이버 유저라면 UI 업데이트 실행
             updateUI(session);
         
-            // 상태 변경 감지
             sb.auth.onAuthStateChange(async (event, session) => {
                 if (event === 'SIGNED_OUT') {
-                    localStorage.removeItem('user_name');
+                    localStorage.removeItem('user');
                     window.location.reload();
                 } else if (event === 'SIGNED_IN' && session) {
                     await syncUserWithDatabase(session.user);
