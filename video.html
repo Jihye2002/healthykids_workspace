@@ -313,30 +313,33 @@
         const config = await res.json();
         const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
 
-        // [판별] 로컬스토리지의 상태값 확인
-        const isLoggedIn = localStorage.getItem('is_logged_in') === 'true';
-        const userEmail = localStorage.getItem('user_email');
-
-        const contentDB = {
-            hygiene: { title: '토리와 함께 세균을 퇴치해봐요!', src: '...', kahoot: ['...'] },
-            crosswalk: { title: '토리와 함께 길 건널 때 어떻게 하면 되는지 알아가요!', src: '...', kahoot: ['...'] },
-            foodsafety: { title: '토리와 올바르게 먹는 방법을 알아가요!', src: '...', kahoot: ['...'] },
-            precaution: { title: '토리와 감기와 독감 바이러스를 물리쳐요!', src: '...', kahoot: ['...'] }
-        };
-
+        // 1. URL 파라미터부터 최우선으로 확보
         const params = new URLSearchParams(window.location.search);
         const type = params.get('type');
-        const data = contentDB[type];
-        if (!data) return;
-
-        const video = document.getElementById('main-video');
-        const quiz = document.getElementById('quiz-section');
         
+        const contentDB = {
+            hygiene: { title: '토리와 함께 세균을 퇴치해봐요!', src: 'https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/%EC%9C%84%EC%83%9D%EC%95%88%EC%A0%84.mp4' },
+            crosswalk: { title: '토리와 함께 길 건널 때 어떻게 하면 되는지 알아가요!', src: 'https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/%EC%8B%A4%EC%99%B8%EC%95%88%EC%A0%84.mp4' },
+            foodsafety: { title: '토리와 올바르게 먹는 방법을 알아가요!', src: 'https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/%EC%83%9D%ED%99%9C%EA%B1%B4%EA%B0%95.mp4' },
+            precaution: { title: '토리와 감기와 독감 바이러스를 물리쳐요!', src: 'https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/%EC%A7%88%EB%B3%91%EC%98%88%EB%B0%A9.mp4' }
+        };
+
+        const data = contentDB[type];
+        if (!data) {
+            console.error("잘못된 접근입니다. type 파라미터를 확인하세요.");
+            return; // 여기서 멈추면 안 열립니다. type이 제대로 들어오는지 확인이 필요합니다.
+        }
+
+        // 영상 로드 (로그인과 무관하게 실행)
+        const video = document.getElementById('main-video');
         video.src = data.src;
         video.play().catch(() => {});
 
+        // 2. 로그인 상태는 기록 저장 시에만 확인
         video.addEventListener('ended', async () => {
-            // [판별] isLoggedIn이 true일 때만 기록을 저장
+            const isLoggedIn = localStorage.getItem('is_logged_in') === 'true';
+            const userEmail = localStorage.getItem('user_email');
+            
             if (isLoggedIn && userEmail) {
                 await supabase.from('video_progress').upsert({
                     user_email: userEmail,
@@ -346,8 +349,7 @@
                     updated_at: new Date().toISOString()
                 });
             }
-            quiz.style.display = "block";
-            quiz.scrollIntoView({ behavior: "smooth" });
+            document.getElementById('quiz-section').style.display = "block";
         });
     }
     init();
