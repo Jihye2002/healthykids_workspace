@@ -610,14 +610,29 @@
         
             try {
                 const { data: { user } } = await sb.auth.getUser();
-                // DB의 users 테이블에서 name을 직접 가져옵니다.
-                const { data: dbUser } = await sb.from('users')
-                    .select('name')
-                    .eq('email', user.email)
-                    .maybeSingle();
-                
-                // DB에 이름이 있으면 사용하고, 없으면 Auth 메타데이터 사용
-                const displayName = dbUser?.name || user.user_metadata?.name || "사용자";
+                const provider = user.app_metadata?.provider;
+                const socialProviders = ['naver', 'google', 'kakao'];
+                const isSocial = socialProviders.includes(provider);
+        
+                let displayName = "사용자";
+        
+                if (isSocial) {
+                    // [소셜 로그인] users 테이블에서 name을 가져옴
+                    const { data: dbUser } = await sb.from('users')
+                        .select('name')
+                        .eq('email', user.email)
+                        .maybeSingle();
+                    
+                    displayName = dbUser?.name || user.user_metadata?.name || "사용자";
+                } else {
+                    // [자체 로그인] public.users 테이블에서 nickname을 가져옴
+                    const { data: dbUser } = await sb.from('public.users')
+                        .select('nickname')
+                        .eq('email', user.email)
+                        .maybeSingle();
+                    
+                    displayName = dbUser?.nickname || user.user_metadata?.nickname || "사용자";
+                }
                 
                 if (welcomeMsg) welcomeMsg.textContent = displayName;
             } catch (err) {
@@ -629,12 +644,39 @@
         async function syncUserWithDatabase(user) {
             if (!user || user.email.endsWith('@healthykids.com')) return;
             const sb = await initSupabase();
-            const { data: existingUser } = await sb.from('public.users').select('*').eq('email', user.email).maybeSingle();
-            if (!existingUser) {
-                await sb.from('public.users').insert([{
-                    email: user.email,
-                    name: user.user_metadata?.full_name || user.user_metadata?.name || '사용자'
-                }]);
+        
+            const provider = user.app_metadata?.provider;
+            const socialProviders = ['naver', 'google', 'kakao'];
+            const isSocial = socialProviders.includes(provider);
+        
+            if (isSocial) {
+                // [소셜 로그인] users 테이블 처리
+                const { data: existingUser } = await sb
+                    .from('users')
+                    .select('email')
+                    .eq('email', user.email)
+                    .maybeSingle();
+        
+                if (!existingUser) {
+                    await sb.from('users').insert([{
+                        email: user.email,
+                        name: user.user_metadata?.name || '사용자'
+                    }]);
+                }
+            } else {
+                // [자체 로그인] public.users 테이블 처리
+                const { data: existingUser } = await sb
+                    .from('public.users')
+                    .select('email')
+                    .eq('email', user.email)
+                    .maybeSingle();
+        
+                if (!existingUser) {
+                    await sb.from('public.users').insert([{
+                        email: user.email,
+                        nickname: user.user_metadata?.nickname || '사용자'
+                    }]);
+                }
             }
         }
         
