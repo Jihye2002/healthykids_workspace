@@ -4,19 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/x-icon" href="https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/favicon.ico">
-    <title>헬시키즈 - 자료 뷰어</title>
+    <title>헬시키즈 | 자료 보기</title>
     <style>
-        /* 기본 리셋 및 레이아웃 */
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Arial', sans-serif; background-color: #fff; height: 100vh; display: flex; flex-direction: column; }
+        body { font-family: 'Arial', sans-serif; background-color: #fff;}
 
-        /* 헤더 스타일 (제공하신 video.html과 동일하게 설정) */
-        .header { display: flex; align-items: center; padding: 10px 20px; flex-shrink: 0; gap: 20px; }
-        .logo img { display: block; width: 100%; max-width: 180px; }
-        .container { display: flex; align-items: center; width: 100%; gap: 20px; }
-        .search-bar { display: flex; align-items: center; flex: 1; max-width: 1280px; gap: 8px; }
-        .search-bar input { flex: 1; padding: 10px; border: 1px solid #316ef4; border-radius: 5px; }
-        .search-bar button { background: none; border: none; cursor: pointer; }
+        /* --- 헤더 --- */
+        .header { display: flex; align-items: center; padding: 10px 20px; flex-wrap: nowrap; gap: 20px; }
+        .logo { flex-shrink: 0; }
+        .logo img { display: block; width: 100%; max-width: 180px; height: auto; }
+        .container { display: flex; align-items: center; width: 100%; min-width: 0; gap: 20px;}
+        .search-bar { display: flex; align-items: center; margin-left: 20px; flex: 1 1 auto; max-width: 1280px; gap: 8px; }
+        .search-bar input { flex: 1 1 auto; padding: 10px; font-size: 15px; border: 1px solid #316ef4; min-width: 50px; border-radius: 5px; }
+        .search-bar button { background-color: #fff; border: none; cursor: pointer; flex-shrink: 0; width: 30px; }
         .user-menu {
             display: flex;
             align-items: center;
@@ -56,56 +56,211 @@
             display: flex;       /* 추가: 수평 정렬을 위해 */
             align-items: center; /* 추가: 수평 정렬을 위해 */
         }
-        /* 네비게이션바 스타일 */
-        .navbar { background-color: #2f63c7; position: relative; z-index: 1000; }
-        .menu-list { display: flex; justify-content: center; list-style: none; }
-        .menu-list > li { padding: 15px 20px; color: white; font-weight: 600; cursor: default; }
-        .mega-menu { display: none; position: absolute; top: 100%; left: 0; width: 100%; background: #fff; border-bottom: 3px solid #2f63c7; box-shadow: 0 5px 10px rgba(0,0,0,0.1); }
-        .navbar:hover .mega-menu { display: block; }
-        .mega-content { display: flex; justify-content: stretch; padding: 20px 0; }
-        .column { flex: 1; text-align: center; border-right: 1px solid #eee; }
-        .column a { display: block; padding: 10px; text-decoration: none; color: #333; font-size: 14px; }
-        .column a:hover { color: #2f63c7; background: #f8fbff; font-weight: bold; }
+        /* --- 내비게이션 --- */
+        /* --- 네비게이션바 전체 설정 --- */
+        .navbar { 
+            background-color: #2f63c7; 
+            position: relative; 
+        }
+
+        .menu-list { 
+            width: 100%;
+            display: flex; 
+            justify-content: center; /* 메뉴를 가로 중앙으로 정렬 */
+            align-items: center;
+            flex-wrap: nowrap;
+            white-space: nowrap;
+            list-style: none; 
+            padding: 0;         /* 위아래 적절한 여백 */
+            margin: 0;
+            overflow-x: visible;
+        }
+
+        .menu-list > li { 
+            flex: 1; 
+            padding: 0 20px;
+            text-align: center;
+            position: relative;
+            white-space: nowrap;
+        }
+
+        /* 상단 메인 메뉴 링크 스타일 */
+        .menu-list > li { 
+            display: block; 
+            padding: 10px 15px; 
+            color: white; 
+            text-decoration: none; 
+            font-weight: 600;
+            transition: background 0.3s;
+            white-space: nowrap;
+        }
+
+        /* 1. 메가 메뉴 전체 패널 */
+        .mega-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 100%; 
+            background-color: #ffffff;
+            border-bottom: 3px solid #2f63c7;
+            box-shadow: 0 5px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+
+        /* 호버 시 메가 메뉴 나타남 */
+        .navbar:hover .mega-menu {
+            display: block; 
+        }
+
+        /* 2. 컬럼 컨테이너 (정렬 담당) */
+        .mega-content {
+            display: flex;
+            justify-content: stretch;
+            width: 100%;
+            padding: 20px 0;
+        }
+
+        /* 3. 각 컬럼 스타일 */
+        .column {
+            flex: 1;
+            text-align: center;
+            border-right: 1px solid #eee;
+        }
+
+        .column:last-child {
+            border-right: none;
+        }
+
+        .column ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .column ul li a {
+            color: #333;
+            padding: 10px 0;
+            display: block;
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+
+        .column ul li a:hover {
+            color: #2f63c7;
+            font-weight: bold;
+            background-color: #f8fbff;
+        }   
 
         /* 뷰어 영역 */
-        #pdf-viewer-container { flex-grow: 1; width: 100%; padding: 20px; display: flex; justify-content: center; align-items: center; }
-        #pdf-viewer { width: 100%; height: 100%; border: 1px solid #ccc; border-radius: 8px; overflow: hidden; }
+        #pdf-viewer { flex-grow: 1; width: 100%; padding: 20px; display: flex; justify-content: center; align-items: center; }
+        #pdf-viewer { width: 100%; height: 100%; border: 1px solid #ccc; overflow: hidden; }
+
+        #auth-alert { text-align: center; padding: 60px 20px; }
+        #auth-alert h2 { color: #2f63c7; margin-bottom: 15px; }
+        .login-btn { 
+            display: inline-block; 
+            background: #2f63c7; 
+            color: white; 
+            padding: 12px 30px; 
+            text-decoration: none; 
+            font-weight: bold; 
+            margin-top: 20px; 
+        }
     </style>
 </head>
 <body>
 
+<div id="auth-alert" style="display: none;">
+    <h2>로그인이 필요해요!</h2>
+    <p>회원님만 볼 수 있는 소중한 자료예요.<br>로그인 후 이용해 주세요!</p>
+    <a href="login.html" class="login-btn">로그인 하러 가기</a>
+</div>
+
 <header class="header">
-    <div class="logo"><a href="index.html"><img src="https://github.com/Jihye2002/healthykids_workspace/blob/main/logo.png?raw=true" alt="로고"></a></div>
+    <div class="logo">
+        <a href="index.html">
+            <img src="https://github.com/Jihye2002/healthykids_workspace/blob/main/logo.png?raw=true" alt="헬시키즈로고">
+        </a>
+    </div>
     <div class="container">
         <form class="search-bar" action="search.html" method="get">
             <input type="text" name="q" placeholder="검색어를 입력하세요">
-            <button type="submit"><img src="https://github.com/Jihye2002/healthykids_workspace/blob/main/search.png?raw=true" width="40"></button>
+            <button type="submit"><img src="https://github.com/Jihye2002/healthykids_workspace/blob/main/search.png?raw=true" alt="검색버튼" width="40" height="40"></button>
         </form>
         <div class="user-menu" id="user-menu">
-            <div id="before-login"><a href="login.html">로그인</a><span class="divider">|</span><a href="signup.html">회원가입</a></div>
-            <div id="after-login"><span id="welcome-message"></span>님 환영해요! <a href="#" id="logout-btn">로그아웃</a></div>
+            <div id="before-login">
+                <a href="login.html">로그인</a>
+                <span class="divider">|</span>
+                <a href="signup.html">회원가입</a>
+            </div>
+            <div id="after-login">
+                <span id="welcome-message"></span>님 환영해요! 
+                <a href="#" id="logout-btn">로그아웃</a>
+            </div>
         </div>
     </div>
 </header>
 
 <nav class="navbar">
     <ul class="menu-list">
-        <li>회원정보</li><li>영상보기</li><li>놀이&활동자료 다운로드</li><li>안전수칙자료 다운로드</li><li>Q&A</li>
+        <li>회원정보</li>
+        <li>영상보기</li>
+        <li>놀이&활동자료 다운로드</li>
+        <li>안전수칙자료 다운로드</li>
+        <li>Q&A</li>
     </ul>
+
     <div class="mega-menu">
         <div class="mega-content">
-            <div class="column"><ul><li><a href="edit-profile.html">개인정보 수정</a></li><li><a href="withdraw.html">회원탈퇴</a></li></ul></div>
-            <div class="column"><ul><li><a href="ongoing.html">진행중인 영상</a></li><li><a href="video.html?type=hygiene">위생안전</a></li><li><a href="video.html?type=crosswalk">실외안전</a></li><li><a href="video.html?type=foodsafety">생활건강</a></li><li><a href="video.html?type=precaution">질병예방</a></li></ul></div>
-            <div class="column"><ul><li><a href="viewer.html?file=하루건강체크리스트.pdf">하루건강 체크리스트</a></li><li><a href="#">퀴즈</a></li><li><a href="viewer.html?file=활동지.pdf">활동지</a></li></ul></div>
-            <div class="column"><ul><li><a href="viewer.html?file=위생안전수칙.pdf">위생안전자료</a></li><li><a href="viewer.html?file=실외안전수칙.pdf">실외안전자료</a></li><li><a href="viewer.html?file=생활건강수칙.pdf">생활건강자료</a></li><li><a href="viewer.html?file=질병예방수칙.pdf">질병예방자료</a></li></ul></div>
-            <div class="column"><ul><li><a href="#">자주 묻는 질문</a></li><li><a href="#">1:1상담 문의</a></li><li><a href="#">영상오류 해결방법</a></li></ul></div>
+            <div class="column">
+                <ul>
+                    <li><a href="edit-profile.html">개인정보 수정</a></li>
+                    <li><a href="withdraw.html">회원탈퇴</a></li>
+                </ul>
+            </div>
+
+            <div class="column">
+                <ul>
+                    <li><a href="ongoing.html">진행중인 영상</a></li>
+                    <li><a href="video.html?type=hygiene">위생안전</a></li>
+                    <li><a href="video.html?type=crosswalk">실외안전</a></li>
+                    <li><a href="video.html?type=foodsafety">생활건강</a></li>
+                    <li><a href="video.html?type=precaution">질병예방</a></li>
+                </ul>
+            </div>
+
+            <div class="column">
+                <ul>
+                    <li><a href="viewer.html?file=하루건강체크리스트.pdf">하루건강 체크리스트</a></li>
+                    <li><a href="#">퀴즈</a></li>
+                    <li><a href="viewer.html?file=활동지.pdf">활동지</a></li>
+                </ul>
+            </div>
+
+            <div class="column">
+                <ul>
+                    <li><a href="viewer.html?file=위생안전수칙.pdf">위생안전자료</a></li>
+                    <li><a href="viewer.html?file=실외안전수칙.pdf">실외안전자료</a></li>
+                    <li><a href="viewer.html?file=생활건강수칙.pdf">생활건강자료</a></li>
+                    <li><a href="viewer.html?file=질병예방수칙.pdf">질병예방자료</a></li>
+                </ul>
+            </div>
+
+            <div class="column">
+                <ul>
+                    <li><a href="#">자주 묻는 질문</a></li>
+                    <li><a href="#">1:1상담 문의</a></li>
+                    <li><a href="#">영상오류 해결방법</a></li>
+                </ul>
+            </div>
+
         </div>
     </div>
 </nav>
 
-<div id="pdf-viewer-container">
-    <div id="pdf-viewer"></div>
-</div>
+<div id="pdf-viewer"></div>
 
 <script type="module">
     import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -174,18 +329,33 @@
         const sb = await initSupabase();
         const { data: { session } } = await sb.auth.getSession();
         
-        // UI 반영
+        // UI 반영 (로그인 상태에 따른 상단 헤더 등 변경)
         updateUI(session);
-
+    
+        // DOM 요소 선택
         const viewer = document.getElementById('pdf-viewer');
-
-        // 로그인 체크 (비로그인 시 접근 제한)
-        if (!session && !localStorage.getItem('user')) {
-            viewer.innerHTML = `<div style="padding:40px; text-align:center; font-size:16px;">로그인이 필요한 서비스입니다.<br><br><a href="login.html" style="color:#2f63c7; font-weight:bold;">로그인 페이지로 이동</a></div>`;
+        const authAlert = document.getElementById('auth-alert'); // 추가된 알림창 영역
+    
+        // 로그인 여부 확인
+        const isSessionValid = !!session;
+        const isLocalUserValid = !!localStorage.getItem('user');
+    
+        // 비로그인 시 처리
+        if (!isSessionValid && !isLocalUserValid) {
+            if (authAlert) {
+                authAlert.style.display = 'block'; // 알림창 보이기
+            }
+            if (viewer) {
+                viewer.style.display = 'none'; // 뷰어 숨기기
+            }
             return;
         }
-
-        // PDF 렌더링
+    
+        // 로그인 된 경우 처리
+        if (authAlert) authAlert.style.display = 'none';
+        if (viewer) viewer.style.display = 'block';
+    
+        // PDF 렌더링 로직
         const params = new URLSearchParams(window.location.search);
         const file = params.get('file');
         const fileMap = {
@@ -196,7 +366,7 @@
             "하루건강체크리스트.pdf": "하루건강_체크리스트.pdf",
             "활동지.pdf": "활동지.pdf"
         };
-
+    
         if (file && fileMap[file]) {
             const fileUrl = `https://raw.githubusercontent.com/Jihye2002/healthykids_workspace/main/${fileMap[file]}`;
             const pdfJsUrl = `https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(fileUrl)}`;
