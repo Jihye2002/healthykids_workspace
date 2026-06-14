@@ -22,15 +22,28 @@
         .btn-cancel { 
             background: none; border: none; color: #aaa; cursor: pointer; margin-top: 15px; font-size: 0.9em;
         }
+
+        #status-msg {
+            display: none;
+            position: fixed;
+            top: 20%;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 20px 30px;
+            border-radius: 20px;
+            font-weight: bold;
+            z-index: 1000;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        /* 성공 스타일 */
+        .success { background-color: #2f63c7; color: white; } 
+        
+        /* 실패 스타일 */
+        .fail { background-color: #ff4d4d; color: white; }
     </style>
 </head>
 <body>
-
-    <div id="status-msg" style="
-        display: none; position: fixed; top: 20%; left: 50%; transform: translateX(-50%);
-        padding: 20px 30px; border-radius: 20px; font-weight: bold; color: white;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.2); z-index: 1000;
-    "></div>
     
     <div class="box">
         <h2>정말 떠나실 건가요? 😢</h2>
@@ -71,37 +84,39 @@
         }
         loadUserInfo();
 
-        // 메시지 표시 함수
-        function showMessage(msg, color) {
+        // 1. 메시지 표시 함수
+        function showMessage(msg, isSuccess) {
             const box = document.getElementById('status-msg');
             box.textContent = msg;
-            box.style.backgroundColor = color;
+            // 성공이면 success 클래스, 실패면 fail 클래스 적용
+            box.className = isSuccess ? 'success' : 'fail';
             box.style.display = 'block';
+            
             // 2초 뒤에 메시지 사라짐
             setTimeout(() => { box.style.display = 'none'; }, 2000);
         }
-
+        
+        // 2. 탈퇴 함수
         window.withdrawAccount = async () => {
-    
-        if (!confirm("정말 탈퇴하실 건가요? 사용자님이 입력하신 모든 정보가 사라져서 되돌릴 수 없어요!")) return;
-    
-        try {
-            const { error } = await supabase.rpc('delete_my_account');
-            if (error) throw error;
-            
-            await supabase.auth.signOut();
-            
-            // 성공 메시지
-            showMessage("그동안 함께해줘서 고마웠어요! 다음에 또 만나요~", "#2f63c7");
-            
-            // 2초 뒤 로그인 화면으로 이동
-            setTimeout(() => { location.href = "login.html"; }, 2000);
-    
-        } catch (err) {
-            // 실패 메시지
-            showMessage("앗.. 잠시 후에 다시 시도해봐요!", "#ff4d4d");
-        }
-    };
+            if (!confirm("정말 탈퇴하실 건가요? 사용자님이 입력하신 모든 정보가 사라져서 되돌릴 수 없어요!")) return;
+        
+            try {
+                const { error } = await supabase.rpc('delete_my_account');
+                if (error) throw error;
+                
+                await supabase.auth.signOut();
+                
+                // 성공 메시지 (true 전달)
+                showMessage("그동안 함께해줘서 고마웠어요! 다음에 또 만나요~", true);
+                
+                // 2초 뒤 로그인 화면으로 이동
+                setTimeout(() => { location.href = "login.html"; }, 2000);
+        
+            } catch (err) {
+                // 실패 메시지 (false 전달)
+                showMessage("앗.. 잠시 후에 다시 시도해봐요!", false);
+            }
+        };
     </script>
 </body>
 </html>
