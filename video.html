@@ -413,6 +413,31 @@
             a.appendChild(button); quizButtons.appendChild(a);
         });
 
+        video.addEventListener('timeupdate', async () => {
+            const currentTime = video.currentTime;
+            const duration = video.duration;
+            if (!duration) return;
+
+            const progress = (currentTime / duration) * 100;
+            
+            // 5초에 한 번씩만 서버에 저장 (너무 잦은 요청 방지)
+            if (Math.round(currentTime) % 5 === 0) {
+                const { data: { session } } = await sb.auth.getSession();
+                const naverUser = JSON.parse(localStorage.getItem('user'));
+                const userEmail = session?.user.email || naverUser?.email;
+                
+                if (userEmail) {
+                    await sb.from('video_progress').upsert({
+                        user_email: userEmail,
+                        video_id: type,
+                        progress_time: progress,
+                        is_completed: progress >= 95, // 95% 이상이면 완료 처리
+                        updated_at: new Date().toISOString()
+                    }, { onConflict: 'user_email, video_id' }); // Supabase 테이블에 복합키 설정이 필요할 수 있습니다.
+                }
+            }
+        });
+
         video.addEventListener('ended', async () => {
             const { data: { session } } = await sb.auth.getSession();
             const user = session?.user;
