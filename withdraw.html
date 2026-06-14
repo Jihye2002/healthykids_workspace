@@ -108,11 +108,11 @@
             // 2. 모든 테이블을 확인하여 데이터가 하나라도 있는지 찾음
             // 구글/카카오/네이버 등 흩어진 테이블에서 정보를 통합
             const { data: publicData } = await supabase.from('public.users')
-                .select('name, email, nickname, security_question, security_answer')
+                .select('id, email, name, nickname, security_question, security_answer, is_temp_password, temp_password, temp_password_usage')
                 .eq('email', targetEmail).maybeSingle();
         
             const { data: usersData } = await supabase.from('users') // 네이버/소셜 공용 테이블
-                .select('name, email, nickname, security_question, security_answer')
+                .select('name, email, nickname, profile_image, gender, birthday, age')
                 .eq('email', targetEmail).maybeSingle();
         
             // 3. 데이터가 하나라도 존재하면 병합 (null 처리)
