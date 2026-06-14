@@ -5,6 +5,34 @@
     <title>헬시키즈 | 내 정보 수정</title>
     <style>
         body { font-family: 'Arial', sans-serif; text-align: center; padding: 30px; background-color: #afe1fc; }
+
+        .background-elements {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -3;
+            pointer-events: none;
+        }
+
+        .floating-shape {
+            position: fixed;
+            z-index: 0;
+            animation: floatShape 6s infinite ease-in-out;
+        }
+
+        @keyframes floatShape {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-10px) rotate(5deg); }
+        }
+
+        /* 도형 모양들 */
+        .star { color: #b39ddb; font-size: 24px; }
+        .heart { color: #ff8a80; font-size: 24px; }
+        .circle { width: 20px; height: 20px; border-radius: 50%; background: #80cbc4; }
+        .triangle { width: 0; height: 0; border-left: 10px solid transparent; border-right: 10px solid transparent; border-bottom: 20px solid #ffcc80; }
+
         .box { background: white; padding: 80px; width: 400px; margin: 0 auto; border: 2px solid #2f63c7; text-align: left; }
         h2 { text-align: center; color: #2f63c7; margin-bottom: 20px; }
         
@@ -37,6 +65,20 @@
     </style>
 </head>
 <body>
+   <div class="background-elements">
+        <div class="floating-shape" style="top: 15%; left: 10%; font-size: 35px; color: #a2d2ff; transform: rotate(15deg);">★</div>
+        <div class="floating-shape" style="top: 55%; right: 8%; font-size: 28px; color: #fdfd96; transform: rotate(-20deg);">★</div>
+        
+        <div class="floating-shape" style="top: 35%; left: 8%; font-size: 45px; color: #ff8fab;">♥</div>
+        <div class="floating-shape" style="top: 15%; right: 28%; font-size: 30px; color: #ffc8dd;">♥</div>
+        
+        <div class="floating-shape" style="width: 35px; height: 35px; background: #caffbf; border-radius: 50%; top: 50%; left: 15%; font-size: 60px;"></div>
+        <div class="floating-shape" style="width: 25px; height: 25px; background: #bdb2ff; border-radius: 50%; top: 25%; right: 15%;"></div>
+        
+        <div class="floating-shape" style="width: 0; height: 0; border-left: 15px solid transparent; border-right: 15px solid transparent; border-bottom: 25px solid #ffcc80; top: 10%; left: 40%;"></div>
+        <div class="floating-shape" style="width: 0; height: 0; border-left: 20px solid transparent; border-right: 20px solid transparent; border-bottom: 35px solid #a0c4ff; top: 85%; right: 35%;"></div>
+    </div>
+    
     <div class="box">
         <h2>내 정보 수정</h2>
         <div id="status-msg"></div>
