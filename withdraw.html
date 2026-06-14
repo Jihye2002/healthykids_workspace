@@ -5,52 +5,31 @@
     <title>헬시키즈 | 소중한 정보 지우기</title>
     <style>
         body { font-family: 'Nanum Gothic', sans-serif; text-align: center; padding: 50px; background-color: #afe1fc; }
-        .box { 
-            background: white; padding: 40px; width: 420px; margin: 50px auto; border: 2px solid #2f63c7; position: relative;
-        }
+        .box { background: white; padding: 40px; width: 420px; margin: 50px auto; border: 2px solid #2f63c7; }
         h2 { color: #2f63c7; }
         p { color: #2f63c7; font-size: 1.1em; }
-        .info-card { 
-            background: #b9e0fd; padding: 15px; 
-            margin: 20px 0; text-align: left; color: #666;
-        }
-        .btn-withdraw { 
-            background-color: #2f63c7; color: white; border: none; padding: 15px; 
-            width: 100%; cursor: pointer; font-size: 1.1em; font-weight: bold; margin-top: 10px; 
-        }
-        .btn-cancel { 
-            background: none; border: none; color: #aaa; cursor: pointer; margin-top: 15px; font-size: 0.9em;
-        }
-
-        #status-msg {
-            display: none;
-            position: fixed;
-            top: 20%;
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 20px 30px;
-            font-weight: bold;
-            z-index: 1000;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-        }
-        
-        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        
-        .fail { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-        
+        .info-card { background: #b9e0fd; padding: 15px; margin: 20px 0; text-align: left; color: #444; line-height: 1.6; }
+        .btn-withdraw { background-color: #2f63c7; color: white; border: none; padding: 15px; width: 100%; cursor: pointer; font-size: 1.1em; font-weight: bold; margin-top: 10px; }
+        .btn-cancel { background: none; border: none; color: #aaa; cursor: pointer; margin-top: 15px; font-size: 0.9em; }
+        #status-msg { display: none; position: fixed; top: 20%; left: 50%; transform: translateX(-50%); padding: 20px 30px; font-weight: bold; z-index: 1000; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #155724; }
+        .fail { background-color: #f8d7da; color: #721c24; border: 1px solid #721c24; }
     </style>
 </head>
 <body>
-    
+
+    <div id="status-msg"></div>
+
     <div class="box">
         <h2>정말 떠나실 건가요? 😢</h2>
-        <p>사용자님의 소중한 정보가 모두 사라져요.<br>탈퇴 후에는 지금까지의 모든 정보를 되돌릴 수 없어요</p>
+        <p>사용자님의 소중한 정보가 모두 사라져요.<br>탈퇴 후에는 지금까지의 모든 정보를 되돌릴 수 없어요.</p>
         
         <div class="info-card" id="user-info">
-            불러오는 중...
+            정보를 불러오는 중이에요...
         </div>
 
         <button class="btn-withdraw" onclick="withdrawAccount()">네, 탈퇴할게요</button>
+        <br>
         <button class="btn-cancel" onclick="history.back()">아니요, 더 머물래요!</button>
     </div>
 
@@ -61,56 +40,63 @@
         const config = await res.json();
         const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
 
-        // 페이지 로드 시 정보 불러오기
         async function loadUserInfo() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
 
-            const { data } = await supabase.from('"public.users"')
-                .select('name, nickname, security_question')
+            // 1. 소셜 로그인 여부 및 방식 확인
+            const providers = user.app_metadata.providers || [];
+            const isSocial = providers.length > 0;
+            
+            // 소셜 로그인 안내 문구 (5~7세 눈높이)
+            const socialGuide = isSocial 
+                ? `<p style="font-size: 0.9em; color: #d63384;"><strong>알려드려요!</strong><br>구글, 카카오, 네이버 계정 정보도 모두 사라져요! 탈퇴하셔도 나중에 같은 계정으로 다시 오시면 처음부터 다시 시작할 수 있어요.</p>`
+                : `<p style="font-size: 0.9em; color: #555;">일반 계정으로 로그인 중입니다.</p>`;
+
+            // 2. public.users 테이블 정보 조회
+            const { data } = await supabase.from('public.users')
+                .select('name, email, nickname, security_question, security_answer')
                 .eq('id', user.id)
                 .single();
 
             if (data) {
+                const userId = data.email ? data.email.split('@')[0] : '없음';
+                // 소셜 사용자라면 비밀번호 필드는 '없음' 처리
+                const passwordDisplay = isSocial ? '없음 (소셜 로그인)' : '●●●●●●●●';
+
                 document.getElementById('user-info').innerHTML = `
-                    <strong>이름:</strong> ${data.name || '친구'}<br>
+                    ${socialGuide}
+                    <strong>이름:</strong> ${data.name || '없음'}<br>
+                    <strong>아이디:</strong> ${userId}<br>
+                    <strong>이메일:</strong> ${data.email || '없음'}<br>
                     <strong>별명:</strong> ${data.nickname || '없음'}<br>
-                    <strong>비밀번호 질문:</strong> ${data.security_question || '없음'}
+                    <strong>비밀번호:</strong> ${passwordDisplay}<br>
+                    <strong>비밀번호 질문:</strong> ${data.security_question || '없음'}<br>
+                    <strong>비밀번호 답변:</strong> ${data.security_answer || '없음'}
                 `;
             }
         }
         loadUserInfo();
 
-        // 1. 메시지 표시 함수
         function showMessage(msg, isSuccess) {
             const box = document.getElementById('status-msg');
             box.textContent = msg;
-            // 성공이면 success 클래스, 실패면 fail 클래스 적용
             box.className = isSuccess ? 'success' : 'fail';
             box.style.display = 'block';
-            
-            // 2초 뒤에 메시지 사라짐
             setTimeout(() => { box.style.display = 'none'; }, 2000);
         }
         
-        // 2. 탈퇴 함수
         window.withdrawAccount = async () => {
-            if (!confirm("정말 탈퇴하실 건가요? 사용자님이 입력하신 모든 정보가 사라져서 되돌릴 수 없어요!")) return;
+            if (!confirm("정말 탈퇴하실 건가요? 사용자님의 모든 정보가 사라져서 되돌릴 수 없어요!")) return;
         
             try {
                 const { error } = await supabase.rpc('delete_my_account');
                 if (error) throw error;
                 
                 await supabase.auth.signOut();
-                
-                // 성공 메시지 (true 전달)
                 showMessage("그동안 함께해줘서 고마웠어요! 다음에 또 만나요~", true);
-                
-                // 2초 뒤 로그인 화면으로 이동
                 setTimeout(() => { location.href = "login.html"; }, 2000);
-        
             } catch (err) {
-                // 실패 메시지 (false 전달)
                 showMessage("앗.. 잠시 후에 다시 시도해봐요!", false);
             }
         };
