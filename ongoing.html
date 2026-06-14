@@ -44,25 +44,24 @@
         const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
 
         const container = document.getElementById('video-list');
-        // Supabase Auth 대신 localStorage의 이메일 사용
         const userEmail = localStorage.getItem('user_email');
 
-        // 1. 비로그인 처리
+        // [로그인 체크] 비로그인 시 깔끔하게 안내 메시지 출력
         if (!userEmail) {
             document.getElementById('auth-alert').style.display = 'block';
             document.getElementById('main-content').style.display = 'none';
-            container.innerHTML = '<p style="text-align:center;">로그인 후 학습 기록을 확인하세요.</p>';
+            document.getElementById('auth-alert').innerHTML = `
+                <div style="text-align:center; padding: 40px; border:1px solid #ccc; border-radius:8px;">
+                    로그인이 필요한 서비스예요!
+                </div>`;
             return;
         }
 
-        // 2. 데이터 조회
-        const { data: progressList, error } = await supabase
+        const { data: progressList } = await supabase
             .from('video_progress')
             .select('*')
-            .eq('user_email', userEmail); // 확인된 이메일 사용
+            .eq('user_email', userEmail);
 
-        // 3. 렌더링
-        let html = '';
         const contentDB = {
             hygiene: { title: '토리와 함께 세균을 퇴치해봐요!', kahoot: ['https://kahoot.it/challenge/01812841', 'https://kahoot.it/challenge/03183156'] },
             crosswalk: { title: '토리와 함께 길 건널 때 어떻게 하면 되는지 알아가요!', kahoot: ['https://kahoot.it/challenge/07121259'] },
@@ -70,6 +69,7 @@
             precaution: { title: '토리와 감기와 독감 바이러스를 물리쳐요!', kahoot: ['https://kahoot.it/challenge/07815381'] }
         };
 
+        let html = '';
         for (const [id, info] of Object.entries(contentDB)) {
             const record = (progressList || []).find(p => p.video_id === id) || { progress_time: 0 };
             const percent = Math.min(100, Math.round((record.progress_time / 100) * 100));
