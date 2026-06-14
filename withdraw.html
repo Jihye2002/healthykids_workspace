@@ -62,10 +62,13 @@
             
             // 안내 문구 색상: 연한 파란색(#2c7dbf) 적용
             const socialGuide = isSocial 
-                ? `<p style="margin-bottom: 20px;">
+                ? `<div style="margin-bottom: 20px;">
                     <strong style="color: #d9534f;">알려드려요!</strong><br>
-                    <span style="color: #2c7dbf;">구글, 카카오, 네이버 계정 정보도 모두 사라져요! <br>탈퇴하셔도 나중에 같은 계정으로 다시 오시면 처음부터 다시 시작할 수 있어요.</span>
-                   </p>`
+                    <div style="padding-left: 15px; color: #1a5f96;">
+                        구글, 카카오, 네이버 계정 정보도 모두 사라져요! <br>
+                        탈퇴하셔도 나중에 같은 계정으로 다시 오시면 처음부터 다시 시작할 수 있어요.
+                    </div>
+                   </div>`
                 : `<p style="color: #555; margin-bottom: 20px;">일반 계정으로 로그인 중입니다.</p>`;
 
             const { data } = await supabase.from('public.users')
