@@ -76,13 +76,18 @@
                         statusMsg.textContent = "로그인 중...";
                         await supabase.from('users').update({ name: p.name }).eq('email', p.email);
                     } else {
-                        statusMsg.textContent = "회원가입 진행 중...";
-                        const { error: insertErr } = await supabase.from('users').insert([{ 
+                        console.log("네이버에서 받아온 정보:", p); // p가 제대로 들어오는지 확인
+
+                        const { data: insertData, error: insertErr } = await supabase.from('users').insert([{ 
                             email: p.email, 
                             name: p.name 
                         }]);
-                        if (insertErr) throw insertErr;
-                    }
+                        
+                        if (insertErr) {
+                            console.error("DB 삽입 실패 상세내용:", insertErr); // 이 에러를 보면 바로 알 수 있습니다!
+                        } else {
+                            console.log("DB 삽입 성공!");
+                        }
             
                     statusMsg.textContent = "완료되었습니다!";
                     window.location.replace('/index.html');
