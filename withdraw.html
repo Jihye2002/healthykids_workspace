@@ -177,11 +177,12 @@
             }
         
             try {
-                // 1. 서버 데이터 삭제 (가장 중요)
-                const { error: rpcError } = await supabase.rpc('delete_my_account'); 
-                if (rpcError) throw rpcError;
+                // 서버 삭제 호출
+                const { data, error: rpcError } = await supabase.rpc('delete_my_account');
         
-                // 2. 로컬 저장소 및 IndexedDB 먼저 청소
+                // 삭제 요청 자체가 실패했는지 확인
+                if (rpcError) throw rpcError;
+
                 localStorage.clear();
                 sessionStorage.clear();
                 
