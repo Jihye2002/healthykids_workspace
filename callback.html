@@ -53,58 +53,40 @@
                 const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
                 const response = await fetch(`/get-naver-profile?token=${accessToken}`);
                 const data = await response.json();
-        
+            
                 if (data.response) {
-                    const p = data.response;
-        
+                    const p = data.response; // p.name, p.email 등이 들어있음
+            
                     // 1. DB에서 사용자 조회
                     let { data: user } = await supabase
                         .from('users')
                         .select('*')
                         .eq('email', p.email)
                         .maybeSingle();
-        
+            
+                    // 2. DB에 저장할 데이터 준비
+                    const userData = { email: p.email, name: p.name };
+            
                     if (user) {
-                        // [로그인 케이스] 이미 가입된 회원
+                        // [로그인] 기존 유저: 이름이 변경되었을 수 있으므로 업데이트
                         statusMsg.textContent = "로그인 중...";
-                        
-                        // [수정] localStorage 대신 Supabase Auth 메타데이터 업데이트
-                        await supabase.auth.updateUser({
-                            data: { name: user.name }
-                        });
-                        
-                        // localStorage.removeItem('user_name'); // 이제 필요 없음
-                        
-                        await new Promise(r => setTimeout(r, 500));
-                        window.location.replace('/index.html');
+                        await supabase.from('users').update({ name: p.name }).eq('email', p.email);
                     } else {
-                        // [회원가입 케이스] DB에 저장 후
+                        // [회원가입] 신규 유저
                         statusMsg.textContent = "회원가입 진행 중...";
-                        const insertData = { email: p.email, name: p.name };
-                        
-                        const { error: insertErr } = await supabase
-                            .from('users')
-                            .insert([insertData]);
-
-                        if (insertErr) {
-                            statusMsg.textContent = "가입 오류 발생";
-                            setTimeout(() => window.location.replace('/signup.html'), 2000);
-                        } else {
-                            // [수정] 가입 즉시 메타데이터 업데이트
-                            await supabase.auth.updateUser({
-                                data: { name: p.name }
-                            });
-                            
-                            statusMsg.textContent = "가입 완료! 이동합니다.";
-                            window.location.replace('/index.html'); // login.html 대신 바로 index로
-                        }
+                        const { error: insertErr } = await supabase.from('users').insert([userData]);
+                        if (insertErr) throw insertErr;
                     }
+            
+                    // 3. Auth 메타데이터 업데이트 (UI 반영용)
+                    await supabase.auth.updateUser({ data: { name: p.name } });
+                    
+                    window.location.replace('/index.html');
                 }
             } catch (err) {
                 console.error("연동 실패:", err);
                 window.location.replace('/login.html');
             }
-        }
         handleNaverCallback();
     </script>
 </body>
