@@ -169,39 +169,38 @@
             if (!supabase) return;
             closeWithdrawModal();
             
-            // 1. 로그인 여부 확인
             if (!currentUser || !currentUser.email) {
-                console.log("currentUser 정보 없음:", currentUser);
                 showMessage("다시 로그인해주세요ㅠㅠ", false);
                 return;
             }
         
             try {
-                // 서버 삭제 호출
-                const { data, error: rpcError } = await supabase.rpc('delete_my_account');
-        
-                // 삭제 요청 자체가 실패했는지 확인
+                // 1. 서버 데이터 삭제
+                const { error: rpcError } = await supabase.rpc('delete_my_account');
                 if (rpcError) throw rpcError;
-
+        
+                // 2. 탈퇴 완료 플래그 설정 (재진입 방지용)
+                localStorage.setItem('is_withdrawn', 'true');
+        
+                // 3. 로컬 데이터 청소
                 localStorage.clear();
                 sessionStorage.clear();
-                
                 const databases = await window.indexedDB.databases();
                 databases.forEach(db => { window.indexedDB.deleteDatabase(db.name); });
                 
-                // 3. 마지막으로 로그아웃 (인증 세션 종료)
-                // 로컬 데이터는 다 지웠으니 이제 인증 정보만 날리면 끝!
+                // 4. 세션 종료
                 await supabase.auth.signOut({ scope: 'global' });
                 
                 showMessage("탈퇴가 완료되었습니다. 다시 만나요!", true);
                 
+                // 5. 탈퇴 상태 파라미터와 함께 이동
                 setTimeout(() => { 
-                    window.location.replace('index.html'); 
+                    window.location.replace('index.html?status=withdrawn'); 
                 }, 500);
                     
             } catch (err) {
                 console.error("탈퇴 프로세스 에러:", err);
-                showMessage("앗..잠시 기다려 주세요. 다시 한 번 시도하고 안 되면 전 화면으로 돌아가봐요!", false);
+                showMessage("탈퇴 처리 중 문제가 발생했어요.", false);
             }
         };
     </script>
