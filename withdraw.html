@@ -83,13 +83,13 @@
             
             // 1. 자체 로그인용 테이블 조회
             const { data: publicData } = await supabase.from('public.users')
-                .select('name, email, nickname, security_question, security_answer')
+                .select('id, email, name, nickname, security_question, security_answer, is_temp_password, temp_password, temp_password_usage')
                 .eq('email', targetEmail)
                 .single();
     
             // 2. 네이버 로그인용 테이블 조회 (없을 경우를 대비)
             const { data: naverData } = await supabase.from('users')
-                .select('name, email, nickname, security_question, security_answer')
+                .select('name, email, nickname, profile_image, gender, birthday, age')
                 .eq('email', targetEmail)
                 .single();
     
