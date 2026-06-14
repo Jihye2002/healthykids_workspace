@@ -32,10 +32,11 @@
     <div id="status-msg"></div>
 
     <div id="withdraw-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:2000; justify-content:center; align-items:center;">
-        <div style="background:white; padding:30px; text-align: center; box-shadow:0 5px 15px rgba(0,0,0,0.3); max-width: 300px;">
-            <p style="font-size: 16px; color: #666; margin: 0 0 25px 0; text-align:left;">
-                정말 떠나실 건가요? 😢 <br>떠나면 그동안의 정보들은 모두 없어져요.. <br>한 번 더 생각해봐요!
-            </p>
+        <div style="background:white; padding:30px; text-align: center; box-shadow:0 5px 15px rgba(0,0,0,0.3); max-width: 320px; border-radius: 0px;">
+            <div id="withdraw-info" style="margin-bottom: 20px;"></div>
+            
+            <p style="font-size: 16px; color: #666; margin: 0 0 25px 0;">정말 떠나실 건가요? 😢</p>
+            
             <div style="display: flex; justify-content: center; gap: 20px;">
                 <button onclick="window.confirmWithdraw()" style="padding:10px 20px; background:#2f63c7; color:white; border:none; cursor:pointer;">네, 없애주세요</button>
                 <button onclick="window.closeWithdrawModal()" style="padding:10px 20px; background:#ccc; color:white; border:none; cursor:pointer;">아니요!</button>
@@ -120,12 +121,19 @@
         function renderUI(data) {
             const isSocial = loginType !== 'local';
             const userId = data.email ? data.email.split('@')[0] : '알 수 없음';
+            
+            // 정책 변경에 맞춰 안내 문구 구체화
             const socialGuide = isSocial 
-                ? `<div style="color: #d9534f; font-weight: bold; margin-bottom: 15px;">📢 계정 정보가 모두 사라집니다!</div>`
-                : `<p style="margin-bottom: 15px;">일반 계정으로 로그인 중입니다.</p>`;
-
+                ? `<div style="background-color: #f8d7da; color: #721c24; padding: 15px; border-radius: 8px; margin-bottom: 15px; font-size: 0.9em;">
+                     <strong>📢 알려드려요</strong><br>
+                     소셜 계정은 완전히 삭제하기가 어려워요<br>
+                     탈퇴 시 <strong>사용자님의 계정 정보는 모두 삭제</strong>되고, 
+                     다시 로그인 할 때에는 기록이 없는 새로운 계정으로 시작돼요. 그래서 회원가입을 해야 해요!
+                   </div>`
+                : `<p style="margin-bottom: 15px; color: #555;">일반 계정으로 로그인 중입니다.</p>`;
+        
             document.getElementById('user-info').innerHTML = `
-                <div style="line-height: 2; font-family: 'Pretendard', sans-serif;">
+                <div style="line-height: 1.8; font-family: 'Pretendard', sans-serif;">
                     ${socialGuide}
                     <strong>이름:</strong> ${data.name || '없음'}<br>
                     <strong>아이디:</strong> ${userId}<br>
@@ -139,14 +147,31 @@
         }
 
         window.withdrawAccount = () => {
+            // [추가] 탈퇴 전 소셜 로그인 여부를 확인하여 모달 내용을 동적으로 변경할 수 있습니다.
+            const isSocial = loginType !== 'local';
+            const modal = document.getElementById('withdraw-info');
+  
+            if (infoBox) {
+                infoBox.innerHTML = isSocial 
+                    ? `<div style="text-align: left; background: #fff3cd; padding: 15px; border-radius: 8px; margin: 10px 0; font-size: 0.85em;">
+                         <strong>📢 알려드려요</strong><br>
+                          소셜 계정은 완전히 삭제하기가 어려워요<br>
+                          탈퇴 시 <strong>사용자님의 계정 정보는 모두 삭제</strong>되고,<br>
+                          다시 로그인 할 때에는 기록이 없는 새로운 계정으로 시작돼요.<br>
+                          그래서 회원가입을 해야 해요!
+                       </div>`
+                    : `<div style="text-align: left; background: #d4edda; padding: 10px; border-radius: 0px; border: 1px solid #c3e6cb; font-size: 0.85em; color: #155724;">
+                         헬시키즈 페이지에서 만든 계정은 탈퇴하면 써놓은 모든 정보 없어져요!
+                       </div>`;
+            }
+            
             document.getElementById('withdraw-modal').style.display = 'flex';
         };
-
-        window.closeWithdrawModal = () => {
-            document.getElementById('withdraw-modal').style.display = 'none';
-        };
-
+        
         window.confirmWithdraw = async () => {
+            // 탈퇴 실행 전 사용자에게 다시 한번 확인받는 로직 권장
+            if (!confirm("정말 탈퇴하시겠습니까? 기록은 복구할 수 없습니다.")) return;
+        
             try {
                 const { error } = await supabase.rpc('delete_account_by_email', { 
                     target_email: currentUser.email 
@@ -154,16 +179,14 @@
         
                 if (error) throw error;
         
-                // [추가] 로그아웃 및 브라우저 데이터 완전 삭제
+                // 로그아웃 및 브라우저 데이터 완전 삭제
                 if (loginType !== 'naver') await supabase.auth.signOut();
                 
-                // LocalStorage 및 SessionStorage 비우기
                 localStorage.clear();
                 sessionStorage.clear();
                 
-                // IndexedDB(Supabase 캐시) 초기화
                 const dbs = await indexedDB.databases();
-                dbs.forEach(db => indexedDB.deleteDatabase(db.name));
+                dbs.forEach(db => { if(db.name) indexedDB.deleteDatabase(db.name); });
         
                 window.location.replace('index.html?status=withdrawn');
             } catch (err) {
