@@ -91,15 +91,20 @@
         // 4. 정보 로드 (supabase가 확실히 생성된 후 호출됨)
         async function loadUserInfo() {
             if (!supabase) return; 
-    
-            const { data: { user: authUser } } = await supabase.auth.getUser();
+
+            const { data: { session } } = await supabase.auth.getSession();
             const localUser = JSON.parse(localStorage.getItem('user'));
-            
-            const activeUser = authUser || localUser;
-            if (!activeUser) return;
-    
-            const isSocial = authUser ? (authUser.app_metadata.providers?.length > 0) : false;
-            const socialGuide = (isSocial || !authUser) 
+
+            if (!session && !localUser) {
+                console.log("로그인 세션 정보를 찾을 수 없습니다.");
+                return; 
+            }
+
+            const activeUser = session?.user || localUser;
+            const targetEmail = activeUser.email;
+            const isSocial = session?.user ? (session.user.app_metadata.providers?.length > 0) : false;
+
+            const socialGuide = (isSocial || !session?.user) 
                 ? `<div style="margin-bottom: 15px;">
                     <div style="color: #d9534f; font-weight: bold; margin-bottom: 5px;">📢 알려드려요!</div>
                     <div style="color: #1a5f96; line-height: 1.5;">
@@ -108,27 +113,24 @@
                     </div>
                    </div>`
                 : `<p style="color: #555; margin-bottom: 15px;">일반 계정으로 로그인 중입니다.</p>`;
-    
-            const targetEmail = activeUser.email;
-            
-            // --- 건드리지 않은 데이터 조회 로직 시작 ---
+
+            // 데이터 조회
             const { data: publicData } = await supabase.from('public.users')
-                .select('id, email, name, nickname, security_question, security_answer, is_temp_password, temp_password, temp_password_usage')
-                .eq('email', targetEmail)
-                .maybeSingle(); // 에러 방지
-    
-            // 2. 네이버 로그인용 테이블 조회
-            const { data: naverData } = await supabase.from('users')
-                .select('name, email, nickname, profile_image, gender, birthday, age')
+                .select('name, email, nickname, security_question, security_answer')
                 .eq('email', targetEmail)
                 .maybeSingle();
-    
+
+            const { data: naverData } = await supabase.from('users')
+                .select('name, email, nickname')
+                .eq('email', targetEmail)
+                .maybeSingle();
+
             const data = publicData || naverData;
-    
+
             if (data) {
                 const userId = data.email ? data.email.split('@')[0] : '없음';
-                const passwordDisplay = !authUser ? '없음 (소셜/커스텀 로그인)' : '<span class="password-mask">●●●●●●●●</span>';
-    
+                const passwordDisplay = !session?.user ? '없음 (소셜/커스텀 로그인)' : '<span class="password-mask">●●●●●●●●</span>';
+
                 document.getElementById('user-info').innerHTML = `
                     ${socialGuide}
                     <strong>이름:</strong> ${data.name || '없음'}<br>
@@ -140,11 +142,10 @@
                     <strong>비밀번호 답변:</strong> ${data.security_answer || '없음'}
                 `;
             } else {
-            console.log("기록이 없는 신규/복구 계정입니다. 자동으로 로그아웃합니다.");
-            await supabase.auth.signOut();
-            localStorage.clear();
-            window.location.href = 'index.html';
-            return;
+                console.log("기록이 없는 계정입니다. 로그아웃합니다.");
+                await supabase.auth.signOut();
+                localStorage.clear();
+                window.location.href = 'index.html';
             }
         }
     
