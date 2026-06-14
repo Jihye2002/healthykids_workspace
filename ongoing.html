@@ -78,7 +78,7 @@
         const { data: progressList, error } = await supabase
             .from('video_progress')
             .select('*')
-            .eq('user_id', user.id);
+            .eq('user_email', user.email);
 
         if (error) {
             console.error("데이터 로드 오류:", error);
