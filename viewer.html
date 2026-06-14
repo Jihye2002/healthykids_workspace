@@ -115,53 +115,52 @@
 
     <div id="pdf-viewer"></div>
 
-    <script>
+    <script type="module">
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-        // ... config 설정 코드 ...
-        const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
     
-        // 페이지 진입 시 로그인 확인
-        async function checkAuth() {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
-                alert("로그인이 필요한 서비스예요!");
-                location.href = "login.html"; // 비로그인 시 로그인 페이지로 이동
+        // 1. 설정값 가져오기 (비동기 처리)
+        async function init() {
+            const res = await fetch('/get-config');
+            const config = await res.json();
+            
+            // 중요: persistSession: true 추가
+            const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY, {
+                auth: { persistSession: true }
+            });
+    
+            // 2. 로그인 체크 함수
+            async function checkAuth() {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) {
+                    alert("로그인이 필요한 서비스예요!");
+                    location.href = "login.html";
+                }
             }
-        }
-        
-        // 기존 window.onload 앞에 실행
-        checkAuth();
-        
-        window.onload = function() {
+            await checkAuth();
+    
+            // 3. PDF 렌더링 로직 (checkAuth 완료 후 실행)
             const urlParams = new URLSearchParams(window.location.search);
             const fileName = urlParams.get('file');
             
-            // 중요: 깃허브 저장소 안의 상대 경로를 사용합니다.
-            // 같은 폴더에 있다면 파일 이름만 쓰면 됩니다.
             const fileMap = {
                 "위생안전수칙.pdf": "위생안전수칙.pdf",
                 "실외안전수칙.pdf": "실외안전수칙.pdf",
                 "생활건강수칙.pdf": "생활건강수칙.pdf",
                 "질병예방수칙.pdf": "질병예방수칙.pdf",
-            
                 "하루건강체크리스트.pdf": "하루건강_체크리스트.pdf",
-
                 "활동지.pdf": "활동지.pdf"
             };
     
             if (fileName && fileMap[fileName]) {
                 const viewer = document.getElementById('pdf-viewer');
-                
-                // #toolbar=1을 붙여 브라우저 내장 뷰어를 강제로 호출합니다.
-                // 이 방식은 브라우저 기본 UI를 사용하므로 가장 깔끔하고 인쇄/다운로드가 완벽합니다.
-                const pdfFile = fileMap[fileName] + "#toolbar=1&navpanes=1";
-                
-                viewer.innerHTML = `<iframe src="${pdfFile}" width="100%" height="100%" style="border:none;"></iframe>`;
+                const pdfFile = fileMap[fileName] + "#toolbar=1";
+                viewer.innerHTML = `<iframe src="${pdfFile}" width="100%" height="100%"></iframe>`;
             } else {
                 document.getElementById('pdf-viewer').innerText = "파일을 찾을 수 없습니다.";
             }
-        };
+        }
+    
+        init();
     </script>
-        <script src="chat-ui.js"></script>
     </body>
 </html>
