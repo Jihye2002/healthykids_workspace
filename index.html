@@ -693,16 +693,31 @@
             const sb = await initSupabase();
             if (!sb) return;
         
-            // 로그아웃 시 localStorage 정보도 함께 삭제
+            // 1. 탈퇴 후 복귀한 사용자인지 먼저 확인 (무한 루프 방지)
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('status') === 'withdrawn' || localStorage.getItem('is_withdrawn') === 'true') {
+                console.log("탈퇴 처리된 사용자입니다. 자동 로그인을 중단합니다.");
+                localStorage.removeItem('is_withdrawn'); // 플래그 제거
+                
+                // 로그아웃 상태의 UI로 강제 설정
+                const beforeLogin = document.getElementById('before-login');
+                const afterLogin = document.getElementById('after-login');
+                if (beforeLogin) beforeLogin.style.display = 'flex';
+                if (afterLogin) afterLogin.style.display = 'none';
+                return; 
+            }
+        
+            // 2. 로그아웃 버튼 이벤트
             document.getElementById('logout-btn')?.addEventListener('click', async () => {
                 await sb.auth.signOut();
-                localStorage.removeItem('user'); // 네이버 정보 삭제
+                localStorage.removeItem('user');
                 window.location.reload();
             });
         
+            // 3. 세션 체크
             const { data: { session } } = await sb.auth.getSession();
             
-            // 세션이 없어도 네이버 유저라면 UI 업데이트 실행
+            // 4. 세션이 없어도 네이버 유저라면 UI 업데이트
             updateUI(session);
         
             sb.auth.onAuthStateChange(async (event, session) => {
