@@ -65,29 +65,38 @@
                         .maybeSingle();
         
                     if (user) {
-                        // [로그인 케이스] 이미 가입된 회원 -> 바로 index.html로 이동
+                        // [로그인 케이스] 이미 가입된 회원
                         statusMsg.textContent = "로그인 중...";
-                        localStorage.setItem('user_name', user.name); // index.html용 키로 저장
+                        
+                        // [수정] localStorage 대신 Supabase Auth 메타데이터 업데이트
+                        await supabase.auth.updateUser({
+                            data: { name: user.name }
+                        });
+                        
+                        // localStorage.removeItem('user_name'); // 이제 필요 없음
                         
                         await new Promise(r => setTimeout(r, 500));
                         window.location.replace('/index.html');
                     } else {
-                        // [회원가입 케이스] DB에 없으면 저장 후 login.html로 이동하여 로그인 절차 마무리
+                        // [회원가입 케이스] DB에 저장 후
                         statusMsg.textContent = "회원가입 진행 중...";
                         const insertData = { email: p.email, name: p.name };
-                        // ... (생략: 기존 데이터 필드들)
                         
                         const { error: insertErr } = await supabase
                             .from('users')
                             .insert([insertData]);
-        
+
                         if (insertErr) {
                             statusMsg.textContent = "가입 오류 발생";
                             setTimeout(() => window.location.replace('/signup.html'), 2000);
                         } else {
-                            // 가입 성공 후 login.html로 이동하여 다시 callback을 타게 함
-                            statusMsg.textContent = "가입 완료! 로그인 페이지로 이동합니다.";
-                            window.location.replace('/login.html'); 
+                            // [수정] 가입 즉시 메타데이터 업데이트
+                            await supabase.auth.updateUser({
+                                data: { name: p.name }
+                            });
+                            
+                            statusMsg.textContent = "가입 완료! 이동합니다.";
+                            window.location.replace('/index.html'); // login.html 대신 바로 index로
                         }
                     }
                 }
