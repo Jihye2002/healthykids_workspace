@@ -311,11 +311,10 @@
     async function init() {
         const res = await fetch('/get-config');
         const config = await res.json();
-        const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY, { auth: { persistSession: true } });
+        const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
 
-        // 1. 로그인 체크 (viewer.html과 동일한 방식)
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
+        const userEmail = localStorage.getItem('user_email');
+        if (!userEmail) {
             document.body.innerHTML = '<h2 style="text-align:center; margin-top:50px;">로그인 후 이용 가능합니다.</h2>';
             return;
         }
@@ -339,15 +338,13 @@
         video.play().catch(() => {});
 
         video.addEventListener('ended', async () => {
-            // 로그인한 user.email로 데이터 저장
             await supabase.from('video_progress').upsert({
-                user_email: user.email,
+                user_email: userEmail, // Supabase Auth가 아닌 localStorage 이메일 사용
                 video_id: type,
                 progress_time: 100,
                 is_completed: true,
                 updated_at: new Date().toISOString()
             });
-
             quiz.style.display = "block";
             quiz.scrollIntoView({ behavior: "smooth" });
         });
