@@ -690,40 +690,49 @@
         
         // [수정된] 4. 초기화 로직 (로그아웃 처리 보강)
         async function init() {
-            const sb = await initSupabase();
-            if (!sb) return;
-        
-            // 1. 탈퇴 후 복귀한 사용자인지 먼저 확인 (무한 루프 방지)
+            // 1. [방어막] 탈퇴 후 복귀한 상태인지 가장 먼저 검사
             const params = new URLSearchParams(window.location.search);
-            if (params.get('status') === 'withdrawn' || localStorage.getItem('is_withdrawn') === 'true') {
-                console.log("탈퇴 처리된 사용자입니다. 자동 로그인을 중단합니다.");
-                localStorage.removeItem('is_withdrawn'); // 플래그 제거
+            const hasWithdrawn = params.get('status') === 'withdrawn' || localStorage.getItem('is_withdrawn') === 'true';
+        
+            // 2. 탈퇴한 상태라면 로그아웃 처리를 확실히 하고 UI만 비로그인으로 고정
+            if (hasWithdrawn) {
+                console.log("탈퇴한 사용자입니다. 자동 로직을 건너뜁니다.");
                 
-                // 로그아웃 상태의 UI로 강제 설정
+                // 플래그 정리
+                localStorage.removeItem('is_withdrawn');
+                
+                // UI 강제 설정
                 const beforeLogin = document.getElementById('before-login');
                 const afterLogin = document.getElementById('after-login');
                 if (beforeLogin) beforeLogin.style.display = 'flex';
                 if (afterLogin) afterLogin.style.display = 'none';
+                
+                // 아주 중요한 부분: 여기서 return 해서 뒤의 모든 자동 로그인/DB 체크를 막음
                 return; 
             }
         
-            // 2. 로그아웃 버튼 이벤트
+            // 3. Supabase 초기화
+            const sb = await initSupabase();
+            if (!sb) return;
+        
+            // 4. 로그아웃 버튼 이벤트 (탈퇴 후가 아닌 정상 사용자용)
             document.getElementById('logout-btn')?.addEventListener('click', async () => {
                 await sb.auth.signOut();
                 localStorage.removeItem('user');
-                window.location.reload();
+                window.location.href = 'index.html'; // reload 대신 index로 이동하여 깨끗하게 초기화
             });
         
-            // 3. 세션 체크
+            // 5. 세션 확인 및 UI 업데이트
             const { data: { session } } = await sb.auth.getSession();
             
-            // 4. 세션이 없어도 네이버 유저라면 UI 업데이트
+            // 네이버 유저 혹은 Supabase 세션 유저 확인하여 UI 업데이트
             updateUI(session);
         
+            // 6. 인증 상태 변화 감지
             sb.auth.onAuthStateChange(async (event, session) => {
                 if (event === 'SIGNED_OUT') {
                     localStorage.removeItem('user');
-                    window.location.reload();
+                    window.location.href = 'index.html';
                 } else if (event === 'SIGNED_IN' && session) {
                     await syncUserWithDatabase(session.user);
                     updateUI(session);
@@ -731,6 +740,7 @@
             });
         }
         
+        // 페이지 로드 시 호출
         document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
