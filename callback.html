@@ -4,29 +4,9 @@
     <meta charset="UTF-8">
     <title>로그인 처리 중...</title>
     <style>
-        body {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            font-family: 'Pretendard', sans-serif;
-            background-color: #f9f9f9;
-        }
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 5px solid #e0e0e0;
-            border-top: 5px solid #03c75a; 
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 20px;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
+        body { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; font-family: 'Pretendard', sans-serif; background-color: #f9f9f9; }
+        .spinner { width: 50px; height: 50px; border: 5px solid #e0e0e0; border-top: 5px solid #03c75a; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         h2 { color: #333; font-weight: 500; font-size: 18px; }
     </style>
 </head>
@@ -49,44 +29,50 @@
             }
         
             try {
-                // 1. Supabase 클라이언트 설정
                 const res = await fetch('/get-config');
                 const config = await res.json();
                 const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
                 
-                // 2. 네이버 프로필 가져오기
                 const response = await fetch(`/get-naver-profile?token=${accessToken}`);
                 const data = await response.json();
             
                 if (data.response) {
-                    const p = data.response; // 네이버 프로필 정보
+                    const p = data.response;
+                    console.log("네이버 프로필 데이터:", p);
             
-                    // 3. [로컬 저장] index.html 식별용
                     localStorage.setItem('user', JSON.stringify({
                         email: p.email,
                         name: p.name,
                         provider: 'naver'
                     }));
             
-                    // 4. [DB 처리] 기존 유저 확인
-                    let { data: user } = await supabase
+                    // 1. 기존 유저 조회
+                    let { data: user, error: fetchErr } = await supabase
                         .from('users')
-                        .select('*')
+                        .select('email')
                         .eq('email', p.email)
                         .maybeSingle();
             
-                    // 5. DB 업데이트 또는 신규 삽입
+                    if (fetchErr) console.error("조회 에러:", fetchErr);
+            
+                    // 2. 업데이트 또는 삽입
                     if (user) {
                         statusMsg.textContent = "로그인 중...";
-                        await supabase.from('users').update({ name: p.name }).eq('email', p.email);
+                        const { error: updateErr } = await supabase.from('users').update({ name: p.name }).eq('email', p.email);
+                        if (updateErr) console.error("업데이트 실패:", updateErr);
                     } else {
                         statusMsg.textContent = "회원가입 진행 중...";
-                        const { error: insertErr } = await supabase.from('users').insert([{ 
+                        const { error: insertErr } = await supabase.from('users').insert({ 
                             email: p.email, 
                             name: p.name 
-                        }]);
+                        });
                         
-                        if (insertErr) throw insertErr;
+                        if (insertErr) {
+                            console.error("DB 삽입 실패! 에러 상세:", insertErr);
+                            alert("DB 저장 실패: " + insertErr.message); // RLS 에러시 여기 확인
+                        } else {
+                            console.log("DB 삽입 성공!");
+                        }
                     }
             
                     statusMsg.textContent = "완료되었습니다!";
@@ -96,8 +82,7 @@
                 }
             } catch (err) {
                 console.error("연동 실패:", err);
-                statusMsg.textContent = "오류 발생! 로그인 페이지로 이동합니다.";
-                setTimeout(() => window.location.replace('/login.html'), 2000);
+                statusMsg.textContent = "오류 발생! 콘솔을 확인하세요.";
             }
         }
         
