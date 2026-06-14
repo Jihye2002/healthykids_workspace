@@ -2,52 +2,106 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>헬시키즈 | 회원탈퇴</title>
+    <title>헬시키즈 | 소중한 정보 지우기</title>
     <style>
-        body { font-family: 'Arial', sans-serif; text-align: center; padding: 50px; background-color: #afe1fc; }
-        .box { background: white; padding: 40px; width: 400px; margin: 0 auto; border: 2px solid #ff4d4d; border-radius: 20px; }
-        h2 { color: #ff4d4d; }
-        .btn-withdraw { background-color: #ff4d4d; color: white; border: none; padding: 15px; width: 100%; border-radius: 10px; cursor: pointer; font-weight: bold; margin-top: 20px; }
+        body { font-family: 'Nanum Gothic', sans-serif; text-align: center; padding: 50px; background-color: #afe1fc; }
+        .box { 
+            background: white; padding: 40px; width: 420px; margin: 0 auto; 
+            border: 3px solid #ffb7c5; border-radius: 30px; box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        h2 { color: #ff6b81; }
+        p { color: #555; font-size: 1.1em; }
+        .info-card { 
+            background: #fff5f7; padding: 15px; border-radius: 20px; 
+            margin: 20px 0; text-align: left; color: #666;
+        }
+        .btn-withdraw { 
+            background-color: #ff6b81; color: white; border: none; padding: 15px; 
+            width: 100%; border-radius: 15px; cursor: pointer; font-size: 1.1em; font-weight: bold; margin-top: 10px; 
+        }
+        .btn-cancel { 
+            background: none; border: none; color: #aaa; cursor: pointer; margin-top: 15px; font-size: 0.9em;
+        }
     </style>
 </head>
 <body>
+
+    <div id="status-msg" style="
+        display: none; position: fixed; top: 20%; left: 50%; transform: translateX(-50%);
+        padding: 20px 30px; border-radius: 20px; font-weight: bold; color: white;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2); z-index: 1000;
+    "></div>
+    
     <div class="box">
-        <h2>정말 모든 정보를 없애고 싶으신가요?</h2>
-        <p>탈퇴하시면 모든 정보가 삭제되며 복구할 수 없어요.</p>
+        <h2>정말 떠나실 건가요? 😢</h2>
+        <p>사용자님의 소중한 정보가 모두 사라져요.<br>탈퇴 후에는 지금까지의 모든 정보를 되돌릴 수 없어요</p>
+        
+        <div class="info-card" id="user-info">
+            불러오는 중...
+        </div>
+
         <button class="btn-withdraw" onclick="withdrawAccount()">네, 탈퇴할게요</button>
+        <button class="btn-cancel" onclick="history.back()">아니요, 더 머물래요!</button>
     </div>
 
     <script type="module">
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+        const res = await fetch('/get-config');
+        const config = await res.json();
+        const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+
+        // 페이지 로드 시 정보 불러오기
+        async function loadUserInfo() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            const { data } = await supabase.from('"public.users"')
+                .select('name, nickname, security_question')
+                .eq('id', user.id)
+                .single();
+
+            if (data) {
+                document.getElementById('user-info').innerHTML = `
+                    <strong>이름:</strong> ${data.name || '친구'}<br>
+                    <strong>별명:</strong> ${data.nickname || '없음'}<br>
+                    <strong>비밀번호 질문:</strong> ${data.security_question || '없음'}
+                `;
+            }
+        }
+        loadUserInfo();
+
+        // 메시지 표시 함수
+        function showMessage(msg, color) {
+            const box = document.getElementById('status-msg');
+            box.textContent = msg;
+            box.style.backgroundColor = color;
+            box.style.display = 'block';
+            // 2초 뒤에 메시지 사라짐
+            setTimeout(() => { box.style.display = 'none'; }, 2000);
+        }
+
         window.withdrawAccount = async () => {
-          if (!confirm("정말 탈퇴하시겠습니까? 모든 정보가 삭제되며 되돌릴 수 없습니다.")) return;
-      
-          const res = await fetch('/get-config');
-          const config = await res.json();
-          const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
-      
-          try {
-              const { data: { user } } = await supabase.auth.getUser();
-              if (!user) return;
-      
-              // 1. Auth 서비스에서 사용자 삭제를 요청
-              // 이 함수를 호출하면, CASCADE 설정에 의해 DB(public.users)도 자동으로 지워집니다.
-              const { error } = await supabase.auth.admin.deleteUser(user.id);
-              
-              // 만약 클라이언트에서 admin.deleteUser가 권한 문제로 안 된다면, 
-              // 아래와 같이 본인 계정 삭제 요청을 사용합니다.
-              // const { error } = await supabase.rpc('delete_user_account'); // Edge Function 또는 RPC 권장
-      
-              // 2. 결과 처리
-              await supabase.auth.signOut();
-              alert("탈퇴가 완료되었습니다. 그동안 이용해주셔서 감사합니다!");
-              location.href = "login.html";
-      
-          } catch (err) {
-              alert("탈퇴 처리 중 오류가 발생했습니다.");
-          }
-      };
+    
+        if (!confirm("정말 탈퇴하실 건가요? 사용자님이 입력하신 모든 정보가 사라져서 되돌릴 수 없어요!")) return;
+    
+        try {
+            const { error } = await supabase.rpc('delete_my_account');
+            if (error) throw error;
+            
+            await supabase.auth.signOut();
+            
+            // 성공 메시지
+            showMessage("그동안 함께해줘서 고마웠어요! 다음에 또 만나요~", "#2f63c7");
+            
+            // 2초 뒤 로그인 화면으로 이동
+            setTimeout(() => { location.href = "login.html"; }, 2000);
+    
+        } catch (err) {
+            // 실패 메시지
+            showMessage("앗.. 잠시 후에 다시 시도해봐요!", "#ff4d4d");
+        }
+    };
     </script>
 </body>
 </html>
