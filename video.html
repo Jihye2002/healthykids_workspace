@@ -308,7 +308,16 @@
 <script type="module">
     import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-    // [함수 위치 이동] init() 밖으로 빼서 어디서든 안전하게 호출 가능하게 함
+    // [공통] 헤더 UI 업데이트
+    async function updateHeader(supabase) {
+        const beforeLogin = document.getElementById('before-login');
+        const afterLogin = document.getElementById('after-login');
+        const user = await getValidatedUser(supabase);
+        
+        if (beforeLogin) beforeLogin.style.display = user ? 'none' : 'flex';
+        if (afterLogin) afterLogin.style.display = user ? 'flex' : 'none';
+    }
+
     async function getValidatedUser(sb) {
         const { data: { session } } = await sb.auth.getSession();
         if (session) return { email: session.user.email, type: 'auth' };
@@ -317,10 +326,7 @@
         if (naverUser && naverUser.provider === 'naver') {
             const { data: dbUser } = await sb.from('users').select('email').eq('email', naverUser.email).maybeSingle();
             if (dbUser) return { email: naverUser.email, type: 'naver' };
-            else {
-                localStorage.clear();
-                return null;
-            }
+            else { localStorage.clear(); return null; }
         }
         return null;
     }
@@ -330,42 +336,52 @@
         const config = await res.json();
         const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
 
+        await updateHeader(supabase);
+
         const params = new URLSearchParams(window.location.search);
         const type = params.get('type');
         
         const contentDB = {
-            hygiene: { title: '토리와 함께 세균을 퇴치해봐요!', src: 'https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/%EC%9C%84%EC%83%9D%EC%95%88%EC%A0%84.mp4' },
-            crosswalk: { title: '토리와 함께 길 건널 때 어떻게 하면 되는지 알아가요!', src: 'https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/%EC%8B%A4%EC%99%B8%EC%95%88%EC%A0%84.mp4' },
-            foodsafety: { title: '토리와 올바르게 먹는 방법을 알아가요!', src: 'https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/%EC%83%9D%ED%99%9C%EA%B1%B4%EA%B0%95.mp4' },
-            precaution: { title: '토리와 감기와 독감 바이러스를 물리쳐요!', src: 'https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/%EC%A7%88%EB%B3%91%EC%98%88%EB%B0%A9.mp4' }
+            hygiene: { title: '토리와 함께 세균을 퇴치해봐요!', src: '...' }, // 기존 src 유지
+            crosswalk: { title: '토리와 함께 길 건널 때 어떻게 하면 되는지 알아가요!', src: '...' },
+            foodsafety: { title: '토리와 올바르게 먹는 방법을 알아가요!', src: '...' },
+            precaution: { title: '토리와 감기와 독감 바이러스를 물리쳐요!', src: '...' }
         };
 
         const data = contentDB[type];
-        if (!data) {
-            console.error("잘못된 접근입니다.");
-            return;
-        }
+        if (!data) return;
 
         const video = document.getElementById('main-video');
         video.src = data.src;
+
+        // [진행률 확인] 기존에 시청한 기록이 있는지 확인 (사용자 경험 개선)
+        const user = await getValidatedUser(supabase);
+        if (user) {
+            const { data: progress } = await supabase
+                .from('video_progress')
+                .select('progress_time')
+                .eq('user_email', user.email)
+                .eq('video_id', type)
+                .maybeSingle();
+            
+            if (progress) console.log("기존 시청 기록 있음:", progress.progress_time);
+        }
+
         video.play().catch(() => {});
 
         video.addEventListener('ended', async () => {
-            const user = await getValidatedUser(supabase);
+            const currentUser = await getValidatedUser(supabase);
             
-            if (user) {
-                await supabase.from('video_progress').upsert({
-                    user_email: user.email,
+            if (currentUser) {
+                const { error } = await supabase.from('video_progress').upsert({
+                    user_email: currentUser.email,
                     video_id: type,
                     progress_time: 100,
                     is_completed: true,
                     updated_at: new Date().toISOString()
                 });
-                console.log("기록 저장 완료");
-            } else {
-                console.log("로그아웃 상태: 기록하지 않음");
+                console.log(error ? "저장 실패" : "기록 저장 완료");
             }
-            
             document.getElementById('quiz-section').style.display = "block";
         });
     }
