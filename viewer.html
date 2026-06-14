@@ -136,9 +136,21 @@
                 // 2. 로그인 체크
                 const { data: { user } } = await supabase.auth.getUser();
                 if (!user) {
-                    alert("로그인이 필요한 서비스예요!");
-                    location.href = "login.html";
-                    return;
+                    const viewer = document.getElementById('pdf-viewer');
+                    // viewer 영역을 깔끔한 박스로 변경
+                    viewer.style.display = 'flex';
+                    viewer.style.justifyContent = 'center';
+                    viewer.style.alignItems = 'center';
+                    viewer.style.border = '1px solid #ccc';
+                    viewer.style.borderRadius = '8px';
+                    viewer.style.height = '400px'; // 박스 높이 지정
+                    
+                    viewer.innerHTML = `
+                        <div style="padding: 20px; font-size: 16px; color: #333;">
+                            로그인이 필요한 서비스예요!
+                        </div>
+                    `;
+                    return; // 이후 코드 실행 중단
                 }
         
                 // 3. PDF 렌더링 로직
