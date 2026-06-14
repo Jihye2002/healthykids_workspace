@@ -67,7 +67,7 @@
         const { data: progressList, error } = await supabase
             .from('video_progress')
             .select('*')
-            .eq('user_email', userEmail);
+            .eq('user_email', user.Email);
         
         if (error) {
             console.error("DB 조회 오류:", error);
