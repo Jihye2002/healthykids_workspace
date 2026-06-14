@@ -224,16 +224,15 @@
             <input type="text" name="q" placeholder="검색어를 입력하세요">
             <button type="submit"><img src="https://github.com/Jihye2002/healthykids_workspace/blob/main/search.png?raw=true" alt="검색버튼" width="40" height="40"></button>
         </form>
-        <div class="user-menu">
-            <div id="before-login" style="display: flex;">
+        <div class="user-menu" id="user-menu">
+            <div id="before-login">
                 <a href="login.html">로그인</a>
                 <span class="divider">|</span>
                 <a href="signup.html">회원가입</a>
             </div>
-            <div id="after-login" style="display: none;">
-                <a href="mypage.html">마이페이지</a>
-                <span class="divider">|</span>
-                <a href="#" onclick="logout()">로그아웃</a>
+            <div id="after-login">
+                <span id="welcome-message"></span>님 환영해요! 
+                <a href="#" id="logout-btn">로그아웃</a>
             </div>
         </div>
     </div>
