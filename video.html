@@ -308,12 +308,28 @@
 <script type="module">
     import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+    // [함수 위치 이동] init() 밖으로 빼서 어디서든 안전하게 호출 가능하게 함
+    async function getValidatedUser(sb) {
+        const { data: { session } } = await sb.auth.getSession();
+        if (session) return { email: session.user.email, type: 'auth' };
+
+        const naverUser = JSON.parse(localStorage.getItem('user'));
+        if (naverUser && naverUser.provider === 'naver') {
+            const { data: dbUser } = await sb.from('users').select('email').eq('email', naverUser.email).maybeSingle();
+            if (dbUser) return { email: naverUser.email, type: 'naver' };
+            else {
+                localStorage.clear();
+                return null;
+            }
+        }
+        return null;
+    }
+
     async function init() {
         const res = await fetch('/get-config');
         const config = await res.json();
         const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
 
-        // 1. URL 파라미터부터 최우선으로 확보
         const params = new URLSearchParams(window.location.search);
         const type = params.get('type');
         
@@ -326,45 +342,20 @@
 
         const data = contentDB[type];
         if (!data) {
-            console.error("잘못된 접근입니다. type 파라미터를 확인하세요.");
-            return; // 여기서 멈추면 안 열립니다. type이 제대로 들어오는지 확인이 필요합니다.
+            console.error("잘못된 접근입니다.");
+            return;
         }
 
-        // [모든 페이지 공통] 현재 활성 유저 정보 반환
-        async function getValidatedUser(sb) {
-            // 1. 구글/카카오 확인 (Supabase Auth 세션)
-            const { data: { session } } = await sb.auth.getSession();
-            if (session) return { email: session.user.email, type: 'auth' };
-        
-            // 2. 네이버 확인 (localStorage + users 테이블 대조)
-            const naverUser = JSON.parse(localStorage.getItem('user'));
-            if (naverUser && naverUser.provider === 'naver') {
-                // 실제 DB에 이메일이 존재하는지 한번 더 확인 (실시간 검증)
-                const { data: dbUser } = await sb.from('users').select('email').eq('email', naverUser.email).maybeSingle();
-                
-                if (dbUser) return { email: naverUser.email, type: 'naver' };
-                else {
-                    // DB에 없으면(탈퇴/삭제) 로컬 정보도 지워버림
-                    localStorage.clear();
-                    return null;
-                }
-            }
-            return null; // 진짜 로그아웃 상태
-        }
-
-        // 영상 로드 (로그인과 무관하게 실행)
         const video = document.getElementById('main-video');
         video.src = data.src;
         video.play().catch(() => {});
 
         video.addEventListener('ended', async () => {
-            // [실시간 검증] localStorage 변수 대신, 함수를 호출하여 현재 진짜 로그인 상태인지 확인
             const user = await getValidatedUser(supabase);
             
-            // user 객체가 있으면 로그인 상태, null이면 로그아웃 상태
             if (user) {
                 await supabase.from('video_progress').upsert({
-                    user_email: user.email, // 검증된 유효 이메일 사용
+                    user_email: user.email,
                     video_id: type,
                     progress_time: 100,
                     is_completed: true,
@@ -377,6 +368,8 @@
             
             document.getElementById('quiz-section').style.display = "block";
         });
+    }
+    
     init();
 </script>
 </body>
