@@ -5,21 +5,18 @@
     <title>헬시키즈 | 진행 중인 영상</title>
     <style>
         body { font-family: 'Nanum Gothic', sans-serif; padding: 40px; background-color: #f4f8ff; color: #333; }
-        .box { max-width: 800px; margin: 0 auto; background: white; padding: 40px; border: 2px solid #2f63c7; box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
+        .box { max-width: 800px; margin: 0 auto; background: white; padding: 40px; border: 2px solid #2f63c7; }
         h2 { color: #2f63c7; margin-bottom: 30px; text-align: center; }
         
-        /* 비로그인 안내 메시지 스타일 */
         #auth-alert { display: none; text-align: center; padding: 60px 20px; }
         #auth-alert h2 { color: #2f63c7; margin-bottom: 15px; }
-        .login-btn { display: inline-block; background: #2f63c7; color: white; padding: 12px 30px; border-radius: 2px; text-decoration: none; font-weight: bold; margin-top: 20px; }
+        .login-btn { display: inline-block; background: #2f63c7; color: white; padding: 12px 30px; text-decoration: none; font-weight: bold; margin-top: 20px; }
 
         .video-item { border-bottom: 1px solid #eee; padding: 25px 0; }
         .video-item h3 { margin-bottom: 15px; color: #1a5f96; }
-        .progress-bar-bg { background: #e0e0e0; height: 12px; border-radius: 6px; margin: 10px 0; overflow: hidden; }
+        .progress-bar-bg { background: #e0e0e0; height: 12px; margin: 10px 0; }
         .progress-bar-fill { background: #2f63c7; height: 100%; transition: width 0.5s ease-in-out; }
-        .btn-link { display: inline-block; background: #2f63c7; color: white; padding: 8px 15px; border-radius: 5px; text-decoration: none; font-size: 0.9em; margin-top: 10px; }
-        .quiz-links { margin-top: 10px; font-size: 0.9em; color: #666; }
-        .quiz-links a { color: #d9534f; font-weight: bold; text-decoration: none; margin-right: 10px; }
+        .btn-link { display: inline-block; background: #2f63c7; color: white; padding: 8px 15px; text-decoration: none; font-size: 0.9em; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -38,19 +35,17 @@
 <script type="module">
     import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-    // 1. [공통] 헤더 UI 업데이트 함수 (init 외부로 이동)
-    async function updateHeader(supabase) {
-        const beforeLogin = document.getElementById('before-login');
-        const afterLogin = document.getElementById('after-login');
-        const user = await getValidatedUser(supabase);
-        
-        if (!user) {
-            if (beforeLogin) beforeLogin.style.display = 'flex';
-            if (afterLogin) afterLogin.style.display = 'none';
-        } else {
-            if (beforeLogin) beforeLogin.style.display = 'none';
-            if (afterLogin) afterLogin.style.display = 'flex';
+    async function getValidatedUser(sb) {
+        const { data: { session } } = await sb.auth.getSession();
+        if (session) return { email: session.user.email, type: 'auth' };
+
+        const naverUser = JSON.parse(localStorage.getItem('user'));
+        if (naverUser && naverUser.provider === 'naver') {
+            const { data: dbUser } = await sb.from('users').select('email').eq('email', naverUser.email).maybeSingle();
+            if (dbUser) return { email: naverUser.email, type: 'naver' };
+            else { localStorage.clear(); return null; }
         }
+        return null;
     }
 
     async function init() {
@@ -58,36 +53,25 @@
         const config = await res.json();
         const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
 
-        // [핵심] 페이지 로딩 시 헤더 즉시 업데이트
-        await updateHeader(supabase);
-
         const container = document.getElementById('video-list');
         const authAlert = document.getElementById('auth-alert');
         const mainContent = document.getElementById('main-content');
 
-        // 통합 로그인 검증
         const user = await getValidatedUser(supabase);
 
-        // 1. 로그인되어 있지 않으면 화면 차단
         if (!user) {
             authAlert.style.display = 'block';
             mainContent.style.display = 'none';
             return;
         }
 
-        // 2. 인증 통과 시 컨텐츠 표시
         authAlert.style.display = 'none';
         mainContent.style.display = 'block';
 
-        // 3. 검증된 이메일 사용 데이터 조회
-        console.log("조회할 이메일:", user.email);
-
-        const { data: progressList, error } = await supabase
+        const { data: progressList } = await supabase
             .from('video_progress')
-            .select('*')
+            .select('video_id, progress_time')
             .eq('user_email', user.email);
-        
-        if (error) console.error("DB 조회 오류:", error);
         
         const contentDB = {
             hygiene: { title: '토리와 함께 세균을 퇴치해봐요!' },
@@ -99,7 +83,8 @@
         let html = '';
         for (const [id, info] of Object.entries(contentDB)) {
             const record = (progressList || []).find(p => p.video_id === id) || { progress_time: 0 };
-            const percent = Math.min(100, Math.round((record.progress_time / 100) * 100));
+            const percent = Math.min(100, Math.round(record.progress_time));
+            
             html += `
                 <div class="video-item">
                     <h3>${info.title}</h3>
@@ -109,23 +94,6 @@
                 </div>`;
         }
         container.innerHTML = html;
-    }
-
-    // 모든 페이지 공통 함수
-    async function getValidatedUser(sb) {
-        const { data: { session } } = await sb.auth.getSession();
-        if (session) return { email: session.user.email, type: 'auth' };
-
-        const naverUser = JSON.parse(localStorage.getItem('user'));
-        if (naverUser && naverUser.provider === 'naver') {
-            const { data: dbUser } = await sb.from('users').select('email').eq('email', naverUser.email).maybeSingle();
-            if (dbUser) return { email: naverUser.email, type: 'naver' };
-            else {
-                localStorage.clear();
-                return null;
-            }
-        }
-        return null;
     }
 
     init();
