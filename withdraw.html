@@ -88,25 +88,33 @@
             let data = null;
             const targetEmail = session?.user?.email || naverUser?.email;
 
-            if (naverUser?.provider === 'naver') {
-                loginType = 'naver';
-                const { data: nData } = await supabase.from('users').select('*').eq('email', targetEmail).maybeSingle();
-                data = nData;
-            } else {
-                const provider = session.user.app_metadata?.provider;
-                loginType = ['google', 'kakao'].includes(provider) ? 'social' : 'local';
-                const tableName = (loginType === 'local') ? 'public.users' : 'users';
-                const { data: sData } = await supabase.from(tableName).select('*').eq('email', targetEmail).maybeSingle();
-                data = sData;
-            }
+            try {
+                if (naverUser?.provider === 'naver') {
+                    loginType = 'naver';
+                    const { data: nData, error } = await supabase.from('users').select('*').eq('email', targetEmail).maybeSingle();
+                    if (error) throw error;
+                    data = nData;
+                } else {
+                    const provider = session.user.app_metadata?.provider;
+                    loginType = ['google', 'kakao'].includes(provider) ? 'social' : 'local';
+                    const tableName = (loginType === 'local') ? 'public.users' : 'users';
+                    const { data: sData, error } = await supabase.from(tableName).select('*').eq('email', targetEmail).maybeSingle();
+                    if (error) throw error;
+                    data = sData;
+                }
 
-            if (!data) {
+                if (!data) {
+                    window.location.replace('index.html');
+                    return;
+                }
+
+                currentUser = { ...data, email: targetEmail };
+                renderUI(data);
+            } catch (err) {
+                console.error("데이터 로드 오류:", err);
+                await supabase.auth.signOut();
                 window.location.replace('index.html');
-                return;
             }
-
-            currentUser = { ...data, email: targetEmail };
-            renderUI(data);
         }
 
         function renderUI(data) {
@@ -140,7 +148,12 @@
 
         window.confirmWithdraw = async () => {
             try {
-                await supabase.rpc('delete_my_account', { user_email: currentUser.email });
+                const { error } = await supabase.rpc('delete_account_by_email', { 
+                    target_email: currentUser.email 
+                });
+
+                if (error) throw error;
+
                 if (loginType !== 'naver') await supabase.auth.signOut({ scope: 'global' });
 
                 localStorage.clear();
@@ -149,6 +162,7 @@
                 window.showMessage("소중한 정보를 모두 정리했어요. 다음에 또 만나요!", true);
                 setTimeout(() => { window.location.replace('index.html?status=withdrawn'); }, 1500);
             } catch (err) {
+                console.error("삭제 실패 상세:", err);
                 window.showMessage("앗! 정리가 잠시 멈췄어요. 다시 시도해볼까요?", false);
             }
         };
