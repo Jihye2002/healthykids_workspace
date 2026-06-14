@@ -330,28 +330,53 @@
             return; // 여기서 멈추면 안 열립니다. type이 제대로 들어오는지 확인이 필요합니다.
         }
 
+        // [모든 페이지 공통] 현재 활성 유저 정보 반환
+        async function getValidatedUser(sb) {
+            // 1. 구글/카카오 확인 (Supabase Auth 세션)
+            const { data: { session } } = await sb.auth.getSession();
+            if (session) return { email: session.user.email, type: 'auth' };
+        
+            // 2. 네이버 확인 (localStorage + users 테이블 대조)
+            const naverUser = JSON.parse(localStorage.getItem('user'));
+            if (naverUser && naverUser.provider === 'naver') {
+                // 실제 DB에 이메일이 존재하는지 한번 더 확인 (실시간 검증)
+                const { data: dbUser } = await sb.from('users').select('email').eq('email', naverUser.email).maybeSingle();
+                
+                if (dbUser) return { email: naverUser.email, type: 'naver' };
+                else {
+                    // DB에 없으면(탈퇴/삭제) 로컬 정보도 지워버림
+                    localStorage.clear();
+                    return null;
+                }
+            }
+            return null; // 진짜 로그아웃 상태
+        }
+
         // 영상 로드 (로그인과 무관하게 실행)
         const video = document.getElementById('main-video');
         video.src = data.src;
         video.play().catch(() => {});
 
-        // 2. 로그인 상태는 기록 저장 시에만 확인
         video.addEventListener('ended', async () => {
-            const isLoggedIn = localStorage.getItem('is_logged_in') === 'true';
-            const userEmail = localStorage.getItem('user_email');
+            // [실시간 검증] localStorage 변수 대신, 함수를 호출하여 현재 진짜 로그인 상태인지 확인
+            const user = await getValidatedUser(supabase);
             
-            if (isLoggedIn && userEmail) {
+            // user 객체가 있으면 로그인 상태, null이면 로그아웃 상태
+            if (user) {
                 await supabase.from('video_progress').upsert({
-                    user_email: userEmail,
+                    user_email: user.email, // 검증된 유효 이메일 사용
                     video_id: type,
                     progress_time: 100,
                     is_completed: true,
                     updated_at: new Date().toISOString()
                 });
+                console.log("기록 저장 완료");
+            } else {
+                console.log("로그아웃 상태: 기록하지 않음");
             }
+            
             document.getElementById('quiz-section').style.display = "block";
         });
-    }
     init();
 </script>
 </body>
