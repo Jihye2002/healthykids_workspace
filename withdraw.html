@@ -148,19 +148,19 @@
 
         window.confirmWithdraw = async () => {
             try {
+                // [중요] 반드시 새로 만든 함수명과 파라미터(target_email)를 사용하세요
                 const { error } = await supabase.rpc('delete_account_by_email', { 
                     target_email: currentUser.email 
                 });
-
-                if (error) throw error;
-
-                if (loginType !== 'naver') await supabase.auth.signOut({ scope: 'global' });
-
-                localStorage.clear();
-                sessionStorage.clear();
-                
-                window.showMessage("소중한 정보를 모두 정리했어요. 다음에 또 만나요!", true);
-                setTimeout(() => { window.location.replace('index.html?status=withdrawn'); }, 1500);
+        
+                if (error) {
+                    console.error("Supabase RPC 에러:", error);
+                    throw error;
+                }
+        
+                // 이후 로그아웃 및 페이지 이동 로직 실행
+                if (loginType !== 'naver') await supabase.auth.signOut();
+                window.location.replace('index.html?status=withdrawn');
             } catch (err) {
                 console.error("삭제 실패 상세:", err);
                 window.showMessage("앗! 정리가 잠시 멈췄어요. 다시 시도해볼까요?", false);
