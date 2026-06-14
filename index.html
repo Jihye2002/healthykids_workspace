@@ -600,18 +600,29 @@
             const afterLogin = document.getElementById('after-login');
             const welcomeMsg = document.getElementById('welcome-message');
             
-            const naverUserName = localStorage.getItem('user_name');
-            let displayName = naverUserName;
+            let displayName = "사용자";
         
             if (session) {
                 try {
-                    const isSelfHosted = session.user.email.endsWith('@healthykids.com');
-                    // 테이블 명칭 통일 (public.users)
-                    const { data } = isSelfHosted 
-                        ? await sb.from('public.users').select('nickname').eq('id', session.user.id).maybeSingle()
-                        : await sb.from('public.users').select('name').eq('email', session.user.email).maybeSingle();
-                    
-                    displayName = data?.nickname || data?.name || displayName || "사용자";
+                    const email = session.user.email;
+                    const meta = session.user.user_metadata || {};
+                    const provider = session.user.app_metadata.provider; // 로그인 방식 확인
+        
+                    // 1. Google, Kakao, Naver는 이름을 우선으로 사용
+                    if (provider === 'google' || provider === 'kakao' || provider === 'naver') {
+                        displayName = meta.full_name || meta.name || "사용자";
+                    } 
+                    // 2. 일반 로그인은 DB의 닉네임을 우선으로 조회
+                    else {
+                        const tableName = email.includes('naver.com') ? 'users' : 'public.users';
+                        const { data } = await sb.from(tableName)
+                            .select('name, nickname')
+                            .eq('email', email)
+                            .maybeSingle();
+                        
+                        // 일반 로그인은 닉네임이 있으면 닉네임, 없으면 이름 사용
+                        displayName = data?.nickname || data?.name || meta.full_name || meta.name || "사용자";
+                    }
                 } catch (err) { console.error("UI 업데이트 오류:", err); }
             }
         
@@ -619,7 +630,8 @@
                 if (session) {
                     beforeLogin.style.display = 'none';
                     afterLogin.style.display = 'flex';
-                    if (welcomeMsg) welcomeMsg.textContent = displayName;
+                    // 모든 로그인 방식에 대해 동일하게 적용
+                    if (welcomeMsg) welcomeMsg.textContent = `${displayName}님 환영해요!`;
                 } else {
                     beforeLogin.style.display = 'flex';
                     afterLogin.style.display = 'none';
