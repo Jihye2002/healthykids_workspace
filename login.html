@@ -271,10 +271,10 @@
                 .eq('email', `${userId}@healthykids.com`)
                 .maybeSingle();
         
-            if (dbError || !userRecord) {
-                showError('password', "아이디 또는 비밀번호가 올바르지 않아요ㅠㅠ");
-                submitBtn.disabled = false;
-                return;
+            if (!userRecord) {
+                showError('password', "탈퇴 처리된 계정입니다.");
+                submitBtn.disabled = false; // 버튼 다시 활성화
+                return; 
             }
         
             // 2. [핵심] 임시 비밀번호 상태일 때만 처리하는 로직
