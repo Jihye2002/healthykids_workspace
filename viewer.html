@@ -154,39 +154,59 @@
                     "하루건강체크리스트.pdf": "하루건강_체크리스트.pdf",
                     "활동지.pdf": "활동지.pdf"
                 };
-        
-                // 기존 PDF 렌더링 로직 부분을 아래 코드로 교체
+                
                 if (fileName && fileMap[fileName]) {
                     const viewer = document.getElementById('pdf-viewer');
-                    // #toolbar=1을 유지하거나, 브라우저 기본 뷰어를 사용하도록 설정
-                    const pdfFile = baseUrl + fileMap[fileName]; 
+                    const targetFile = baseUrl + fileMap[fileName]; 
                     
-                    // PDFObject 라이브러리를 사용하여 브라우저 뷰어에 최적화
-                    PDFObject.embed(pdfFile, "#pdf-viewer", {
-                        fallbackLink: "<p>이 브라우저는 PDF를 지원하지 않습니다. <a href='[url]'>파일 다운로드</a></p>"
-                    });
+                    // PDF.js 뷰어 URL로 파일 경로를 전달
+                    // 이것은 구글 뷰어가 아닌, Mozilla에서 공식 제공하는 무료 PDF 엔진입니다.
+                    const pdfJsUrl = `https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(targetFile)}`;
+                    
+                    // iframe을 통해 렌더링
+                    viewer.innerHTML = `<iframe src="${pdfJsUrl}" width="100%" height="100%" style="border:none;"></iframe>`;
                 } else {
                     document.getElementById('pdf-viewer').innerText = "파일을 찾을 수 없습니다.";
                 }
-
-            }
         
             async function updateHeader() {
-                const { data: { user } } = await supabase.auth.getUser();
+                if (!supabase) return;
+            
                 const userMenu = document.querySelector('.user-menu');
-                
-                if (user) {
-                    // 소셜 로그인(name) 또는 일반 로그인(nickname) 우선순위 적용
-                    const displayName = user.user_metadata.nickname || user.user_metadata.name || '회원';
-                    userMenu.innerHTML = `<span>${displayName}님 환영해요!</span> <span class="divider">|</span> <a href="#" id="logout-btn">로그아웃</a>`;
-                    
-                    document.getElementById('logout-btn').onclick = async (e) => {
-                        e.preventDefault();
-                        await supabase.auth.signOut();
-                        location.href = 'index.html';
-                    };
-                } else {
-                    userMenu.innerHTML = `<a href="login.html">로그인</a> <span class="divider">|</span> <a href="signup.html">회원가입</a>`;
+                if (!userMenu) return; // 메뉴 요소가 없는 페이지일 경우 방어 코드
+            
+                try {
+                    const { data: { user } } = await supabase.auth.getUser();
+            
+                    if (user) {
+                        // displayName 추출 (안전하게 user_metadata 확인)
+                        const metadata = user.user_metadata || {};
+                        const displayName = metadata.nickname || metadata.name || '회원';
+                        
+                        userMenu.innerHTML = `
+                            <span>${displayName}님 환영해요!</span> 
+                            <span class="divider">|</span> 
+                            <a href="#" id="logout-btn">로그아웃</a>
+                        `;
+                        
+                        // 로그아웃 버튼 이벤트 리스너 등록
+                        const logoutBtn = document.getElementById('logout-btn');
+                        if (logoutBtn) {
+                            logoutBtn.onclick = async (e) => {
+                                e.preventDefault();
+                                await supabase.auth.signOut();
+                                window.location.href = 'index.html'; // 확실한 페이지 이동
+                            };
+                        }
+                    } else {
+                        userMenu.innerHTML = `
+                            <a href="login.html">로그인</a> 
+                            <span class="divider">|</span> 
+                            <a href="signup.html">회원가입</a>
+                        `;
+                    }
+                } catch (error) {
+                    console.error("헤더 업데이트 중 오류 발생:", error);
                 }
             }
         
