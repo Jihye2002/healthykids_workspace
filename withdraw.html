@@ -63,146 +63,102 @@
 
     <script type="module">
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-    
-        // 1. Supabase 객체를 담을 변수를 null로 선언
+
         let supabase = null;
         let currentUser = null;
-    
-        // 2. 초기화 함수 정의
+        let loginType = null; // 'naver', 'social', 'local'
+        
         async function initSupabase() {
             try {
                 const res = await fetch('/get-config');
-                if (!res.ok) throw new Error("설정 정보를 가져올 수 없습니다.");
                 const config = await res.json();
-                
-                // 여기서 클라이언트를 생성하고 변수에 할당
                 supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
-                console.log("Supabase 초기화 완료");
-                
-                // 초기화가 완료된 후 사용자 정보 로드 실행
-                loadUserInfo(); 
+                loadUserInfo();
             } catch (err) {
-                console.error("Supabase 초기화 실패:", err);
+                console.error("초기화 실패:", err);
             }
         }
-    
-        // 3. 페이지가 로드되자마자 초기화 실행
-        initSupabase();
-    
-        // 4. 정보 로드 (supabase가 확실히 생성된 후 호출됨)
+        
         async function loadUserInfo() {
             if (!supabase) return;
         
+            const naverUser = JSON.parse(localStorage.getItem('user'));
             const { data: { session } } = await supabase.auth.getSession();
-            const activeUser = session?.user;
         
-            // 1. 세션이 아예 없으면 로그인 페이지로 이동
-            if (!activeUser) {
-                window.location.href = 'index.html';
-                return;
-            }
-        
-            currentUser = activeUser;
-            const targetEmail = activeUser.email;
-        
-            // 2. 모든 테이블을 확인하여 데이터가 하나라도 있는지 찾음
-            // 구글/카카오/네이버 등 흩어진 테이블에서 정보를 통합
-            const { data: publicData } = await supabase.from('public.users')
-                .select('id, email, name, nickname, security_question, security_answer, is_temp_password, temp_password, temp_password_usage')
-                .eq('email', targetEmail).maybeSingle();
-        
-            const { data: usersData } = await supabase.from('users') // 네이버/소셜 공용 테이블
-                .select('name, email, nickname, profile_image, gender, birthday, age')
-                .eq('email', targetEmail).maybeSingle();
-        
-            // 3. 데이터가 하나라도 존재하면 병합 (null 처리)
-            const data = publicData || usersData;
-        
-            // 4. 여기서 핵심: 데이터가 없으면 '탈퇴된 유저'로 간주하고 로그아웃
-            if (!data) {
-                console.warn("DB에 사용자 정보 없음: 강제 로그아웃 수행");
-                await supabase.auth.signOut({ scope: 'global' });
-                localStorage.clear();
+            if (!session?.user && (!naverUser || naverUser.provider !== 'naver')) {
                 window.location.replace('index.html');
                 return;
             }
         
-            // 5. 화면 표시 (데이터가 있을 때만 진행)
-            const userId = data.email ? data.email.split('@')[0] : '없음';
-            const isSocial = session.user.app_metadata.providers?.length > 0;
-            
-            const socialGuide = isSocial 
-                ? `<div style="color: #d9534f; font-weight: bold; margin-bottom: 15px;">📢 계정 정보가 모두 사라집니다!</div>`
-                : `<p>일반 계정으로 로그인 중입니다.</p>`;
+            let data = null;
+            const targetEmail = session?.user?.email || naverUser?.email;
         
-            document.getElementById('user-info').innerHTML = `
-                ${socialGuide}
-                <strong>이름:</strong> ${data.name || '없음'}<br>
-                <strong>아이디:</strong> ${userId}<br>
-                <strong>이메일:</strong> ${data.email || '없음'}<br>
-                <strong>별명:</strong> ${data.nickname || '없음'}<br>
-                <strong>비밀번호:</strong> ${!isSocial ? '●●●●●●●●' : '소셜 로그인'}<br>
-                <strong>질문:</strong> ${data.security_question || '없음'}<br>
-                <strong>답변:</strong> ${data.security_answer || '없음'}
-            `;
-        }
-    
-        // 5. 알림 메시지 함수
-        window.showMessage = function(msg, isSuccess) {
-            const box = document.getElementById('status-msg');
-            box.textContent = msg;
-            box.className = isSuccess ? 'success' : 'fail';
-            box.style.display = 'block';
-            setTimeout(() => { box.style.display = 'none'; }, 2000);
-        }
+            // 유형별 데이터 조회
+            if (naverUser?.provider === 'naver') {
+                loginType = 'naver';
+                const { data: nData } = await supabase.from('users').select('*').eq('email', targetEmail).maybeSingle();
+                data = nData;
+            } else {
+                const provider = session.user.app_metadata?.provider;
+                loginType = ['google', 'kakao'].includes(provider) ? 'social' : 'local';
+                const tableName = (loginType === 'local') ? 'public.users' : 'users';
+                const { data: sData } = await supabase.from(tableName).select('*').eq('email', targetEmail).maybeSingle();
+                data = sData;
+            }
         
-        // 6. 탈퇴 모달 제어
-        window.withdrawAccount = () => {
-            document.getElementById('withdraw-modal').style.display = 'flex';
-        };
-        
-        window.closeWithdrawModal = () => {
-            document.getElementById('withdraw-modal').style.display = 'none';
-        };
-        
-        window.confirmWithdraw = async () => {
-            if (!supabase) return;
-            closeWithdrawModal();
-            
-            if (!currentUser || !currentUser.email) {
-                showMessage("다시 로그인해주세요ㅠㅠ", false);
+            if (!data) {
+                window.location.replace('index.html');
                 return;
             }
         
+            currentUser = { ...data, email: targetEmail };
+            renderUI(data);
+        }
+        
+        function renderUI(data) {
+            const isSocial = loginType !== 'local';
+            const userId = data.email ? data.email.split('@')[0] : '알 수 없음';
+            const socialGuide = isSocial 
+                ? `<div style="color: #d9534f; font-weight: bold; margin-bottom: 15px;">📢 계정 정보가 모두 사라집니다!</div>`
+                : `<p style="margin-bottom: 15px;">일반 계정으로 로그인 중입니다.</p>`;
+        
+            document.getElementById('user-info').innerHTML = `
+                <div style="line-height: 2; font-family: 'Pretendard', sans-serif;">
+                    ${socialGuide}
+                    <strong>이름:</strong> ${data.name || '없음'}<br>
+                    <strong>아이디:</strong> ${userId}<br>
+                    <strong>이메일:</strong> ${data.email || '없음'}<br>
+                    <strong>별명:</strong> ${data.nickname || '없음'}<br>
+                    <strong>비밀번호:</strong> ${!isSocial ? '●●●●●●●●' : '소셜 로그인'}<br>
+                    <strong>질문:</strong> ${data.security_question || '없음'}<br>
+                    <strong>답변:</strong> ${data.security_answer || '없음'}
+                </div>
+            `;
+        }
+        
+        window.confirmWithdraw = async () => {
             try {
-                // 1. 서버 데이터 삭제
-                const { error: rpcError } = await supabase.rpc('delete_my_account');
-                if (rpcError) throw rpcError;
+                await supabase.rpc('delete_my_account', { user_email: currentUser.email });
+                if (loginType !== 'naver') await supabase.auth.signOut({ scope: 'global' });
         
-                // 2. 탈퇴 완료 플래그 설정 (재진입 방지용)
-                localStorage.setItem('is_withdrawn', 'true');
-        
-                // 3. 로컬 데이터 청소
                 localStorage.clear();
                 sessionStorage.clear();
-                const databases = await window.indexedDB.databases();
-                databases.forEach(db => { window.indexedDB.deleteDatabase(db.name); });
                 
-                // 4. 세션 종료
-                await supabase.auth.signOut({ scope: 'global' });
-                
-                showMessage("탈퇴가 완료되었습니다. 다시 만나요!", true);
-                
-                // 5. 탈퇴 상태 파라미터와 함께 이동
-                setTimeout(() => { 
-                    window.location.replace('index.html?status=withdrawn'); 
-                }, 500);
-                    
+                showMessage("소중한 정보를 모두 정리했어요. 다음에 또 만나요!", true);
+                setTimeout(() => { window.location.replace('index.html?status=withdrawn'); }, 1500);
             } catch (err) {
-                console.error("탈퇴 프로세스 에러:", err);
-                showMessage("탈퇴 처리 중 문제가 발생했어요.", false);
+                showMessage("앗! 정리가 잠시 멈췄어요. 다시 시도해볼까요?", false);
             }
         };
+        
+        window.showMessage = (msg, isSuccess) => {
+            const box = document.getElementById('status-msg');
+            box.textContent = msg;
+            box.style.display = 'block';
+            setTimeout(() => { box.style.display = 'none'; }, 2500);
+        };
+        
+        initSupabase();
     </script>
 </body>
 </html>
