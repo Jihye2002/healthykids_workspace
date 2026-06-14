@@ -140,7 +140,11 @@
                     <strong>비밀번호 답변:</strong> ${data.security_answer || '없음'}
                 `;
             } else {
-            console.log("조회된 사용자 정보가 없습니다. (이미 탈퇴했거나 정보가 없습니다)");
+            console.log("기록이 없는 신규/복구 계정입니다. 자동으로 로그아웃합니다.");
+            await supabase.auth.signOut();
+            localStorage.clear();
+            window.location.href = 'index.html';
+            return;
             }
         }
     
@@ -188,7 +192,7 @@
                 localStorage.clear();
                 sessionStorage.clear();
 
-                showMessage("안녕! 그동안 함께해서 즐거웠어요. 다음에 다시 만나요! 😊", true);
+                showMessage("안녕! 그동안 함께해서 즐거웠어요. 다음에 다시 만나요 😊", true);
                 setTimeout(() => { window.location.href = 'index.html'; }, 2000);
                 
             } catch (err) {
