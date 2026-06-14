@@ -556,22 +556,21 @@
     <script type="module">
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-        // 1. 전역 상태 관리 (싱글톤)
+        // 1. 전역 상태 관리
         window.supabaseInstance = null;
         window.initPromise = null;
         
         async function initSupabase() {
             if (window.supabaseInstance) return window.supabaseInstance;
             
-            // 캐시 확인
             if (sessionStorage.getItem('is_sb_initialized') === 'true') {
                 const config = JSON.parse(sessionStorage.getItem('sb_config'));
                 window.supabaseInstance = createClient(config.url, config.key);
                 return window.supabaseInstance;
             }
-        
+
             if (window.initPromise) return window.initPromise;
-        
+
             window.initPromise = (async () => {
                 try {
                     const res = await fetch('/get-config');
@@ -601,24 +600,23 @@
             const welcomeMsg = document.getElementById('welcome-message');
             
             if (!beforeLogin || !afterLogin) return;
-        
+
             if (!session) {
                 beforeLogin.style.display = 'flex';
                 afterLogin.style.display = 'none';
                 return;
             }
-        
+
+            // 세션이 있는 경우
             beforeLogin.style.display = 'none';
             afterLogin.style.display = 'flex';
-        
+
             try {
-                // [핵심] 최신 세션 정보를 다시 가져옴 (메타데이터 업데이트 반영용)
                 const { data: { user } } = await sb.auth.getUser();
                 const email = user.email;
                 const meta = user.user_metadata || {};
                 let displayName = "사용자";
         
-                // 1. 일반 로그인 케이스
                 if (email.endsWith('@healthykids.com')) {
                     const { data } = await sb.from('users')
                         .select('nickname')
@@ -626,12 +624,9 @@
                         .maybeSingle();
                     displayName = data?.nickname || "사용자";
                 } 
-                // 2. 네이버 로그인 케이스 (메타데이터 활용)
                 else if (email.includes('naver.com')) {
-                    // callback.html에서 설정한 메타데이터 혹은 DB 우선순위
                     displayName = meta.name || "사용자";
                 }
-                // 3. 구글/카카오
                 else {
                     displayName = meta.full_name || meta.name || "사용자";
                 }
@@ -639,18 +634,6 @@
                 if (welcomeMsg) welcomeMsg.textContent = displayName;
             } catch (err) {
                 console.error("UI 업데이트 중 오류:", err);
-            }
-        }
-        
-            if (beforeLogin && afterLogin) {
-                if (session) {
-                    beforeLogin.style.display = 'none';
-                    afterLogin.style.display = 'flex';
-                    if (welcomeMsg) welcomeMsg.textContent = displayName;
-                } else {
-                    beforeLogin.style.display = 'flex';
-                    afterLogin.style.display = 'none';
-                }
             }
         }
         
