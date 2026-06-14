@@ -14,7 +14,7 @@
     <div class="spinner"></div>
     <h2 id="status-message">가입 정보를 확인하고 있습니다...</h2>
 
-    <script type="module">
+   <script type="module">
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
         
         async function handleNaverCallback() {
@@ -35,69 +35,63 @@
                 
                 const response = await fetch(`/get-naver-profile?token=${accessToken}`);
                 const data = await response.json();
-            
+        
                 if (data.response) {
                     const p = data.response;
-            
+        
+                    // [핵심] 로그인 성공 시 이메일과 상태값 저장
                     localStorage.setItem('user', JSON.stringify({
                         email: p.email,
                         name: p.name,
                         provider: 'naver'
                     }));
-            
+                    localStorage.setItem('user_email', p.email);
+                    localStorage.setItem('is_logged_in', 'true'); // 로그인 상태 판별용 플래그
+        
+                    statusMsg.textContent = "사용자 정보 확인 중...";
+        
                     // 1. 기존 유저 조회
                     let { data: user, error: fetchErr } = await supabase
                         .from('users')
                         .select('email')
                         .eq('email', p.email)
                         .maybeSingle();
-            
+        
                     if (fetchErr) console.error("조회 에러:", fetchErr);
-            
+        
                     // 2. 업데이트 또는 삽입
                     if (user) {
-                    statusMsg.textContent = "로그인 중...";
-                    const { error: updateErr } = await supabase
-                        .from('users')
-                        .update({ name: p.name })
-                        .eq('email', p.email);
-                    
-                    if (updateErr) {
-                        console.error("업데이트 실패:", updateErr);
-                        // 업데이트 실패 시 강제로 멈추거나 예외 처리
-                        throw new Error("DB 업데이트 실패: " + updateErr.message);
+                        statusMsg.textContent = "로그인 중...";
+                        const { error: updateErr } = await supabase
+                            .from('users')
+                            .update({ name: p.name })
+                            .eq('email', p.email);
+                        
+                        if (updateErr) throw new Error("DB 업데이트 실패: " + updateErr.message);
+                    } else {
+                        statusMsg.textContent = "회원가입 진행 중...";
+                        await supabase.from('users').delete().eq('email', p.email);
+                        
+                        const { error: insertErr } = await supabase
+                            .from('users')
+                            .insert({ 
+                                email: p.email, 
+                                name: p.name 
+                            });
+                        
+                        if (insertErr) throw new Error("DB 삽입 실패: " + insertErr.message);
                     }
-                    console.log("DB 업데이트 성공!");
-                } else {
-                    statusMsg.textContent = "회원가입 진행 중...";
-    
-                    // 혹시 모를 잔여 데이터 삭제 (안전장치)
-                    await supabase.from('users').delete().eq('email', p.email);
                     
-                    const { error: insertErr } = await supabase
-                        .from('users')
-                        .insert({ 
-                            email: p.email, 
-                            name: p.name 
-                        });
-                    
-                    if (insertErr) {
-                        console.error("DB 삽입 실패! 에러 상세:", insertErr);
-                        // 삽입 실패 시 강제로 멈추거나 예외 처리
-                        throw new Error("DB 삽입 실패: " + insertErr.message);
-                    }
-                    console.log("DB 삽입 성공!");
-                }
-                
-                // 위 로직이 모두 에러 없이 통과되면 여기로 넘어옵니다.
-                statusMsg.textContent = "완료되었습니다!";
-                window.location.replace('/index.html');
+                    statusMsg.textContent = "로그인 완료!";
+                    window.location.replace('/index.html');
                 } else {
                     throw new Error("네이버 프로필 정보를 가져올 수 없습니다.");
                 }
             } catch (err) {
                 console.error("연동 실패:", err);
                 statusMsg.textContent = "오류 발생! 콘솔을 확인하세요.";
+                // 오류 발생 시 로그인 상태가 아님을 확실히 하기 위해 상태값 삭제
+                localStorage.removeItem('is_logged_in');
             }
         }
         
