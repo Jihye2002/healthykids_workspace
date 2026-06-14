@@ -225,9 +225,16 @@
             <button type="submit"><img src="https://github.com/Jihye2002/healthykids_workspace/blob/main/search.png?raw=true" alt="검색버튼" width="40" height="40"></button>
         </form>
         <div class="user-menu">
-            <a href="login.html">로그인</a>
-            <span class="divider">|</span>
-            <a href="signup.html">회원가입</a>
+            <div id="before-login" style="display: flex;">
+                <a href="login.html">로그인</a>
+                <span class="divider">|</span>
+                <a href="signup.html">회원가입</a>
+            </div>
+            <div id="after-login" style="display: none;">
+                <a href="mypage.html">마이페이지</a>
+                <span class="divider">|</span>
+                <a href="#" onclick="logout()">로그아웃</a>
+            </div>
         </div>
     </div>
 </header>
@@ -342,17 +349,44 @@
         const type = params.get('type');
         
         const contentDB = {
-            hygiene: { title: '토리와 함께 세균을 퇴치해봐요!', src: 'https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/%EC%9C%84%EC%83%9D%EC%95%88%EC%A0%84.mp4' },
-            crosswalk: { title: '토리와 함께 길 건널 때 어떻게 하면 되는지 알아가요!', src: 'https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/%EC%8B%A4%EC%99%B8%EC%95%88%EC%A0%84.mp4' },
-            foodsafety: { title: '토리와 올바르게 먹는 방법을 알아가요!', src: 'https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/%EC%83%9D%ED%99%9C%EA%B1%B4%EA%B0%95.mp4' },
-            precaution: { title: '토리와 감기와 독감 바이러스를 물리쳐요!', src: 'https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/%EC%A7%88%EB%B3%91%EC%98%88%EB%B0%A9.mp4' }
+            hygiene: { 
+                title: '토리와 함께 세균을 퇴치해봐요!', 
+                src: 'https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/%EC%9C%84%EC%83%9D%EC%95%88%EC%A0%84.mp4', 
+                kahoot: ['https://kahoot.it/challenge/01812841', 'https://kahoot.it/challenge/03183156'] 
+            },
+            crosswalk: { 
+                title: '토리와 함께 길 건널 때 어떻게 하면 되는지 알아가요!', 
+                src: 'https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/%EC%8B%A4%EC%99%B8%EC%95%88%EC%A0%84.mp4', 
+                kahoot: ['https://kahoot.it/challenge/07121259'] 
+            },
+            foodsafety: { 
+                title: '토리와 올바르게 먹는 방법을 알아가요!', 
+                src: 'https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/%EC%83%9D%ED%99%9C%EA%B1%B4%EA%B0%95.mp4', 
+                kahoot: ['https://kahoot.it/challenge/04466674'] 
+            },
+            precaution: { 
+                title: '토리와 감기와 독감 바이러스를 물리쳐요!', 
+                src: 'https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/%EC%A7%88%EB%B3%91%EC%98%88%EB%B0%A9.mp4', 
+                kahoot: ['https://kahoot.it/challenge/07815381'] 
+            }
         };
 
         const data = contentDB[type];
         if (!data) return;
 
         const video = document.getElementById('main-video');
-        video.src = data.src;
+        const title = document.getElementById('video-title');
+        const quiz = document.getElementById('quiz-section');
+        const quizButtons = document.getElementById('quiz-buttons');
+
+        title.innerText = data.title;
+        quizButtons.innerHTML = "";
+        data.kahoot.forEach((url, index) => {
+            const a = document.createElement("a"); a.href = url; a.target = "_blank";
+            const button = document.createElement("button"); button.className = "btn";
+            button.innerText = `🚀 카훗 퀴즈 ${index + 1}`;
+            a.appendChild(button); quizButtons.appendChild(a);
+        });
 
         // [진행률 확인] 기존에 시청한 기록이 있는지 확인 (사용자 경험 개선)
         const user = await getValidatedUser(supabase);
