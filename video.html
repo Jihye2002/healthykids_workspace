@@ -338,6 +338,12 @@
         return null;
     }
 
+    // 로그아웃 함수 추가
+    window.logout = () => {
+        localStorage.clear();
+        location.reload(); // 페이지 새로고침하여 헤더를 로그인 상태로 되돌림
+    };
+
     async function init() {
         const res = await fetch('/get-config');
         const config = await res.json();
