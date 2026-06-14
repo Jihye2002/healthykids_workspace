@@ -44,19 +44,26 @@
         const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
 
         const container = document.getElementById('video-list');
+        const authAlert = document.getElementById('auth-alert');
+        const mainContent = document.getElementById('main-content');
+        
+        // [핵심 판별] 단순히 이메일 유무가 아니라, 로그인 상태 플래그를 확인합니다.
+        const isLoggedIn = localStorage.getItem('is_logged_in') === 'true';
         const userEmail = localStorage.getItem('user_email');
 
-        // [로그인 체크] 비로그인 시 깔끔하게 안내 메시지 출력
-        if (!userEmail) {
-            document.getElementById('auth-alert').style.display = 'block';
-            document.getElementById('main-content').style.display = 'none';
-            document.getElementById('auth-alert').innerHTML = `
+        // [로그인 체크] 비로그인 또는 로그아웃 상태일 때 안내 메시지 출력
+        if (!isLoggedIn || !userEmail) {
+            authAlert.style.display = 'block';
+            mainContent.style.display = 'none';
+            authAlert.innerHTML = `
                 <div style="text-align:center; padding: 40px; border:1px solid #ccc; border-radius:8px;">
-                    로그인이 필요한 서비스예요!
+                    로그인이 필요한 서비스예요!<br>
+                    <a href="login.html">로그인 하러 가기</a>
                 </div>`;
             return;
         }
 
+        // 로그인된 경우에만 데이터 조회
         const { data: progressList } = await supabase
             .from('video_progress')
             .select('*')
