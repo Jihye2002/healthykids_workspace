@@ -39,7 +39,6 @@
     import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
     let supabase;
-
     const contentDB = {
         hygiene: { title: '토리와 함께 세균을 퇴치해봐요!', kahoot: ['https://kahoot.it/challenge/01812841', 'https://kahoot.it/challenge/03183156'] },
         crosswalk: { title: '토리와 함께 길 건널 때 어떻게 하면 되는지 알아가요!', kahoot: ['https://kahoot.it/challenge/07121259'] },
@@ -47,42 +46,38 @@
         precaution: { title: '토리와 감기와 독감 바이러스를 물리쳐요!', kahoot: ['https://kahoot.it/challenge/07815381'] }
     };
 
+    // [중요] 세션 관리: localStorage에서 직접 이메일을 가져옵니다
+    const userEmail = localStorage.getItem('user_email');
+
     async function init() {
         const res = await fetch('/get-config');
         const config = await res.json();
         
-        supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY, {
-            auth: { persistSession: true }
-        });
+        supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
 
-        // 로그인 체크 및 진행률 로드
+        // 로그인 체크 및 데이터 로드
         await loadOngoingVideos();
     }
 
     async function loadOngoingVideos() {
-        const { data: { user } } = await supabase.auth.getUser();
-
-        // 1. 비로그인 처리 (viewer.html 로직 반영)
-        if (!user) {
+        // 커스텀 로그인 체크
+        if (!userEmail) {
             document.getElementById('auth-alert').style.display = 'block';
             document.getElementById('main-content').style.display = 'none';
             return;
         }
 
-        // 2. 로그인 상태면 메인 콘텐츠 표시
         document.getElementById('main-content').style.display = 'block';
         document.getElementById('auth-alert').style.display = 'none';
 
-        // 3. 이메일 기반 진행률 조회
-        // video_progress 테이블에 user_email 컬럼이 있다는 전제하에 이메일로 필터링
+        // 데이터 조회
         const { data: progressList, error } = await supabase
             .from('video_progress')
             .select('*')
-            .eq('user_email', user.email);
+            .eq('user_email', userEmail); // 저장된 이메일로 조회
 
         if (error) {
             console.error("데이터 로드 오류:", error);
-            document.getElementById('video-list').innerHTML = '<p>데이터를 불러오는 중 오류가 발생했습니다.</p>';
             return;
         }
 
@@ -91,9 +86,7 @@
 
         for (const [id, info] of Object.entries(contentDB)) {
             const record = (progressList || []).find(p => p.video_id === id) || { progress_time: 0 };
-            
-            const videoDuration = 100; 
-            const percent = Math.min(100, Math.round((record.progress_time / videoDuration) * 100));
+            const percent = Math.min(100, Math.round((record.progress_time / 100) * 100));
 
             html += `
                 <div class="video-item">
@@ -111,7 +104,6 @@
         container.innerHTML = html;
     }
 
-    // 초기화 함수 실행
     init();
 </script>
 </body>
