@@ -599,38 +599,26 @@
             const afterLogin = document.getElementById('after-login');
             const welcomeMsg = document.getElementById('welcome-message');
             
-            if (!beforeLogin || !afterLogin) return;
-
             if (!session) {
                 beforeLogin.style.display = 'flex';
                 afterLogin.style.display = 'none';
                 return;
             }
-
-            // 세션이 있는 경우
+        
             beforeLogin.style.display = 'none';
             afterLogin.style.display = 'flex';
-
+        
             try {
                 const { data: { user } } = await sb.auth.getUser();
-                const email = user.email;
-                const meta = user.user_metadata || {};
-                let displayName = "사용자";
-        
-                if (email.endsWith('@healthykids.com')) {
-                    const { data } = await sb.from('users')
-                        .select('nickname')
-                        .eq('email', email)
-                        .maybeSingle();
-                    displayName = data?.nickname || "사용자";
-                } 
-                else if (email.includes('naver.com')) {
-                    displayName = meta.name || "사용자";
-                }
-                else {
-                    displayName = meta.full_name || meta.name || "사용자";
-                }
-        
+                // DB의 users 테이블에서 name을 직접 가져옵니다.
+                const { data: dbUser } = await sb.from('users')
+                    .select('name')
+                    .eq('email', user.email)
+                    .maybeSingle();
+                
+                // DB에 이름이 있으면 사용하고, 없으면 Auth 메타데이터 사용
+                const displayName = dbUser?.name || user.user_metadata?.name || "사용자";
+                
                 if (welcomeMsg) welcomeMsg.textContent = displayName;
             } catch (err) {
                 console.error("UI 업데이트 중 오류:", err);
