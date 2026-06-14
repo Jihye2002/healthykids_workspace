@@ -37,12 +37,13 @@
 
     async function getValidatedUser(sb) {
         const { data: { session } } = await sb.auth.getSession();
-        if (session) return { email: session.user.email, type: 'auth' };
+        // 이메일은 항상 소문자로 통일하여 저장/조회하는 것이 좋습니다.
+        if (session) return { email: session.user.email.toLowerCase(), type: 'auth' };
 
         const naverUser = JSON.parse(localStorage.getItem('user'));
         if (naverUser && naverUser.provider === 'naver') {
             const { data: dbUser } = await sb.from('users').select('email').eq('email', naverUser.email).maybeSingle();
-            if (dbUser) return { email: naverUser.email, type: 'naver' };
+            if (dbUser) return { email: naverUser.email.toLowerCase(), type: 'naver' };
             else { localStorage.clear(); return null; }
         }
         return null;
@@ -68,10 +69,11 @@
         authAlert.style.display = 'none';
         mainContent.style.display = 'block';
 
+        // 1. 여기서 user.email을 기준으로 데이터를 가져옵니다.
         const { data: progressList } = await supabase
             .from('video_progress')
             .select('video_id, progress_time')
-            .eq('user_email', user.email);
+            .eq('user_email', user.email); // video.html에서 저장한 key와 정확히 일치
         
         const contentDB = {
             hygiene: { title: '토리와 함께 세균을 퇴치해봐요!' },
@@ -82,7 +84,10 @@
 
         let html = '';
         for (const [id, info] of Object.entries(contentDB)) {
+            // 2. video_id가 일치하는 레코드를 찾습니다.
             const record = (progressList || []).find(p => p.video_id === id) || { progress_time: 0 };
+            
+            // 3. 100이 넘어가는 경우(완료 시 100으로 저장함) 처리를 위해 Math.min 사용
             const percent = Math.min(100, Math.round(record.progress_time));
             
             html += `
