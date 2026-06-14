@@ -124,7 +124,7 @@
         async function checkAuth() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
-                alert("로그인이 필요한 서비스입니다.");
+                alert("로그인이 필요한 서비스예요!");
                 location.href = "login.html"; // 비로그인 시 로그인 페이지로 이동
             }
         }
@@ -144,7 +144,7 @@
                 "생활건강수칙.pdf": "생활건강수칙.pdf",
                 "질병예방수칙.pdf": "질병예방수칙.pdf",
             
-                "하루건강체크리스트.pdf": "하루건강_체크리스트.pdf"
+                "하루건강체크리스트.pdf": "하루건강_체크리스트.pdf",
 
                 "활동지.pdf": "활동지.pdf"
             };
