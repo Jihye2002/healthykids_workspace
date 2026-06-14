@@ -169,7 +169,7 @@
             if (!supabase) return;
             closeWithdrawModal();
             
-            // 1. 전역 변수(currentUser)를 사용하여 로그인 여부 판단
+            // 1. 로그인 여부 확인
             if (!currentUser || !currentUser.email) {
                 console.log("currentUser 정보 없음:", currentUser);
                 showMessage("다시 로그인해주세요ㅠㅠ", false);
@@ -177,26 +177,33 @@
             }
         
             try {
-                const { error } = await supabase.rpc('delete_my_account'); 
-                if (error) throw error;
+                // 2. 먼저 DB 데이터 삭제 (RPC 호출)
+                // 삭제가 완전히 끝날 때까지 await로 대기합니다.
+                const { error: rpcError } = await supabase.rpc('delete_my_account'); 
+                if (rpcError) throw rpcError;
         
+                // 3. 삭제 성공 후 로그아웃 (인증 무효화)
                 await supabase.auth.signOut({ scope: 'global' });
                 
+                // 4. 로컬 저장소 완전 초기화
                 localStorage.clear();
                 sessionStorage.clear();
                 
+                // 5. IndexedDB 초기화
                 const databases = await window.indexedDB.databases();
                 databases.forEach(db => { window.indexedDB.deleteDatabase(db.name); });
         
                 showMessage("성공적으로 탈퇴되었어요. 이제 새롭게 가입하셔야 해요!", true);
                 
+                // 6. 충분한 시간 후 페이지 이동
                 setTimeout(() => { 
                     window.location.replace('index.html'); 
-                }, 500);
+                }, 1000); // 0.5초에서 1초로 여유 확보
                 
             } catch (err) {
                 console.error("탈퇴 에러:", err);
-                showMessage("앗..잠시만 기다려주세요. 한 번 더 시도헤봐요!", false);
+                // 삭제가 실패하더라도 사용자에게는 알려줘야 합니다.
+                showMessage("앗.. 탈퇴 처리에 실패했어요. 잠시 후 다시 시도해주세요!", false);
             }
         };
     </script>
