@@ -115,52 +115,75 @@
 
     <div id="pdf-viewer"></div>
 
-    <script type="module">
-        import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-    
-        // 1. 설정값 가져오기 (비동기 처리)
-        async function init() {
-            const res = await fetch('/get-config');
-            const config = await res.json();
-            
-            // 중요: persistSession: true 추가
-            const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY, {
-                auth: { persistSession: true }
-            });
-    
-            // 2. 로그인 체크 함수
-            async function checkAuth() {
+        <script type="module">
+            import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+        
+            // 전역으로 supabase 인스턴스 선언
+            let supabase;
+        
+            async function init() {
+                const res = await fetch('/get-config');
+                const config = await res.json();
+                
+                // persistSession: true를 통해 브라우저를 새로고침해도 로그인 유지
+                supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY, {
+                    auth: { persistSession: true }
+                });
+        
+                // 1. 헤더 상태 업데이트
+                await updateHeader();
+        
+                // 2. 로그인 체크
                 const { data: { user } } = await supabase.auth.getUser();
                 if (!user) {
                     alert("로그인이 필요한 서비스예요!");
                     location.href = "login.html";
+                    return;
+                }
+        
+                // 3. PDF 렌더링 로직
+                const urlParams = new URLSearchParams(window.location.search);
+                const fileName = urlParams.get('file');
+                const baseUrl = "https://raw.githubusercontent.com/Jihye2002/healthykids_workspace/main/";
+                
+                const fileMap = {
+                    "위생안전수칙.pdf": "위생안전수칙.pdf",
+                    "실외안전수칙.pdf": "실외안전수칙.pdf",
+                    "생활건강수칙.pdf": "생활건강수칙.pdf",
+                    "질병예방수칙.pdf": "질병예방수칙.pdf",
+                    "하루건강체크리스트.pdf": "하루건강_체크리스트.pdf",
+                    "활동지.pdf": "활동지.pdf"
+                };
+        
+                if (fileName && fileMap[fileName]) {
+                    const viewer = document.getElementById('pdf-viewer');
+                    const pdfFile = baseUrl + fileMap[fileName] + "#toolbar=1";
+                    viewer.innerHTML = `<iframe src="${pdfFile}" width="100%" height="100%"></iframe>`;
+                } else {
+                    document.getElementById('pdf-viewer').innerText = "파일을 찾을 수 없습니다.";
                 }
             }
-            await checkAuth();
-    
-            // 3. PDF 렌더링 로직 (checkAuth 완료 후 실행)
-            const urlParams = new URLSearchParams(window.location.search);
-            const fileName = urlParams.get('file');
-            
-            const fileMap = {
-                "위생안전수칙.pdf": "위생안전수칙.pdf",
-                "실외안전수칙.pdf": "실외안전수칙.pdf",
-                "생활건강수칙.pdf": "생활건강수칙.pdf",
-                "질병예방수칙.pdf": "질병예방수칙.pdf",
-                "하루건강체크리스트.pdf": "하루건강_체크리스트.pdf",
-                "활동지.pdf": "활동지.pdf"
-            };
-    
-            if (fileName && fileMap[fileName]) {
-                const viewer = document.getElementById('pdf-viewer');
-                const pdfFile = fileMap[fileName] + "#toolbar=1";
-                viewer.innerHTML = `<iframe src="${pdfFile}" width="100%" height="100%"></iframe>`;
-            } else {
-                document.getElementById('pdf-viewer').innerText = "파일을 찾을 수 없습니다.";
+        
+            async function updateHeader() {
+                const { data: { user } } = await supabase.auth.getUser();
+                const userMenu = document.querySelector('.user-menu');
+                
+                if (user) {
+                    // 소셜 로그인(name) 또는 일반 로그인(nickname) 우선순위 적용
+                    const displayName = user.user_metadata.nickname || user.user_metadata.name || '회원';
+                    userMenu.innerHTML = `<span>${displayName}님 환영해요!</span> <span class="divider">|</span> <a href="#" id="logout-btn">로그아웃</a>`;
+                    
+                    document.getElementById('logout-btn').onclick = async (e) => {
+                        e.preventDefault();
+                        await supabase.auth.signOut();
+                        location.href = 'index.html';
+                    };
+                } else {
+                    userMenu.innerHTML = `<a href="login.html">로그인</a> <span class="divider">|</span> <a href="signup.html">회원가입</a>`;
+                }
             }
-        }
-    
-        init();
+        
+            init();
     </script>
     </body>
 </html>
