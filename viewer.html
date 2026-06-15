@@ -342,42 +342,18 @@
             const fileMap = { "위생안전수칙.pdf": "위생안전수칙.pdf", "실외안전수칙.pdf": "실외안전수칙.pdf", "생활건강수칙.pdf": "생활건강수칙.pdf", "질병예방수칙.pdf": "질병예방수칙.pdf", "하루건강체크리스트.pdf": "하루건강_체크리스트.pdf", "퀴즈.pdf": "퀴즈.pdf", "활동지.pdf": "활동지.pdf"};
 
             if (file && fileMap[file]) {
-                const fileUrl = `https://raw.githubusercontent.com/Jihye2002/healthykids_workspace/main/${fileMap[file]}`;
-                
-                // 1. PDF.js CDN 로드
-                const script = document.createElement('script');
-                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
-                script.onload = () => {
-                    // PDF.js 라이브러리 전역 객체 확인
-                    const pdfjsLib = window['pdfjs-dist/build/pdf'];
-                    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+                    const fileUrl = `https://raw.githubusercontent.com/Jihye2002/healthykids_workspace/main/${fileMap[file]}`;
                     
-                    // 2. 렌더링 실행
-                    const loadingTask = pdfjsLib.getDocument(fileUrl);
-                    loadingTask.promise.then(pdf => {
-                        pdf.getPage(1).then(page => {
-                            const canvas = document.createElement('canvas');
-                            const context = canvas.getContext('2d');
-                            // scale 조정으로 해상도 조절 가능
-                            const viewport = page.getViewport({ scale: 2.0 }); 
-                            
-                            canvas.height = viewport.height;
-                            canvas.width = viewport.width;
-                            
-                            viewer.innerHTML = ''; 
-                            viewer.appendChild(canvas);
-                            
-                            page.render({ canvasContext: context, viewport: viewport });
-                        });
-                    }).catch(err => {
-                        console.error("PDF 렌더링 실패:", err);
-                        viewer.innerHTML = '<p style="color:red;">PDF를 불러오는 중 오류가 발생했습니다. (CORS 문제일 수 있습니다.)</p>';
-                    });
-                };
-                document.body.appendChild(script);
+                    // 모질라 공식 뷰어 사용 (페이지 이동, 다운로드 기능 포함)
+                    const viewerUrl = `https://mozilla.github.io/pdf.js/web/viewer.html`;
+                    const fullUrl = `${viewerUrl}?file=${encodeURIComponent(fileUrl)}`;
+                    
+                    // iframe 삽입
+                    viewer.innerHTML = `<iframe src="${fullUrl}" width="100%" height="100%" style="border:none;"></iframe>`;
+                }
             }
-        }
-    }
+        }       
+                
 
     document.getElementById('logout-btn')?.addEventListener('click', async () => {
         const sb = await initSupabase();
