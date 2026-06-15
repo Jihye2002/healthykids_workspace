@@ -8,7 +8,7 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Arial', sans-serif; background-color: #fff; height: 100vh; display: flex; flex-direction: column; }
-        .box { max-width: 800px; margin: 0 auto; background: white; padding: 40px; border: 2px solid #2f63c7; }
+        .box { max-width: 1200px; margin: 0 auto; background: white; padding: 60px 40px; border: 2px solid #2f63c7; }
         /* --- 헤더 --- */
         .header { display: flex; align-items: center; padding: 10px 20px; flex-wrap: nowrap; gap: 20px; }
         .logo { flex-shrink: 0; }
@@ -48,9 +48,21 @@
             display: none; 
             margin: auto; /* 박스를 화면 정중앙에 배치 */
             text-align: center;
-            padding: 30px;
         }
-        .login-btn { display: inline-block; background: #2f63c7; color: white; padding: 12px 30px; text-decoration: none; font-weight: bold; margin-top: 20px; }
+
+        #auth-alert h2 { font-size: 20px; margin-bottom: 20px; }
+        #auth-alert p { font-size: 16px; line-height: 1.6; color: #555; }
+        .login-btn { 
+            display: inline-block; 
+            background: #2f63c7; 
+            color: white; 
+            padding: 15px 40px; /* 버튼을 더 크게 */
+            text-decoration: none; 
+            font-weight: bold; 
+            font-size: 1.1em;
+            margin-top: 30px; 
+            border-radius: 8px;
+        }
     </style>
 </head>
 <body>
