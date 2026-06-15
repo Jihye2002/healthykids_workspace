@@ -349,18 +349,22 @@
 <script type="module">
     import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-    // 1. Supabase 초기화 및 전역 설정
+    // 1. 전역 상태 관리
     window.supabaseInstance = null;
     window.initPromise = null;
+    let isSeeking = false; // [수정] 전역 변수로 이동하여 참조 오류 해결
 
     async function initSupabase() {
         if (window.supabaseInstance) return window.supabaseInstance;
+        
         if (sessionStorage.getItem('is_sb_initialized') === 'true') {
             const config = JSON.parse(sessionStorage.getItem('sb_config'));
             window.supabaseInstance = createClient(config.url, config.key);
             return window.supabaseInstance;
         }
+
         if (window.initPromise) return window.initPromise;
+
         window.initPromise = (async () => {
             const res = await fetch('/get-config');
             const config = await res.json();
@@ -413,30 +417,19 @@
         const { data: { session } } = await sb.auth.getSession();
         updateUI(session);
 
-        let isSeeking = false; // [수정] 변수를 함수 최상단에서 선언
-
-        document.getElementById('logout-btn')?.addEventListener('click', async () => {
-            // [추가] 로그아웃 전, 현재 사용자의 영상 기록을 삭제합니다.
-            const { data: { session } } = await sb.auth.getSession();
-            const naverUser = JSON.parse(localStorage.getItem('user'));
-            const userEmail = session?.user.email || naverUser?.email;
-
-            if (userEmail) {
-                // 특정 사용자의 모든 영상 기록을 삭제 (또는 특정 조건으로 삭제)
-                await sb.from('video_progress')
-                        .delete()
-                        .eq('user_email', userEmail);
-                console.log("로그아웃: 영상 기록이 초기화되었습니다.");
-            }
-
+        const video = document.getElementById('main-video');
+        const params = new URLSearchParams(window.location.search);
+        const type = params.get('type');
+        
+        // 로그아웃 처리
+        document.getElementById('logout-btn')?.addEventListener('click', async (e) => {
+            e.preventDefault();
             await sb.auth.signOut();
             localStorage.clear();
             sessionStorage.clear();
             window.location.href = 'index.html';
         });
 
-        const params = new URLSearchParams(window.location.search);
-        const type = params.get('type');
         const contentDB = {
             hygiene: { title: '토리와 함께 세균을 퇴치해봐요!', src: 'https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/%EC%9C%84%EC%83%9D%EC%95%88%EC%A0%84.mp4', kahoot: ['https://kahoot.it/challenge/01812841', 'https://kahoot.it/challenge/03183156'] },
             crosswalk: { title: '토리와 함께 길 건널 때 어떻게 하면 되는지 알아가요!', src: 'https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/%EC%8B%A4%EC%99%B8%EC%95%88%EC%A0%84.mp4', kahoot: ['https://kahoot.it/challenge/07121259'] },
@@ -447,62 +440,29 @@
         const data = contentDB[type];
         if (!data) return;
 
-        const video = document.getElementById('main-video');
         video.src = data.src;
         document.getElementById('video-title').innerText = data.title;
 
-        const naverUser = JSON.parse(localStorage.getItem('user'));
-        const userEmail = session?.user.email || naverUser?.email;
-
+        // 이어보기 로직
+        const userEmail = session?.user.email || JSON.parse(localStorage.getItem('user'))?.email;
         if (userEmail) {
-            const { data: progressData } = await sb
-                .from('video_progress')
-                .select('progress_time')
-                .eq('user_email', userEmail)
-                .eq('video_id', type)
-                .maybeSingle();
-
+            const { data: progressData } = await sb.from('video_progress').select('progress_time').eq('user_email', userEmail).eq('video_id', type).maybeSingle();
             if (progressData && progressData.progress_time > 0) {
-                isSeeking = true; 
-                video.addEventListener('canplaythrough', () => {
-                    const savedTime = (progressData.progress_time / 100) * video.duration;
-                    if (video.currentTime < 1) {
-                        video.currentTime = savedTime;
-                    }
-                    setTimeout(() => { isSeeking = false; }, 1000);
-                }, { once: true });
-                
-                if (video.readyState >= 3) {
+                isSeeking = true;
+                video.addEventListener('loadedmetadata', () => {
                     video.currentTime = (progressData.progress_time / 100) * video.duration;
-                    setTimeout(() => { isSeeking = false; }, 1000);
-                }
+                    setTimeout(() => { isSeeking = false; }, 1500);
+                }, { once: true });
             }
         }
-        
-        const quizButtons = document.getElementById('quiz-buttons');
-        quizButtons.innerHTML = "";
-        data.kahoot.forEach((url, index) => {
-            const a = document.createElement("a"); a.href = url; a.target = "_blank";
-            const button = document.createElement("button"); button.className = "btn";
-            button.innerText = `🚀 카훗 퀴즈 ${index + 1}`;
-            a.appendChild(button); quizButtons.appendChild(a);
-        });
 
+        // 5초 간격 저장 로직
+        let lastSavedTime = -5;
         video.addEventListener('timeupdate', async () => {
-            if (isSeeking) return; // [중요] 점프 중에는 저장 로직 작동 안 함
-            
-            const currentTime = video.currentTime;
-            const duration = video.duration;
-            if (!duration) return;
-
-            const progress = (currentTime / duration) * 100;
-            
-            if (Math.round(currentTime) % 5 === 0) {
-                // 저장 로직은 그대로
-                const { data: { session } } = await sb.auth.getSession();
-                const naverUser = JSON.parse(localStorage.getItem('user'));
-                const userEmail = session?.user.email || naverUser?.email;
-                
+            if (isSeeking || !video.duration) return;
+            if (Math.abs(video.currentTime - lastSavedTime) > 5) {
+                lastSavedTime = video.currentTime;
+                const progress = (video.currentTime / video.duration) * 100;
                 if (userEmail) {
                     await sb.from('video_progress').upsert({
                         user_email: userEmail,
@@ -516,22 +476,12 @@
         });
 
         video.addEventListener('ended', async () => {
-            const { data: { session } } = await sb.auth.getSession();
-            const naverUser = JSON.parse(localStorage.getItem('user'));
-            const userEmail = session?.user.email || naverUser?.email;
-            
             if (userEmail) {
-                await sb.from('video_progress').upsert({
-                    user_email: userEmail,
-                    video_id: type,
-                    progress_time: 100,
-                    is_completed: true,
-                    updated_at: new Date().toISOString()
-                });
+                await sb.from('video_progress').upsert({ user_email: userEmail, video_id: type, progress_time: 100, is_completed: true, updated_at: new Date().toISOString() });
             }
             document.getElementById('quiz-section').style.display = "block";
         });
-    } // [수정] 여기가 올바른 끝입니다.
+    }
 
     document.addEventListener('DOMContentLoaded', init);
 </script>
