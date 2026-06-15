@@ -361,74 +361,40 @@
         } catch (err) { console.error("UI 업데이트 오류:", err); }
     }
 
-    document.addEventListener('DOMContentLoaded', async () => {
-        // 2. 로그인 상태 확인 및 UI 업데이트 추가 (이 부분이 빠져 있었습니다)
-        const sb = await initSupabase();
-        if (sb) {
-            // 현재 세션 가져오기
-            const { data: { session } } = await sb.auth.getSession();
-            // UI 업데이트 실행
-            updateUI(session);
+    document.addEventListener('DOMContentLoaded', updateUI);
 
-            // 로그인 상태 변화 감지 (로그인/로그아웃 시 자동 업데이트)
-            sb.auth.onAuthStateChange((event, session) => {
-                updateUI(session);
-            });
-
-            const logoutBtn = document.getElementById('logout-btn');
-            if (logoutBtn) {
-                logoutBtn.addEventListener('click', async (e) => {
-                    e.preventDefault();
-                    await clearAllAuth(); // 기존에 작성하신 함수 호출
-                    window.location.reload(); // 페이지 새로고침
-                });
-            }
-        }
-    });
-
-    const contactForm = document.getElementById('contact-form');
-
-    contactForm.addEventListener('submit', async (e) => {
+    // 문의하기 버튼 제출
+    document.getElementById('contact-form').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const sb = await initSupabase(); // 기존에 작성하신 초기화 함수
+        const sb = await initSupabase()
         
-        // 1. 현재 로그인 세션 확인
         const { data: { session } } = await sb.auth.getSession();
         
-        // 2. 기본 입력 데이터
         const insertData = {
             name: document.getElementById('name').value,
             email: document.getElementById('email').value,
-            message: document.getElementById('message').value
+            message: document.getElementById('message').value,
+            user_id: session?.user?.id || null // 로그인했다면 ID를 같이 저장
         };
-    
-        // 3. 로그인 상태일 경우에만 nickname 추가
-        // (user_id는 Supabase DB 설정에서 auth.uid()가 자동으로 채워주므로 굳이 안 넣어도 됩니다)
-        if (session) {
-            try {
-                // public.users 테이블에서 해당 사용자의 닉네임 조회
-                const { data } = await sb.from('public.users')
-                                         .select('nickname')
-                                         .eq('email', session.user.email)
-                                         .maybeSingle();
-                if (data) {
-                    insertData.nickname = data.nickname;
-                }
-            } catch (err) {
-                console.error("닉네임 조회 실패:", err);
-            }
-        }
-    
-        // 4. DB 저장
+
         const { error } = await sb.from('inquiries').insert([insertData]);
-    
+
         if (error) {
             console.error("DB 저장 에러:", error);
             alert('문의 접수 중 오류가 발생했습니다.');
         } else {
             alert('문의가 성공적으로 접수되었습니다!');
-            contactForm.reset();
+            document.getElementById('contact-form').reset();
         }
+    });
+
+    // 로그아웃
+    document.getElementById('logout-btn')?.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const sb = await getSupabase();
+        await sb.auth.signOut();
+        localStorage.clear();
+        window.location.reload();
     });
 </script>
 </body>
