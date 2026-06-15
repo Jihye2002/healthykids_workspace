@@ -167,9 +167,43 @@
             background-color: #f8fbff;
         }        
         
-        /* 검색 페이지 전용 스타일 */
-        .contents { padding: 40px 20px; max-width: 1000px; margin: 0 auto; }
-        #search-results { margin-top: 20px; line-height: 1.6; }
+       /* 검색 타이틀 스타일 */
+        .search-title {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #2f63c7;
+            color: #333;
+        }
+        
+        /* 검색 결과 컨테이너 */
+        .results-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        /* 검색 결과 항목 카드 스타일 */
+        .result-item {
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 10px;
+            border: 1px solid #eee;
+            transition: all 0.2s;
+            text-decoration: none;
+            color: #333;
+            display: block;
+        }
+        
+        .result-item:hover {
+            background-color: #f0f7ff;
+            border-color: #2f63c7;
+            transform: translateX(5px);
+        }
+        
+        .result-item strong {
+            font-size: 1.1em;
+            color: #2f63c7;
+        }
     </style>
 </head>
 <body>
@@ -260,8 +294,9 @@
 </nav>
 
 <div class="contents">
-    <h2 id="search-title">검색 결과</h2>
-    <div id="search-results">검색어를 입력하고 검색 버튼을 눌러주세요.</div>
+    <h2 id="search-title" class="search-title">검색 결과</h2>
+    <div id="search-results" class="results-container">
+        </div>
 </div>
 
 <script type="module">
@@ -343,6 +378,7 @@
         } catch (err) { console.error("UI 업데이트 오류:", err); }
     }
 
+    // search.html 코드 내 performSearch 함수 부분
     async function performSearch() {
         const params = new URLSearchParams(window.location.search);
         const query = params.get('q');
@@ -355,7 +391,6 @@
     
         const sb = await initSupabase();
         
-        // 테이블명을 'materials'로 수정했습니다!
         const { data, error } = await sb
             .from('materials') 
             .select('*')
@@ -366,10 +401,17 @@
             return;
         }
     
-        // 링크 컬럼명이 'link'이므로 item.link로 접근하도록 수정했습니다.
-        resultsDiv.innerHTML = data && data.length > 0 
-            ? data.map(item => `<p>• <a href="${item.link}">${item.title}</a></p>`).join('') 
-            : "검색 결과가 없습니다.";
+        // [이 부분입니다] 아래 내용을 기존 resultsDiv.innerHTML 줄 대신 넣으세요!
+        if (data && data.length > 0) {
+            resultsDiv.innerHTML = data.map(item => `
+                <a href="${item.link}" class="result-item" style="display: block; padding: 20px; background-color: #f9f9f9; border-radius: 10px; border: 1px solid #eee; text-decoration: none; color: #333; margin-bottom: 10px;">
+                    <strong style="color: #2f63c7; font-size: 1.1em;">${item.title}</strong>
+                    <p style="color: #777; margin-top: 5px; font-size: 0.9em;">자료 확인하기 ></p>
+                </a>
+            `).join('');
+        } else {
+            resultsDiv.innerHTML = '<p class="no-result">검색 결과가 없습니다.</p>';
+        }
     }
     // 4. 통합 초기화
     document.addEventListener('DOMContentLoaded', async () => {
