@@ -8,6 +8,7 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Arial', sans-serif; background-color: #fff; height: 100vh; display: flex; flex-direction: column; }
+        .box { max-width: 800px; margin: 0 auto; background: white; padding: 40px; border: 2px solid #2f63c7; }
 
         /* --- 헤더 --- */
         .header { display: flex; align-items: center; padding: 10px 20px; flex-wrap: nowrap; gap: 20px; }
@@ -151,26 +152,30 @@
 
         const viewer = document.getElementById('pdf-viewer');
         const authAlert = document.getElementById('auth-alert');
-        const mainContent = document.getElementById('main-content');
+        // mainContent 변수와 아래의 .style.display 조절 로직은 삭제하거나 주석 처리하세요.
+        // const mainContent = document.getElementById('main-content'); 
 
+        // 비로그인 상태일 때
         if (!session && !localStorage.getItem('user')) {
-            authAlert.style.display = 'block';
-            mainContent.style.display = 'none';
+            authAlert.style.display = 'block'; // 알림창 보이기
+            viewer.style.display = 'none';    // 뷰어만 숨기기
             return;
         }
 
+        // 로그인 상태일 때
         authAlert.style.display = 'none';
-        mainContent.style.display = 'flex';
+        viewer.style.display = 'block';
 
         const params = new URLSearchParams(window.location.search);
         const file = params.get('file');
-        const fileMap = { "위생안전수칙.pdf": "위생안전수칙.pdf", 
-                         "실외안전수칙.pdf": "실외안전수칙.pdf", 
-                         "생활건강수칙.pdf": "생활건강수칙.pdf", 
-                         "질병예방수칙.pdf": "질병예방수칙.pdf", 
-                         "하루건강체크리스트.pdf": "하루건강_체크리스트.pdf", 
-                         "활동지.pdf": "활동지.pdf" 
-                        };
+        const fileMap = { 
+            "위생안전수칙.pdf": "위생안전수칙.pdf", 
+            "실외안전수칙.pdf": "실외안전수칙.pdf", 
+            "생활건강수칙.pdf": "생활건강수칙.pdf", 
+            "질병예방수칙.pdf": "질병예방수칙.pdf", 
+            "하루건강체크리스트.pdf": "하루건강_체크리스트.pdf", 
+            "활동지.pdf": "활동지.pdf" 
+        };
 
         if (file && fileMap[file]) {
             const fileUrl = `https://raw.githubusercontent.com/Jihye2002/healthykids_workspace/main/${fileMap[file]}`;
