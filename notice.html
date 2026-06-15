@@ -391,18 +391,31 @@
         } catch (err) { console.error("UI 업데이트 오류:", err); }
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
+        // 1. 기존 클릭 이벤트 처리
         document.querySelectorAll('.notice-title').forEach(button => {
             button.addEventListener('click', () => {
                 const content = button.nextElementSibling;
-                // 다른 항목 닫기
                 document.querySelectorAll('.notice-content').forEach(c => { 
                     if(c !== content) c.style.display = 'none'; 
                 });
-                // 클릭한 항목 토글
                 content.style.display = (content.style.display === 'block') ? 'none' : 'block';
             });
         });
+
+        // 2. 로그인 상태 확인 및 UI 업데이트 추가 (이 부분이 빠져 있었습니다)
+        const sb = await initSupabase();
+        if (sb) {
+            // 현재 세션 가져오기
+            const { data: { session } } = await sb.auth.getSession();
+            // UI 업데이트 실행
+            updateUI(session);
+
+            // 로그인 상태 변화 감지 (로그인/로그아웃 시 자동 업데이트)
+            sb.auth.onAuthStateChange((event, session) => {
+                updateUI(session);
+            });
+        }
     });
 </script>
 </body>
