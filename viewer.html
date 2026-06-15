@@ -41,66 +41,64 @@
         #main-content { flex-grow: 1; display: flex; flex-direction: column; width: 100%; }
         #pdf-viewer { width: 100%; height: 100%; border: 1px solid #ccc; overflow: hidden; }
 
-        /* 알림창 */
-        /* 알림창 */
-        #auth-alert { 
-            position: absolute; 
-            top: 50%; 
-            left: 50%; 
-            transform: translate(-50%, -50%); /* 화면 정확히 가운데로 이동 */
-            text-align: center; 
-            width: 100%;
-            display: none; 
+       #app-wrapper {
+            display: none; /* 기본적으로 숨김 */
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
-        #auth-alert.box { /* 추가된 박스 스타일 */
-            max-width: 600px;
-            padding: 40px; 
-            border: 2px solid #2f63c7;
-            background: white;
+        
+        #auth-alert {
+            display: none;
+            position: fixed; /* 절대 위치가 아니라 화면 기준 고정 */
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 9999; /* 다른 요소보다 위에 오도록 */
         }
-        #auth-alert h2 { color: #2f63c7; margin-bottom: 15px; }
-        .login-btn { display: inline-block; background: #2f63c7; color: white; padding: 12px 30px; text-decoration: none; font-weight: bold; margin-top: 20px; border-radius: 5px; }
     </style>
 </head>
 <body>
-
-<header class="header">
-    <div class="logo"><a href="index.html"><img src="https://github.com/Jihye2002/healthykids_workspace/blob/main/logo.png?raw=true" alt="로고"></a></div>
-    <div class="container">
-        <form class="search-bar" action="search.html" method="get">
-            <input type="text" name="q" placeholder="검색어를 입력하세요">
-            <button type="submit"><img src="https://github.com/Jihye2002/healthykids_workspace/blob/main/search.png?raw=true" width="40" height="40"></button>
-        </form>
-        <div class="user-menu" id="user-menu">
-            <div id="before-login"><a href="login.html">로그인</a><span class="divider">|</span><a href="signup.html">회원가입</a></div>
-            <div id="after-login"><span id="welcome-message"></span>님 환영해요! <a href="#" id="logout-btn">로그아웃</a></div>
+    
+<div id="app-wrapper" style="display: none; height: 100vh; flex-direction: column;">
+    <header class="header">
+        <div class="logo"><a href="index.html"><img src="https://github.com/Jihye2002/healthykids_workspace/blob/main/logo.png?raw=true" alt="로고"></a></div>
+        <div class="container">
+            <form class="search-bar" action="search.html" method="get">
+                <input type="text" name="q" placeholder="검색어를 입력하세요">
+                <button type="submit"><img src="https://github.com/Jihye2002/healthykids_workspace/blob/main/search.png?raw=true" width="40" height="40"></button>
+            </form>
+            <div class="user-menu" id="user-menu">
+                <div id="before-login"><a href="login.html">로그인</a><span class="divider">|</span><a href="signup.html">회원가입</a></div>
+                <div id="after-login"><span id="welcome-message"></span>님 환영해요! <a href="#" id="logout-btn">로그아웃</a></div>
+            </div>
         </div>
-    </div>
-</header>
+    </header>
 
-<nav class="navbar">
-    <ul class="menu-list">
-        <li>회원정보</li><li>영상보기</li><li>놀이&활동자료 다운로드</li><li>안전수칙자료 다운로드</li><li>Q&A</li>
-    </ul>
-    <div class="mega-menu">
-        <div class="mega-content">
-            <div class="column"><ul><li><a href="edit-profile.html">개인정보 수정</a></li><li><a href="withdraw.html">회원탈퇴</a></li></ul></div>
-            <div class="column"><ul><li><a href="ongoing.html">진행중인 영상</a></li><li><a href="video.html?type=hygiene">위생안전</a></li><li><a href="video.html?type=crosswalk">실외안전</a></li><li><a href="video.html?type=foodsafety">생활건강</a></li><li><a href="video.html?type=precaution">질병예방</a></li></ul></div>
-            <div class="column"><ul><li><a href="viewer.html?file=하루건강체크리스트.pdf">하루건강 체크리스트</a></li><li><a href="#">퀴즈</a></li><li><a href="viewer.html?file=활동지.pdf">활동지</a></li></ul></div>
-            <div class="column"><ul><li><a href="viewer.html?file=위생안전수칙.pdf">위생안전자료</a></li><li><a href="viewer.html?file=실외안전수칙.pdf">실외안전자료</a></li><li><a href="viewer.html?file=생활건강수칙.pdf">생활건강자료</a></li><li><a href="viewer.html?file=질병예방수칙.pdf">질병예방자료</a></li></ul></div>
-            <div class="column"><ul><li><a href="#">자주 묻는 질문</a></li><li><a href="#">1:1상담 문의</a></li><li><a href="#">영상오류 해결방법</a></li></ul></div>
+    <nav class="navbar">
+        <ul class="menu-list">
+            <li>회원정보</li><li>영상보기</li><li>놀이&활동자료 다운로드</li><li>안전수칙자료 다운로드</li><li>Q&A</li>
+        </ul>
+        <div class="mega-menu">
+            <div class="mega-content">
+                <div class="column"><ul><li><a href="edit-profile.html">개인정보 수정</a></li><li><a href="withdraw.html">회원탈퇴</a></li></ul></div>
+                <div class="column"><ul><li><a href="ongoing.html">진행중인 영상</a></li><li><a href="video.html?type=hygiene">위생안전</a></li><li><a href="video.html?type=crosswalk">실외안전</a></li><li><a href="video.html?type=foodsafety">생활건강</a></li><li><a href="video.html?type=precaution">질병예방</a></li></ul></div>
+                <div class="column"><ul><li><a href="viewer.html?file=하루건강체크리스트.pdf">하루건강 체크리스트</a></li><li><a href="#">퀴즈</a></li><li><a href="viewer.html?file=활동지.pdf">활동지</a></li></ul></div>
+                <div class="column"><ul><li><a href="viewer.html?file=위생안전수칙.pdf">위생안전자료</a></li><li><a href="viewer.html?file=실외안전수칙.pdf">실외안전자료</a></li><li><a href="viewer.html?file=생활건강수칙.pdf">생활건강자료</a></li><li><a href="viewer.html?file=질병예방수칙.pdf">질병예방자료</a></li></ul></div>
+                <div class="column"><ul><li><a href="#">자주 묻는 질문</a></li><li><a href="#">1:1상담 문의</a></li><li><a href="#">영상오류 해결방법</a></li></ul></div>
+            </div>
         </div>
+    </nav>
+        
+    <div id="main-content">
+        <div id="pdf-viewer"></div>
     </div>
-</nav>
+</div>
 
 <div id="auth-alert" class="box">
     <h2>로그인이 필요해요!</h2>
     <p>회원님만 볼 수 있는 소중한 자료예요.<br>로그인 후 이용해 주세요!</p>
     <a href="login.html" class="login-btn">로그인 하러 가기</a>
-</div>
-    
-<div id="main-content">
-    <div id="pdf-viewer"></div>
 </div>
 
 <script type="module">
@@ -162,35 +160,36 @@
     async function init() {
         const sb = await initSupabase();
         const { data: { session } } = await sb.auth.getSession();
-        updateUI(session);
-
-        const viewer = document.getElementById('pdf-viewer');
+        
+        const appWrapper = document.getElementById('app-wrapper');
         const authAlert = document.getElementById('auth-alert');
-        // mainContent 변수와 아래의 .style.display 조절 로직은 삭제하거나 주석 처리하세요.
-        // const mainContent = document.getElementById('main-content'); 
-
-        // 비로그인 상태일 때
-        if (!session && !localStorage.getItem('user')) {
-            authAlert.style.display = 'block'; // 알림창 보이기
-            viewer.style.display = 'none';    // 뷰어만 숨기기
+        const viewer = document.getElementById('pdf-viewer');
+    
+        const isLoggedIn = session || localStorage.getItem('user');
+    
+        if (!isLoggedIn) {
+            // [비로그인 상태] 전체 앱 숨기고 알림창만 표시
+            appWrapper.style.display = 'none';
+            authAlert.style.display = 'block';
             return;
         }
-
-        // 로그인 상태일 때
+    
+        // [로그인 상태]
+        appWrapper.style.display = 'flex'; // 혹은 'block' (원래 레이아웃에 맞게)
         authAlert.style.display = 'none';
-        viewer.style.display = 'block';
-
+        updateUI(session);
+    
+        // PDF 뷰어 로직
         const params = new URLSearchParams(window.location.search);
         const file = params.get('file');
-        const fileMap = { 
-            "위생안전수칙.pdf": "위생안전수칙.pdf", 
-            "실외안전수칙.pdf": "실외안전수칙.pdf", 
-            "생활건강수칙.pdf": "생활건강수칙.pdf", 
-            "질병예방수칙.pdf": "질병예방수칙.pdf", 
-            "하루건강체크리스트.pdf": "하루건강_체크리스트.pdf", 
-            "활동지.pdf": "활동지.pdf" 
-        };
-
+        const fileMap = { "위생안전수칙.pdf": "위생안전수칙.pdf", 
+                          "실외안전수칙.pdf": "실외안전수칙.pdf", 
+                          "생활건강수칙.pdf": "생활건강수칙.pdf", 
+                          "질병예방수칙.pdf": "질병예방수칙.pdf", 
+                          "하루건강체크리스트.pdf": "하루건강_체크리스트.pdf", 
+                          "활동지.pdf": "활동지.pdf" 
+                        };
+    
         if (file && fileMap[file]) {
             const fileUrl = `https://raw.githubusercontent.com/Jihye2002/healthykids_workspace/main/${fileMap[file]}`;
             viewer.innerHTML = `<iframe src="https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(fileUrl)}" width="100%" height="100%" style="border:none;"></iframe>`;
