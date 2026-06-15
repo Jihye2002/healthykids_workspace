@@ -387,21 +387,43 @@
     });
 
     const contactForm = document.getElementById('contact-form');
+
     contactForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const sb = await initSupabase(); // initSupabase 함수는 이전 페이지와 동일
+        const sb = await initSupabase(); // 기존에 작성하신 초기화 함수
         
-        const { error } = await sb.from('inquiries').insert([
-            {
-                name: document.getElementById('name').value,
-                email: document.getElementById('email').value,
-                message: document.getElementById('message').value,
-                nickname: userNickname, // 로그인 안 했다면 null로 저장됨
-                user_id: userId
+        // 1. 현재 로그인 세션 확인
+        const { data: { session } } = await sb.auth.getSession();
+        
+        // 2. 기본 입력 데이터
+        const insertData = {
+            name: document.getElementById('name').value,
+            email: document.getElementById('email').value,
+            message: document.getElementById('message').value
+        };
+    
+        // 3. 로그인 상태일 경우에만 nickname 추가
+        // (user_id는 Supabase DB 설정에서 auth.uid()가 자동으로 채워주므로 굳이 안 넣어도 됩니다)
+        if (session) {
+            try {
+                // public.users 테이블에서 해당 사용자의 닉네임 조회
+                const { data } = await sb.from('public.users')
+                                         .select('nickname')
+                                         .eq('email', session.user.email)
+                                         .maybeSingle();
+                if (data) {
+                    insertData.nickname = data.nickname;
+                }
+            } catch (err) {
+                console.error("닉네임 조회 실패:", err);
             }
-        ]);
-
+        }
+    
+        // 4. DB 저장
+        const { error } = await sb.from('inquiries').insert([insertData]);
+    
         if (error) {
+            console.error("DB 저장 에러:", error);
             alert('문의 접수 중 오류가 발생했습니다.');
         } else {
             alert('문의가 성공적으로 접수되었습니다!');
