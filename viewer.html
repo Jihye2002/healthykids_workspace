@@ -336,9 +336,16 @@
             const file = params.get('file');
             const fileMap = { "위생안전수칙.pdf": "위생안전수칙.pdf", "실외안전수칙.pdf": "실외안전수칙.pdf", "생활건강수칙.pdf": "생활건강수칙.pdf", "질병예방수칙.pdf": "질병예방수칙.pdf", "하루건강체크리스트.pdf": "하루건강_체크리스트.pdf", "퀴즈.pdf": "퀴즈.pdf", "활동지.pdf": "활동지.pdf"};
 
+            // PDF 로드 부분 (init 함수 내)
             if (file && fileMap[file]) {
                 const fileUrl = `https://raw.githubusercontent.com/Jihye2002/healthykids_workspace/main/${fileMap[file]}`;
-                viewer.innerHTML = `<iframe src="https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(fileUrl)}" width="100%" height="100%" style="border:none;"></iframe>`;
+                
+                // iframe 대신 PDF.js의 'viewer.html'을 호출하되, 
+                // 파일 경로를 파라미터로 넘겨줍니다. 
+                // 이때, 외부 도메인 대신 PDF.js가 제공하는 공식 CDN 통합 방식을 사용하세요.
+                const pdfJsViewerUrl = `https://mozilla.github.io/pdf.js/web/viewer.html?file=`;
+                
+                viewer.innerHTML = `<iframe src="${pdfJsViewerUrl}${encodeURIComponent(fileUrl)}" width="100%" height="100%" style="border:none;" allowfullscreen></iframe>`;
             }
         }
     }
