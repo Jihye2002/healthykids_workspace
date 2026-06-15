@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>헬시키즈 | 검색 결과</title>
+    <style>
+        /* 기존 스타일과 통일 */
+        body { font-family: 'Arial', sans-serif; padding: 40px; background-color: #f4f8ff; }
+        .box { max-width: 800px; margin: 0 auto; background: white; padding: 40px; border: 2px solid #2f63c7; }
+        .result-item { border-bottom: 1px solid #eee; padding: 20px 0; }
+        .result-item h3 { color: #2f63c7; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+<div class="box">
+    <h2>" <span id="query-text"></span> " 검색 결과</h2>
+    <div id="results">검색 중...</div>
+</div>
+
+<script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+    async function initSearch() {
+        const res = await fetch('/get-config');
+        const config = await res.json();
+        const sb = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+        
+        const params = new URLSearchParams(window.location.search);
+        const q = params.get('q');
+        document.getElementById('query-text').textContent = q || "";
+
+        if (!q) {
+            document.getElementById('results').textContent = "검색어를 입력해주세요.";
+            return;
+        }
+
+        // 1. material_list 같은 테이블이 있다면 거기서 검색 (테이블명은 실제 DB에 맞춰 수정하세요)
+        // 여기서는 title 컬럼에서 검색어를 찾습니다.
+        const { data, error } = await sb
+            .from('materials') 
+            .select('title, link')
+            .ilike('title', `%${q}%`);
+
+        if (error) {
+            document.getElementById('results').textContent = "검색 중 오류가 발생했습니다.";
+            return;
+        }
+
+        if (data.length === 0) {
+            document.getElementById('results').textContent = "검색 결과가 없습니다.";
+        } else {
+            document.getElementById('results').innerHTML = data.map(item => `
+                <div class="result-item">
+                    <h3><a href="${item.link}">${item.title}</a></h3>
+                </div>
+            `).join('');
+        }
+    }
+    initSearch();
+</script>
+</body>
+</html>
