@@ -2,64 +2,117 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>헬시키즈 | 검색 결과</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/favicon.ico">
+    <title>검색 결과 - 헬시키즈</title>
     <style>
-        /* 기존 스타일과 통일 */
-        body { font-family: 'Arial', sans-serif; padding: 40px; background-color: #f4f8ff; }
-        .box { max-width: 800px; margin: 0 auto; background: white; padding: 40px; border: 2px solid #2f63c7; }
-        .result-item { border-bottom: 1px solid #eee; padding: 20px 0; }
-        .result-item h3 { color: #2f63c7; margin-bottom: 10px; }
+        /* 공통 스타일 */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Arial', sans-serif; background-color: #fff; }
+        .header { display: flex; align-items: center; padding: 10px 20px; gap: 20px; width: 100%;}
+        .logo img { width: 180px; }
+        .container { display: flex; align-items: center; width: 100%; gap: 20px; flex: 1; justify-content: space-between; }
+        .search-bar { display: flex; align-items: center; flex: 1; max-width: 800px; gap: 8px; }
+        .search-bar input { flex: 1; padding: 10px; border: 1px solid #316ef4; border-radius: 5px; }
+        .user-menu { display: flex; gap: 10px; font-weight: 600; }
+        .navbar { background-color: #2f63c7; padding: 10px 0; }
+        .menu-list { display: flex; justify-content: center; list-style: none; color: white; gap: 30px; }
+        
+        /* 검색 페이지 전용 스타일 */
+        .contents { padding: 40px 20px; max-width: 1000px; margin: 0 auto; }
+        #search-results { margin-top: 20px; line-height: 1.6; }
     </style>
 </head>
 <body>
-<div class="box">
-    <h2>" <span id="query-text"></span> " 검색 결과</h2>
-    <div id="results">검색 중...</div>
+
+<header class="header">
+    <div class="logo"><a href="index.html"><img src="https://github.com/Jihye2002/healthykids_workspace/blob/main/logo.png?raw=true" alt="로고"></a></div>
+    <div class="container">
+        <form class="search-bar" action="search.html" method="get">
+            <input type="text" name="q" placeholder="검색어를 입력하세요">
+            <button type="submit">검색</button>
+        </form>
+        <div class="user-menu">
+            <div id="before-login"><a href="login.html">로그인</a> | <a href="signup.html">회원가입</a></div>
+            <div id="after-login" style="display:none;"><span id="welcome-message"></span>님 환영해요! <a href="#" id="logout-btn">로그아웃</a></div>
+        </div>
+    </div>
+</header>
+
+<nav class="navbar"><ul class="menu-list"><li>메뉴1</li><li>메뉴2</li><li>메뉴3</li></ul></nav>
+
+<div class="contents">
+    <h2 id="search-title">검색 결과</h2>
+    <div id="search-results">검색어를 입력하고 검색 버튼을 눌러주세요.</div>
 </div>
 
 <script type="module">
     import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-    async function initSearch() {
-        // 1. 설정값 가져오기
+    // 1. Supabase 초기화 및 인증 로직
+    window.supabaseInstance = null;
+    async function initSupabase() {
+        if (window.supabaseInstance) return window.supabaseInstance;
         const res = await fetch('/get-config');
         const config = await res.json();
-        const sb = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
-        
-        // 2. 검색어 가져오기
-        const params = new URLSearchParams(window.location.search);
-        const q = params.get('q');
-        document.getElementById('query-text').textContent = q || "";
+        window.supabaseInstance = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+        return window.supabaseInstance;
+    }
 
-        if (!q) {
-            document.getElementById('results').textContent = "검색어를 입력해주세요.";
-            return;
-        }
-
-        // 3. Supabase 검색 실행
-        const { data, error } = await sb
-            .from('materials')
-            .select('title, link')
-            .ilike('title', `%${q}%`);
-
-        // 4. 결과 표시
-        const resultsDiv = document.getElementById('results');
-        if (error) {
-            resultsDiv.innerHTML = "검색 중 오류가 발생했습니다.";
-            console.error(error);
-        } else if (data && data.length > 0) {
-            resultsDiv.innerHTML = data.map(item => `
-                <div class="result-item">
-                    <h3><a href="${item.link}">${item.title}</a></h3>
-                </div>
-            `).join('');
-        } else {
-            resultsDiv.innerHTML = "검색 결과가 없습니다.";
+    // 2. UI 업데이트
+    async function updateUI(session) {
+        const beforeLogin = document.getElementById('before-login');
+        const afterLogin = document.getElementById('after-login');
+        if (session) {
+            beforeLogin.style.display = 'none';
+            afterLogin.style.display = 'block';
+            document.getElementById('welcome-message').textContent = session.user.email;
         }
     }
 
-    // 함수 호출
-    initSearch();
+    // 3. 검색 처리 로직
+    async function performSearch() {
+        const params = new URLSearchParams(window.location.search);
+        const query = params.get('q');
+        const resultsDiv = document.getElementById('search-results');
+        
+        if (!query) return;
+
+        document.getElementById('search-title').textContent = `"${query}" 검색 결과`;
+        resultsDiv.textContent = "검색 중...";
+
+        const sb = await initSupabase();
+        
+        // 예시: 데이터베이스 내 'content' 테이블에서 검색
+        const { data, error } = await sb
+            .from('content')
+            .select('*')
+            .ilike('title', `%${query}%`);
+
+        if (error) {
+            resultsDiv.textContent = "검색 중 오류가 발생했습니다.";
+            return;
+        }
+
+        if (data && data.length > 0) {
+            resultsDiv.innerHTML = data.map(item => `<p>• <a href="${item.url}">${item.title}</a></p>`).join('');
+        } else {
+            resultsDiv.textContent = "검색 결과가 없습니다.";
+        }
+    }
+
+    // 초기화
+    document.addEventListener('DOMContentLoaded', async () => {
+        const sb = await initSupabase();
+        const { data: { session } } = await sb.auth.getSession();
+        updateUI(session);
+        performSearch();
+        
+        document.getElementById('logout-btn')?.addEventListener('click', async () => {
+            await sb.auth.signOut();
+            location.reload();
+        });
+    });
 </script>
 </body>
 </html>
