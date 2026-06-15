@@ -320,12 +320,7 @@
             if (currentUser) {
                 beforeLogin.style.display = 'none';
                 afterLogin.style.display = 'flex';
-
-                const userName = currentUser.user_metadata?.full_name || 
-                                 currentUser.name || 
-                                 (currentUser.response ? currentUser.response.name : null) || 
-                                 "사용자";
-                
+                const userName = currentUser.user_metadata?.full_name || currentUser.name || "사용자";
                 welcomeMsg.textContent = userName; 
             }
 
@@ -342,28 +337,20 @@
                 "활동지.pdf": "활동지.pdf"
             };
 
-            // PDF 로드 부분 (기존의 viewer.innerHTML 부분을 아래로 교체)
-            // PDF 로드 부분
-            // PDF 로드 부분
             if (file && fileMap[file]) {
                 const fileUrl = `https://raw.githubusercontent.com/Jihye2002/healthykids_workspace/main/${fileMap[file]}`;
-                
-                // 새 창에서 즉시 열기
                 window.open(fileUrl, '_blank');
-                
-                // viewer.innerHTML 부분을 지우거나 주석 처리하세요.
-                // viewer.innerHTML = `...`;  <-- 이 부분을 삭제!
             }
-                
+        } // else 문 끝
 
+        // 로그아웃 버튼 이벤트 (isLoggedIn 체크와 상관없이 실행 가능하도록)
         document.getElementById('logout-btn')?.addEventListener('click', async () => {
             const sb = await initSupabase();
             await sb.auth.signOut();
             localStorage.clear();
             window.location.href = 'index.html';
         });
-
-    }
+    } // init 함수 끝
 
     document.addEventListener('DOMContentLoaded', init);
 </script>
