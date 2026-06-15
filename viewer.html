@@ -348,12 +348,13 @@
                 "활동지.pdf": "활동지.pdf"
             };
 
+            // PDF 로드 부분 (기존의 viewer.innerHTML 부분을 아래로 교체)
             if (file && fileMap[file]) {
                 const fileUrl = `https://raw.githubusercontent.com/Jihye2002/healthykids_workspace/main/${fileMap[file]}`;
-                const viewerUrl = `https://mozilla.github.io/pdf.js/web/viewer.html`;
-                const fullUrl = `${viewerUrl}?file=${encodeURIComponent(fileUrl)}`;
+                const fullUrl = `https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(fileUrl)}`;
                 
-                viewer.innerHTML = `<iframe src="${fullUrl}" width="100%" height="100%" style="border:none;"></iframe>`;
+                // 새 창에서 PDF 열기 (가장 안정적입니다)
+                window.open(fileUrl, '_blank');
             }
         }
     }     
