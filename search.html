@@ -21,10 +21,12 @@
     import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
     async function initSearch() {
+        // 1. 설정값 가져오기
         const res = await fetch('/get-config');
         const config = await res.json();
         const sb = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
         
+        // 2. 검색어 가져오기
         const params = new URLSearchParams(window.location.search);
         const q = params.get('q');
         document.getElementById('query-text').textContent = q || "";
@@ -34,28 +36,29 @@
             return;
         }
 
-        // 1. material_list 같은 테이블이 있다면 거기서 검색 (테이블명은 실제 DB에 맞춰 수정하세요)
-        // 여기서는 title 컬럼에서 검색어를 찾습니다.
+        // 3. Supabase 검색 실행
         const { data, error } = await sb
-            .from('materials') 
+            .from('materials')
             .select('title, link')
             .ilike('title', `%${q}%`);
 
+        // 4. 결과 표시
+        const resultsDiv = document.getElementById('results');
         if (error) {
-            document.getElementById('results').textContent = "검색 중 오류가 발생했습니다.";
-            return;
-        }
-
-        if (data.length === 0) {
-            document.getElementById('results').textContent = "검색 결과가 없습니다.";
-        } else {
-            document.getElementById('results').innerHTML = data.map(item => `
+            resultsDiv.innerHTML = "검색 중 오류가 발생했습니다.";
+            console.error(error);
+        } else if (data && data.length > 0) {
+            resultsDiv.innerHTML = data.map(item => `
                 <div class="result-item">
                     <h3><a href="${item.link}">${item.title}</a></h3>
                 </div>
             `).join('');
+        } else {
+            resultsDiv.innerHTML = "검색 결과가 없습니다.";
         }
     }
+
+    // 함수 호출
     initSearch();
 </script>
 </body>
