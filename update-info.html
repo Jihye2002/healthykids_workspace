@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/favicon.ico">
+    <title>헬시키즈 | 공지사항</title>
+    <style>
+        /* 기본 리셋 */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Arial', sans-serif; background-color: #fff; }
+
+        /* --- 헤더 --- */
+        .header { display: flex; align-items: center; padding: 10px 20px; flex-wrap: nowrap; gap: 20px; width: 100%;}
+        .logo { flex-shrink: 0; }
+        .logo img { display: block; width: 100%; max-width: 180px; height: auto; }
+        .container { 
+            display: flex; 
+            align-items: center; 
+            width: 100%; 
+            gap: 20px; 
+            flex: 1; 
+            justify-content: space-between;
+        }
+        .search-bar { 
+            display: flex; 
+            align-items: center; 
+            flex: 1;
+            max-width: 800px;
+            gap: 8px; 
+        }
+        .search-bar input { flex: 1 1 auto; padding: 10px; font-size: 15px; border: 1px solid #316ef4; min-width: 50px; border-radius: 5px; }
+        .search-bar button { background-color: #fff; border: none; cursor: pointer; flex-shrink: 0; width: 30px; }
+        .user-menu {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end; 
+            white-space: nowrap;
+            flex-shrink: 0;
+            font-size: 15px;
+            font-weight: 600;
+        }
+        
+        #before-login {
+            display: flex;
+            align-items: center; /* 로그인, |, 회원가입을 한 줄로 정렬 */
+        }
+
+        /* 기존 스타일 아래에 추가 */
+        #after-login {
+            display: none; /* 기본적으로 숨김 처리 */
+        }
+        
+        .user-menu a {
+            white-space: nowrap;
+            text-decoration: none;
+            color: #6d6d6d;
+            padding: 0 5px; 
+            display: flex; /* 링크 안의 텍스트도 정렬 유지 */
+            align-items: center;
+        }
+        
+        .user-menu a:hover {
+            color: #000000; 
+        }
+        
+        .divider {
+            margin: 0 4px;
+            color: #6d6d6d;
+            display: flex;       /* 추가: 수평 정렬을 위해 */
+            align-items: center; /* 추가: 수평 정렬을 위해 */
+        }
+        /* --- 내비게이션 --- */
+        /* --- 네비게이션바 전체 설정 --- */
+        .navbar { 
+            background-color: #2f63c7; 
+            position: relative; 
+        }
+
+        .menu-list { 
+            width: 100%;
+            display: flex; 
+            justify-content: center; /* 메뉴를 가로 중앙으로 정렬 */
+            align-items: center;
+            flex-wrap: nowrap;
+            white-space: nowrap;
+            list-style: none; 
+            padding: 0;         /* 위아래 적절한 여백 */
+            margin: 0;
+            overflow-x: visible;
+        }
+
+        .menu-list > li { 
+            flex: 1; 
+            padding: 0 20px;
+            text-align: center;
+            position: relative;
+            white-space: nowrap;
+        }
+
+        /* 상단 메인 메뉴 링크 스타일 */
+        .menu-list > li { 
+            display: block; 
+            padding: 10px 15px; 
+            color: white; 
+            text-decoration: none; 
+            font-weight: 600;
+            transition: background 0.3s;
+            white-space: nowrap;
+        }
+
+        /* 1. 메가 메뉴 전체 패널 */
+        .mega-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 100%; 
+            background-color: #ffffff;
+            border-bottom: 3px solid #2f63c7;
+            box-shadow: 0 5px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+
+        /* 호버 시 메가 메뉴 나타남 */
+        .navbar:hover .mega-menu {
+            display: block; 
+        }
+
+        /* 2. 컬럼 컨테이너 (정렬 담당) */
+        .mega-content {
+            display: flex;
+            justify-content: stretch;
+            width: 100%;
+            padding: 20px 0;
+        }
+
+        /* 3. 각 컬럼 스타일 */
+        .column {
+            flex: 1;
+            text-align: center;
+            border-right: 1px solid #eee;
+        }
+
+        .column:last-child {
+            border-right: none;
+        }
+
+        .column ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .column ul li a {
+            color: #333;
+            padding: 10px 0;
+            display: block;
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+
+        .column ul li a:hover {
+            color: #2f63c7;
+            font-weight: bold;
+            background-color: #f8fbff;
+        }        
+        
+       .contents { max-width: 800px; margin: 50px auto; padding: 20px; line-height: 1.8; color: #333; }
+        .contents h1 { color: #2f63c7; border-bottom: 2px solid #2f63c7; padding-bottom: 10px; margin-bottom: 20px; }
+        .contents h2 { color: #2f63c7; margin-top: 30px; font-size: 20px; }
+        .step { margin-bottom: 20px; padding-left: 15px; border-left: 3px solid #2f63c7; }
+        .back-btn { display: inline-block; margin-top: 40px; padding: 12px 24px; background: #f0f0f0; color: #333; text-decoration: none; border-radius: 5px; font-weight: bold; }
+        .back-btn:hover { background: #e0e0e0; }
+    </style>
+</head>
+<body>
+
+<header class="header">
+    <div class="logo">
+        <a href="index.html">
+            <img src="https://github.com/Jihye2002/healthykids_workspace/blob/main/logo.png?raw=true" alt="헬시키즈로고">
+        </a>
+    </div>
+    <div class="container">
+        <form class="search-bar" action="search.html" method="get">
+            <input type="text" name="q" placeholder="검색어를 입력하세요">
+            <button type="submit"><img src="https://github.com/Jihye2002/healthykids_workspace/blob/main/search.png?raw=true" alt="검색버튼" width="40" height="40"></button>
+        </form>
+        <div class="user-menu" id="user-menu">
+            <div id="before-login">
+                <a href="login.html">로그인</a>
+                <span class="divider">|</span>
+                <a href="signup.html">회원가입</a>
+            </div>
+            <div id="after-login">
+                <span id="welcome-message"></span>님 환영해요! 
+                <a href="#" id="logout-btn">로그아웃</a>
+            </div>
+        </div>
+    </div>
+</header>
+
+<nav class="navbar">
+    <ul class="menu-list">
+        <li>회원정보</li>
+        <li>영상보기</li>
+        <li>놀이&활동자료 다운로드</li>
+        <li>안전수칙자료 다운로드</li>
+        <li>Q&A</li>
+    </ul>
+
+    <div class="mega-menu">
+        <div class="mega-content">
+            <div class="column">
+                <ul>
+                    <li><a href="edit-profile.html">개인정보 수정</a></li>
+                    <li><a href="withdraw.html">회원탈퇴</a></li>
+                </ul>
+            </div>
+
+            <div class="column">
+                <ul>
+                    <li><a href="ongoing.html">진행중인 영상</a></li>
+                    <li><a href="video.html?type=hygiene">위생안전</a></li>
+                    <li><a href="video.html?type=crosswalk">실외안전</a></li>
+                    <li><a href="video.html?type=foodsafety">생활건강</a></li>
+                    <li><a href="video.html?type=precaution">질병예방</a></li>
+                </ul>
+            </div>
+
+            <div class="column">
+                <ul>
+                    <li>
+                        <a href="viewer.html?file=하루건강체크리스트.pdf">하루건강 체크리스트</a>
+                    </li>
+            
+                    <li><a href="#">퀴즈</a></li>
+                    <li><a href="viewer.html?file=활동지.pdf">활동지</a></li>
+                </ul>
+            </div>
+
+            <div class="column">
+                <ul>
+                    <li><a href="viewer.html?file=위생안전수칙.pdf">위생안전자료</a></li>
+                    <li><a href="viewer.html?file=실외안전수칙.pdf">실외안전자료</a></li>
+                    <li><a href="viewer.html?file=생활건강수칙.pdf">생활건강자료</a></li>
+                    <li><a href="viewer.html?file=질병예방수칙.pdf">질병예방자료</a></li>
+                </ul>
+            </div>
+
+            <div class="column">
+                <ul>
+                    <li><a href="#">자주 묻는 질문</a></li>
+                    <li><a href="#">1:1상담 문의</a></li>
+                    <li><a href="#">영상오류 해결방법</a></li>
+                </ul>
+            </div>
+
+        </div>
+    </div>
+</nav>
+
+<main class="contents">
+    <h1>신규 놀이 자료 업데이트 안내</h1>
+    <div class="content">
+        <p>이번 달에는 어린이들을 위한 새로운 놀이 활동지 3종이 추가되었습니다.</p>
+        
+        <h2>추가된 자료 목록</h2>
+        <div class="step">
+            <p><strong>• 올바른 손 씻기 체크리스트</strong></p>
+            <p><strong>• 건강 식단 컬러링북</strong></p>
+            <p><strong>• 안전 수칙 퀴즈지</strong></p>
+        </div>
+
+        <p>지금 바로 상단 메뉴의 <strong>'활동지 다운로드'</strong> 페이지에서 자료를 확인하고 다운로드하실 수 있습니다.</p>
+    </div>
+    
+    <a href="notice.html" class="back-btn">목록으로 돌아가기</a>
+</main>
+
+<script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+    // 1. 전역 상태 관리
+    window.supabaseInstance = null;
+    window.initPromise = null;
+
+    async function initSupabase() {
+        if (window.supabaseInstance) return window.supabaseInstance;
+        
+        if (sessionStorage.getItem('is_sb_initialized') === 'true') {
+            const config = JSON.parse(sessionStorage.getItem('sb_config'));
+            window.supabaseInstance = createClient(config.url, config.key);
+            return window.supabaseInstance;
+        }
+
+        if (window.initPromise) return window.initPromise;
+
+        window.initPromise = (async () => {
+            try {
+                const res = await fetch('/get-config');
+                const config = await res.json();
+                sessionStorage.setItem('sb_config', JSON.stringify({ url: config.SUPABASE_URL, key: config.SUPABASE_ANON_KEY }));
+                sessionStorage.setItem('is_sb_initialized', 'true');
+                window.supabaseInstance = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+                return window.supabaseInstance;
+            } catch (err) {
+                console.error("초기화 실패:", err);
+                return null;
+            }
+        })();
+        return window.initPromise;
+    }
+
+    async function clearAllAuth() {
+        const sb = await initSupabase();
+        if (sb) await sb.auth.signOut();
+        localStorage.clear();
+        sessionStorage.clear();
+    }
+
+    // 2. UI 업데이트
+    async function updateUI(session) {
+        const sb = await initSupabase();
+        const beforeLogin = document.getElementById('before-login');
+        const afterLogin = document.getElementById('after-login');
+        const welcomeMsg = document.getElementById('welcome-message');
+
+        const naverUser = JSON.parse(localStorage.getItem('user'));
+        const isNaver = naverUser && naverUser.provider === 'naver';
+        const currentUser = session?.user || (isNaver ? naverUser : null);
+
+        if (!currentUser) {
+            if (beforeLogin) beforeLogin.style.display = 'flex';
+            if (afterLogin) afterLogin.style.display = 'none';
+            return;
+        }
+
+        if (beforeLogin) beforeLogin.style.display = 'none';
+        if (afterLogin) afterLogin.style.display = 'flex';
+
+        // 닉네임 표시 로직
+        try {
+            let displayName = "사용자";
+            if (isNaver) {
+                const { data: dbUser } = await sb.from('users').select('name').eq('email', naverUser.email).maybeSingle();
+                displayName = dbUser?.name || naverUser.name || "사용자";
+            } else {
+                const provider = currentUser.app_metadata?.provider;
+                const isSocial = ['google', 'kakao'].includes(provider);
+                const table = isSocial ? 'users' : 'public.users';
+                const col = isSocial ? 'name' : 'nickname';
+                const { data: dbUser } = await sb.from(table).select(col).eq('email', currentUser.email).maybeSingle();
+                displayName = dbUser?.[col] || currentUser.user_metadata?.[col] || "사용자";
+            }
+            if (welcomeMsg) welcomeMsg.textContent = displayName;
+        } catch (err) { console.error("UI 업데이트 오류:", err); }
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        // 2. 로그인 상태 확인 및 UI 업데이트 추가 (이 부분이 빠져 있었습니다)
+        const sb = await initSupabase();
+        if (sb) {
+            // 현재 세션 가져오기
+            const { data: { session } } = await sb.auth.getSession();
+            // UI 업데이트 실행
+            updateUI(session);
+
+            // 로그인 상태 변화 감지 (로그인/로그아웃 시 자동 업데이트)
+            sb.auth.onAuthStateChange((event, session) => {
+                updateUI(session);
+            });
+
+            const logoutBtn = document.getElementById('logout-btn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    await clearAllAuth(); // 기존에 작성하신 함수 호출
+                    window.location.reload(); // 페이지 새로고침
+                });
+            }
+        }
+    });
+</script>
+</body>
+</html>
