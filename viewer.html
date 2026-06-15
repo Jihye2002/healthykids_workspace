@@ -316,7 +316,6 @@
             loginGuide.style.display = 'none';
 
             // UI 업데이트
-            // UI 업데이트
             const beforeLogin = document.getElementById('before-login');
             const afterLogin = document.getElementById('after-login');
             const welcomeMsg = document.getElementById('welcome-message');
@@ -328,31 +327,36 @@
                 beforeLogin.style.display = 'none';
                 afterLogin.style.display = 'flex';
 
-                // 이름 가져오기 (Supabase와 네이버 로그인 데이터 구조 차이 대응)
-                const userName = currentUser.user_metadata?.full_name || // Supabase
-                                 currentUser.name ||                    // 네이버 기본
-                                 (currentUser.response ? currentUser.response.name : null) || // 네이버 상세
+                const userName = currentUser.user_metadata?.full_name || 
+                                 currentUser.name || 
+                                 (currentUser.response ? currentUser.response.name : null) || 
                                  "사용자";
                 
                 welcomeMsg.textContent = userName; 
             }
+
             // PDF 로드
             const params = new URLSearchParams(window.location.search);
             const file = params.get('file');
-            const fileMap = { "위생안전수칙.pdf": "위생안전수칙.pdf", "실외안전수칙.pdf": "실외안전수칙.pdf", "생활건강수칙.pdf": "생활건강수칙.pdf", "질병예방수칙.pdf": "질병예방수칙.pdf", "하루건강체크리스트.pdf": "하루건강_체크리스트.pdf", "퀴즈.pdf": "퀴즈.pdf", "활동지.pdf": "활동지.pdf"};
+            const fileMap = { 
+                "위생안전수칙.pdf": "위생안전수칙.pdf", 
+                "실외안전수칙.pdf": "실외안전수칙.pdf", 
+                "생활건강수칙.pdf": "생활건강수칙.pdf", 
+                "질병예방수칙.pdf": "질병예방수칙.pdf", 
+                "하루건강체크리스트.pdf": "하루건강_체크리스트.pdf", 
+                "퀴즈.pdf": "퀴즈.pdf", 
+                "활동지.pdf": "활동지.pdf"
+            };
 
             if (file && fileMap[file]) {
-                    const fileUrl = `https://raw.githubusercontent.com/Jihye2002/healthykids_workspace/main/${fileMap[file]}`;
-                    
-                    // 모질라 공식 뷰어 사용 (페이지 이동, 다운로드 기능 포함)
-                    const viewerUrl = `https://mozilla.github.io/pdf.js/web/viewer.html`;
-                    const fullUrl = `${viewerUrl}?file=${encodeURIComponent(fileUrl)}`;
-                    
-                    // iframe 삽입
-                    viewer.innerHTML = `<iframe src="${fullUrl}" width="100%" height="100%" style="border:none;"></iframe>`;
-                }
+                const fileUrl = `https://raw.githubusercontent.com/Jihye2002/healthykids_workspace/main/${fileMap[file]}`;
+                const viewerUrl = `https://mozilla.github.io/pdf.js/web/viewer.html`;
+                const fullUrl = `${viewerUrl}?file=${encodeURIComponent(fileUrl)}`;
+                
+                viewer.innerHTML = `<iframe src="${fullUrl}" width="100%" height="100%" style="border:none;"></iframe>`;
             }
-        }       
+        }
+    }     
                 
 
     document.getElementById('logout-btn')?.addEventListener('click', async () => {
