@@ -323,7 +323,7 @@
             // PDF 로드
             const params = new URLSearchParams(window.location.search);
             const file = params.get('file');
-            const fileMap = { "위생안전수칙.pdf": "위생안전수칙.pdf", "실외안전수칙.pdf": "실외안전수칙.pdf", "생활건강수칙.pdf": "생활건강수칙.pdf", "질병예방수칙.pdf": "질병예방수칙.pdf", "하루건강체크리스트.pdf": "하루건강_체크리스트.pdf", "활동지.pdf": "활동지.pdf",  "퀴즈.pdf": "퀴즈.pdf"};
+            const fileMap = { "위생안전수칙.pdf": "위생안전수칙.pdf", "실외안전수칙.pdf": "실외안전수칙.pdf", "생활건강수칙.pdf": "생활건강수칙.pdf", "질병예방수칙.pdf": "질병예방수칙.pdf", "하루건강체크리스트.pdf": "하루건강_체크리스트.pdf", "퀴즈.pdf": "퀴즈.pdf", "활동지.pdf": "활동지.pdf"};
 
             if (file && fileMap[file]) {
                 const fileUrl = `https://raw.githubusercontent.com/Jihye2002/healthykids_workspace/main/${fileMap[file]}`;
