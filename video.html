@@ -463,18 +463,25 @@
             if (Math.abs(video.currentTime - lastSavedTime) > 5) {
                 lastSavedTime = video.currentTime;
                 const progress = (video.currentTime / video.duration) * 100;
+                
                 if (userEmail) {
-                    await sb.from('video_progress').upsert({
-                        user_email: userEmail,
-                        video_id: type,
-                        progress_time: progress,
-                        is_completed: progress >= 95,
-                        updated_at: new Date().toISOString()
-                    });
+                    try {
+                        const { error } = await sb.from('video_progress').upsert({
+                            user_email: userEmail,
+                            video_id: type,
+                            progress_time: progress,
+                            is_completed: progress >= 95,
+                            updated_at: new Date().toISOString()
+                        });
+                        
+                        if (error) console.error("저장 실패 (RLS 정책 확인 필요):", error);
+                    } catch (err) {
+                        console.error("데이터 저장 중 예외 발생:", err);
+                    }
                 }
             }
         });
-
+        
         video.addEventListener('ended', async () => {
             if (userEmail) {
                 await sb.from('video_progress').upsert({ user_email: userEmail, video_id: type, progress_time: 100, is_completed: true, updated_at: new Date().toISOString() });
