@@ -1,123 +1,214 @@
 <!DOCTYPE html>
+
 <html lang="ko">
+
 <head>
+
     <meta charset="UTF-8">
+
     <title>헬시키즈 | 진행 중인 영상</title>
+
     <style>
-        body { font-family: 'Arial', sans-serif; padding: 40px; background-color: #f4f8ff; color: #333; }
-        .box { 
-            width: 90%;
-            max-width: 400px; 
-            background: white; 
-            padding: 60px 40px; 
-            border: 3px solid #2f63c7; 
-            align-items: center;
-        }
+
+        body { font-family: 'Nanum Gothic', sans-serif; padding: 40px; background-color: #f4f8ff; color: #333; }
+
+        .box { max-width: 800px; margin: 0 auto; background: white; padding: 40px; border: 2px solid #2f63c7; }
+
         h2 { color: #2f63c7; margin-bottom: 30px; text-align: center; }
+
         
-        #auth-alert { display: none; text-align: center;}
+
+        #auth-alert { display: none; text-align: center; padding: 60px 20px; }
+
         #auth-alert h2 { color: #2f63c7; margin-bottom: 15px; }
-        .login-btn { 
-            display: inline-block; 
-            background: #2f63c7; 
-            color: white; 
-            padding: 15px 40px; 
-            text-decoration: none; 
-            font-weight: bold; 
-            margin-top: 30px; 
-            font-size: 16px;
-        }
+
+        .login-btn { display: inline-block; background: #2f63c7; color: white; padding: 12px 30px; text-decoration: none; font-weight: bold; margin-top: 20px; }
+
+
 
         .video-item { border-bottom: 1px solid #eee; padding: 25px 0; }
+
         .video-item h3 { margin-bottom: 15px; color: #1a5f96; }
+
         .progress-bar-bg { background: #e0e0e0; height: 12px; margin: 10px 0; }
+
         .progress-bar-fill { background: #E8282B; height: 100%; transition: width 0.5s ease-in-out; }
+
         .btn-link { display: inline-block; background: #2f63c7; color: white; padding: 8px 15px; text-decoration: none; font-size: 0.9em; margin-top: 10px; }
+
     </style>
+
 </head>
+
 <body>
 
+
+
 <div id="auth-alert" class="box">
+
     <h2>로그인이 필요해요!</h2>
+
     <p>회원님만 볼 수 있는 소중한 시청 기록이에요.<br>로그인 후 이용해 주세요!</p>
+
     <a href="login.html" class="login-btn">로그인 하러 가기</a>
+
 </div>
+
+
 
 <div id="main-content" class="box" style="display: none;">
+
     <h2>🎥 진행 중인 영상</h2>
+
     <div id="video-list">목록을 불러오는 중이에요...</div>
+
 </div>
 
+
+
 <script type="module">
+
     import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+
+
     async function getValidatedUser(sb) {
+
         const { data: { session } } = await sb.auth.getSession();
+
         // 이메일은 항상 소문자로 통일하여 저장/조회하는 것이 좋습니다.
+
         if (session) return { email: session.user.email.toLowerCase(), type: 'auth' };
 
+
+
         const naverUser = JSON.parse(localStorage.getItem('user'));
+
         if (naverUser && naverUser.provider === 'naver') {
+
             const { data: dbUser } = await sb.from('users').select('email').eq('email', naverUser.email).maybeSingle();
+
             if (dbUser) return { email: naverUser.email.toLowerCase(), type: 'naver' };
+
             else { localStorage.clear(); return null; }
+
         }
+
         return null;
+
     }
 
+
+
     async function init() {
+
         const res = await fetch('/get-config');
+
         const config = await res.json();
+
         const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
 
+
+
         const container = document.getElementById('video-list');
+
         const authAlert = document.getElementById('auth-alert');
+
         const mainContent = document.getElementById('main-content');
+
+
 
         const user = await getValidatedUser(supabase);
 
+
+
         if (!user) {
+
             authAlert.style.display = 'block';
+
             mainContent.style.display = 'none';
+
             return;
+
         }
+
+
 
         authAlert.style.display = 'none';
+
         mainContent.style.display = 'block';
 
+
+
         // 1. 여기서 user.email을 기준으로 데이터를 가져옵니다.
+
         const { data: progressList } = await supabase
+
             .from('video_progress')
+
             .select('video_id, progress_time')
+
             .eq('user_email', user.email); // video.html에서 저장한 key와 정확히 일치
+
         
+
         const contentDB = {
+
             hygiene: { title: '토리와 함께 세균을 퇴치해봐요!' },
+
             crosswalk: { title: '토리와 함께 길 건널 때 어떻게 하면 되는지 알아가요!' },
+
             foodsafety: { title: '토리와 올바르게 먹는 방법을 알아가요!' },
+
             precaution: { title: '토리와 감기와 독감 바이러스를 물리쳐요!' }
+
         };
 
+
+
         let html = '';
+
         for (const [id, info] of Object.entries(contentDB)) {
+
             // 2. video_id가 일치하는 레코드를 찾습니다.
+
             const record = (progressList || []).find(p => p.video_id === id) || { progress_time: 0 };
+
             
+
             // 3. 100이 넘어가는 경우(완료 시 100으로 저장함) 처리를 위해 Math.min 사용
+
             const percent = Math.min(100, Math.round(record.progress_time));
+
             
+
             html += `
+
                 <div class="video-item">
+
                     <h3>${info.title}</h3>
+
                     <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: ${percent}%"></div></div>
+
                     <p>진행률: ${percent}%</p>
+
                     <a href="video.html?type=${id}" class="btn-link">이어보기</a>
+
                 </div>`;
+
         }
+
         container.innerHTML = html;
+
     }
 
+
+
     init();
+
 </script>
+
 </body>
-</html>
+
+</html> 
+
