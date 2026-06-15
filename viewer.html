@@ -171,6 +171,10 @@
         #main-content { flex-grow: 1; display: flex; flex-direction: column; width: 100%; }
         #content-area { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; text-align: center; }
         #pdf-viewer { width: 100%; height: 100%; border: 1px solid #ccc; }
+        html, body { height: 100%; margin: 0; }
+        #main-content { min-height: 80vh; display: flex; flex-direction: column; }
+        #content-area { flex-grow: 1; min-height: 600px; } /* 최소 높이 보장 */
+        #pdf-viewer { width: 100%; height: 100%; min-height: 600px; }
         
         #login-guide { display: none; }
         .login-btn { 
@@ -307,19 +311,26 @@
             loginGuide.style.display = 'none';
 
             // UI 업데이트
+            // UI 업데이트
             const beforeLogin = document.getElementById('before-login');
             const afterLogin = document.getElementById('after-login');
             const welcomeMsg = document.getElementById('welcome-message');
+            
             const naverUser = JSON.parse(localStorage.getItem('user'));
-            const isNaver = naverUser && naverUser.provider === 'naver';
-            const currentUser = session?.user || (isNaver ? naverUser : null);
+            const currentUser = session?.user || naverUser;
 
             if (currentUser) {
                 beforeLogin.style.display = 'none';
                 afterLogin.style.display = 'flex';
-                welcomeMsg.textContent = currentUser.name || "사용자"; 
-            }
 
+                // 이름 가져오기 (Supabase와 네이버 로그인 데이터 구조 차이 대응)
+                const userName = currentUser.user_metadata?.full_name || // Supabase
+                                 currentUser.name ||                    // 네이버 기본
+                                 (currentUser.response ? currentUser.response.name : null) || // 네이버 상세
+                                 "사용자";
+                
+                welcomeMsg.textContent = userName; 
+            }
             // PDF 로드
             const params = new URLSearchParams(window.location.search);
             const file = params.get('file');
