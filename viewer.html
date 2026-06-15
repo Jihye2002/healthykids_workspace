@@ -167,13 +167,40 @@
             background-color: #f8fbff;
         }        
 
-        /* 본문 및 안내 영역 */
-        #main-content { flex-grow: 1; display: flex; flex-direction: column; width: 100%; }
-        #content-area { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; text-align: center; }
-        #pdf-viewer { width: 100%; height: 100%; border: 1px solid #ccc; }
-        html, body { height: 100%; margin: 0; }
-        #main-content { min-height: 80vh; display: flex; flex-direction: column; }
-        #content-area { flex-grow: 1; min-height: 800px; } /* 최소 높이 보장 */
+        /* --- 본문 및 안내 영역 수정 --- */
+        html, body { 
+            height: 100%; 
+            margin: 0; 
+            overflow: hidden; /* 페이지 전체 스크롤 방지 (뷰어 내부 스크롤 사용) */
+        }
+        
+        #main-content { 
+            width: 100%; 
+            /* 헤더(약 80px)와 네비게이션바(약 50px)를 뺀 나머지 공간을 전부 활용 */
+            height: calc(100vh - 130px); 
+            display: flex; 
+            flex-direction: column;
+            padding-top: 20px; /* 요청하신 20px 상단 여백 */
+        }
+        
+        #content-area { 
+            flex-grow: 1; 
+            width: 100%;
+            height: 100%;
+        }
+        
+        #pdf-viewer { 
+            width: 100%; 
+            height: 100%; 
+            border: none; 
+        }
+        
+        /* iframe을 뷰어 영역에 꽉 차게 설정 */
+        #pdf-viewer iframe {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
         
         #login-guide { display: none; }
         .login-btn { 
@@ -349,7 +376,7 @@
                 
                 // iframe으로 불러오기
                 viewer.innerHTML = `
-                    <iframe src="${viewerUrl}" width="100%" height="90%" style="border:none;">
+                    <iframe src="${viewerUrl}" width="100%"; height: 100%; style="border:none;">
                     </iframe>
                 `;
                 
