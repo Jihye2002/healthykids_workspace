@@ -168,9 +168,26 @@
         }        
         
        .notice-container { max-width: 900px; margin: 50px auto; padding: 20px; }
-        .notice-item { border-bottom: 1px solid #eee; }
-        .notice-title { width: 100%; padding: 20px; background: #fff; border: none; text-align: left; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; }
-        .notice-content { display: none; padding: 20px; background: #f9f9f9; line-height: 1.6; border-left: 4px solid #2f63c7; margin-bottom: 10px; }
+        .notice-container h2 { margin-bottom: 20px; border-bottom: 2px solid #2f63c7; padding-bottom: 10px; }
+        
+        .notice-link { 
+            display: block; 
+            width: 100%; 
+            padding: 20px; 
+            background: #fff; 
+            border-bottom: 1px solid #eee; 
+            text-decoration: none; 
+            color: #333; 
+            font-size: 16px; 
+            font-weight: bold; 
+            transition: all 0.2s;
+        }
+        
+        .notice-link:hover {
+            background-color: #f8fbff;
+            color: #2f63c7;
+            padding-left: 30px; /* 클릭 시 살짝 움직이는 효과 */
+        }
     </style>
 </head>
 <body>
@@ -263,53 +280,12 @@
 <div class="notice-container">
     <h2>공지사항</h2>
 
-    <div class="notice-item">
-        <button class="notice-title">1. [공지] 헬시키즈 이용 가이드</button>
-        <div class="notice-content">
-            <h3>[공지] 헬시키즈 이용 가이드</h3>
-            <p>헬시키즈 서비스 이용 방법에 대한 상세 가이드를 여기서 보실 수 있습니다.</p>
-        </div>
-    </div>
-
-    <div class="notice-item">
-        <button class="notice-title">2. [공지] 신규 놀이 자료 업데이트 안내</button>
-        <div class="notice-content">
-            <h3>[공지] 신규 놀이 자료 업데이트 안내</h3>
-            <p>신규 업데이트된 자료는 놀이&활동자료 다운로드 페이지에서 확인 가능합니다.</p>
-        </div>
-    </div>
-
-    <div class="notice-item">
-        <button class="notice-title">3. [공지] 사이트 점검 안내 (26.05.04)</button>
-        <div class="notice-content">
-            <h3>[공지] 사이트 점검 안내 (26.05.04)</h3>
-            <p>5월 4일 진행된 사이트 점검 내용에 대한 상세 안내입니다.</p>
-        </div>
-    </div>
-
-    <div class="notice-item">
-        <button class="notice-title">4. [공지] 이용 중 영상 오류 해결 안내</button>
-        <div class="notice-content">
-            <h3>[공지] 이용 중 영상 오류 해결 안내</h3>
-            <p>영상이 재생되지 않을 경우, 브라우저 캐시를 삭제하거나 새로고침 후 다시 시도해 주세요. 지속적인 오류 시 1:1 문의를 남겨주세요.</p>
-        </div>
-    </div>
-
-    <div class="notice-item">
-        <button class="notice-title">5. [공지] 모바일 환경 이용 안내</button>
-        <div class="notice-content">
-            <h3>[공지] 모바일 환경 이용 안내</h3>
-            <p>헬시키즈는 PC와 모바일 기기 모두에서 최적화되어 있습니다. 언제 어디서든 간편하게 건강 정보를 확인하세요.</p>
-        </div>
-    </div>
-
-    <div class="notice-item">
-        <button class="notice-title">6. [공지] 향후 업데이트 예정 콘텐츠</button>
-        <div class="notice-content">
-            <h3>[공지] 향후 업데이트 예정 콘텐츠</h3>
-            <p>6월 중 새로운 '올바른 손 씻기' 애니메이션 영상과 다양한 활동지가 추가될 예정입니다. 많은 기대 바랍니다.</p>
-        </div>
-    </div>
+    <a href="guide.html" class="notice-link">1. [공지] 헬시키즈 이용 가이드</a>
+    <a href="update-info.html" class="notice-link">2. [공지] 신규 놀이 자료 업데이트 안내</a>
+    <a href="maintenance.html" class="notice-link">3. [공지] 사이트 점검 안내 (26.05.04)</a>
+    <a href="video-error.html" class="notice-link">4. [공지] 이용 중 영상 오류 해결 안내</a>
+    <a href="mobile-guide.html" class="notice-link">5. [공지] 모바일 환경 이용 안내</a>
+    <a href="future-plan.html" class="notice-link">6. [공지] 향후 업데이트 예정 콘텐츠</a>
 </div>
 
 <script type="module">
@@ -392,17 +368,6 @@
     }
 
     document.addEventListener('DOMContentLoaded', async () => {
-        // 1. 기존 클릭 이벤트 처리
-        document.querySelectorAll('.notice-title').forEach(button => {
-            button.addEventListener('click', () => {
-                const content = button.nextElementSibling;
-                document.querySelectorAll('.notice-content').forEach(c => { 
-                    if(c !== content) c.style.display = 'none'; 
-                });
-                content.style.display = (content.style.display === 'block') ? 'none' : 'block';
-            });
-        });
-
         // 2. 로그인 상태 확인 및 UI 업데이트 추가 (이 부분이 빠져 있었습니다)
         const sb = await initSupabase();
         if (sb) {
@@ -415,6 +380,15 @@
             sb.auth.onAuthStateChange((event, session) => {
                 updateUI(session);
             });
+
+            const logoutBtn = document.getElementById('logout-btn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    await clearAllAuth(); // 기존에 작성하신 함수 호출
+                    window.location.reload(); // 페이지 새로고침
+                });
+            }
         }
     });
 </script>
