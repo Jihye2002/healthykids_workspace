@@ -6,16 +6,28 @@
     <link rel="icon" type="image/x-icon" href="https://github.com/Jihye2002/healthykids_workspace/raw/refs/heads/main/favicon.ico">
     <title>헬시키즈</title>
     <style>
-        /* 기본 리셋 */
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Arial', sans-serif; background-color: #fff;}
+        body { font-family: 'Arial', sans-serif; background-color: #fff; }
 
         /* --- 헤더 --- */
-        .header { display: flex; align-items: center; padding: 10px 20px; flex-wrap: nowrap; gap: 20px; }
+        .header { display: flex; align-items: center; padding: 10px 20px; flex-wrap: nowrap; gap: 20px; width: 100%;}
         .logo { flex-shrink: 0; }
         .logo img { display: block; width: 100%; max-width: 180px; height: auto; }
-        .container { display: flex; align-items: center; width: 100%; min-width: 0; gap: 20px;}
-        .search-bar { display: flex; align-items: center; margin-left: 20px; flex: 1 1 auto; max-width: 1280px; gap: 8px; }
+        .container { 
+            display: flex; 
+            align-items: center; 
+            width: 100%; 
+            gap: 20px; 
+            flex: 1; 
+            justify-content: space-between;
+        }
+        .search-bar { 
+            display: flex; 
+            align-items: center; 
+            flex: 1;
+            max-width: 800px;
+            gap: 8px; 
+        }
         .search-bar input { flex: 1 1 auto; padding: 10px; font-size: 15px; border: 1px solid #316ef4; min-width: 50px; border-radius: 5px; }
         .search-bar button { background-color: #fff; border: none; cursor: pointer; flex-shrink: 0; width: 30px; }
         .user-menu {
@@ -152,7 +164,7 @@
             color: #2f63c7;
             font-weight: bold;
             background-color: #f8fbff;
-        }   
+        }  
         
         .page-container {
             width: 100%;
