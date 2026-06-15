@@ -42,21 +42,19 @@
         #main-content { flex-grow: 1; display: flex; flex-direction: column; width: 100%; }
         #pdf-viewer { width: 100%; height: 100%; border: 1px solid #ccc; overflow: hidden; }
 
-       #app-wrapper {
-            display: none; /* 기본적으로 숨김 */
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
+        #app-wrapper { display: none; flex-direction: column; height: 100%; }
         
-        #auth-alert { display: none; text-align: center; padding: 60px 20px; }
-        #auth-alert h2 { color: #2f63c7; margin-bottom: 15px; }
-
+        /* 로그인 안내창 (비로그인 시 전체 화면에 표시) */
+        #auth-alert {
+            display: none; 
+            margin: auto; /* 박스를 화면 정중앙에 배치 */
+            text-align: center;
+        }
         .login-btn { display: inline-block; background: #2f63c7; color: white; padding: 12px 30px; text-decoration: none; font-weight: bold; margin-top: 20px; }
     </style>
 </head>
 <body>
-    
+
 <div id="app-wrapper">
     <header class="header">
         <div class="logo"><a href="index.html"><img src="https://github.com/Jihye2002/healthykids_workspace/blob/main/logo.png?raw=true" alt="로고"></a></div>
@@ -102,56 +100,12 @@
     import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
     window.supabaseInstance = null;
-    window.initPromise = null;
-
     async function initSupabase() {
         if (window.supabaseInstance) return window.supabaseInstance;
-        if (sessionStorage.getItem('is_sb_initialized') === 'true') {
-            const config = JSON.parse(sessionStorage.getItem('sb_config'));
-            window.supabaseInstance = createClient(config.url, config.key);
-            return window.supabaseInstance;
-        }
-        if (window.initPromise) return window.initPromise;
-        window.initPromise = (async () => {
-            const res = await fetch('/get-config');
-            const config = await res.json();
-            sessionStorage.setItem('sb_config', JSON.stringify({ url: config.SUPABASE_URL, key: config.SUPABASE_ANON_KEY }));
-            sessionStorage.setItem('is_sb_initialized', 'true');
-            window.supabaseInstance = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
-            return window.supabaseInstance;
-        })();
-        return window.initPromise;
-    }
-
-    async function updateUI(session) {
-        const sb = await initSupabase();
-        const beforeLogin = document.getElementById('before-login');
-        const afterLogin = document.getElementById('after-login');
-        const welcomeMsg = document.getElementById('welcome-message');
-        const naverUser = JSON.parse(localStorage.getItem('user'));
-        const isNaver = naverUser && naverUser.provider === 'naver';
-        const currentUser = session?.user || (isNaver ? naverUser : null);
-
-        if (!currentUser) {
-            beforeLogin.style.display = 'flex';
-            afterLogin.style.display = 'none';
-            return;
-        }
-        beforeLogin.style.display = 'none';
-        afterLogin.style.display = 'flex';
-        try {
-            let displayName = "사용자";
-            if (isNaver) {
-                const { data: dbUser } = await sb.from('users').select('name').eq('email', naverUser.email).maybeSingle();
-                displayName = dbUser?.name || naverUser.name || "사용자";
-            } else {
-                const provider = currentUser.app_metadata?.provider;
-                const isSocial = ['google', 'kakao'].includes(provider);
-                const { data: dbUser } = await sb.from(isSocial ? 'users' : 'public.users').select(isSocial ? 'name' : 'nickname').eq('email', currentUser.email).maybeSingle();
-                displayName = dbUser?.[isSocial ? 'name' : 'nickname'] || currentUser.user_metadata?.[isSocial ? 'name' : 'nickname'] || "사용자";
-            }
-            welcomeMsg.textContent = displayName;
-        } catch (err) { console.error(err); }
+        const res = await fetch('/get-config');
+        const config = await res.json();
+        window.supabaseInstance = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+        return window.supabaseInstance;
     }
 
     async function init() {
@@ -161,37 +115,39 @@
         const appWrapper = document.getElementById('app-wrapper');
         const authAlert = document.getElementById('auth-alert');
         const viewer = document.getElementById('pdf-viewer');
-    
         const isLoggedIn = session || localStorage.getItem('user');
-    
+
         if (!isLoggedIn) {
-            // [비로그인 상태] 전체 앱 숨기고 알림창만 표시
-            appWrapper.style.display = 'none';
-            authAlert.style.display = 'block';
+            appWrapper.style.display = 'none'; // 앱 영역 숨김
+            authAlert.style.display = 'block'; // 알림창 표시
             return;
         }
-    
-        // [로그인 상태]
-        appWrapper.style.display = 'flex'; // 혹은 'block' (원래 레이아웃에 맞게)
-        authAlert.style.display = 'none';
-        updateUI(session);
-    
+
+        appWrapper.style.display = 'flex'; // 앱 영역 표시
+        authAlert.style.display = 'none';  // 알림창 숨김
+        
+        // UI 업데이트
+        const beforeLogin = document.getElementById('before-login');
+        const afterLogin = document.getElementById('after-login');
+        const welcomeMsg = document.getElementById('welcome-message');
+        const naverUser = JSON.parse(localStorage.getItem('user'));
+        const isNaver = naverUser && naverUser.provider === 'naver';
+        const currentUser = session?.user || (isNaver ? naverUser : null);
+
+        if (currentUser) {
+            beforeLogin.style.display = 'none';
+            afterLogin.style.display = 'flex';
+            welcomeMsg.textContent = currentUser.name || "사용자"; 
+        }
+
         // PDF 뷰어 로직
         const params = new URLSearchParams(window.location.search);
         const file = params.get('file');
-        const fileMap = { "위생안전수칙.pdf": "위생안전수칙.pdf", 
-                          "실외안전수칙.pdf": "실외안전수칙.pdf", 
-                          "생활건강수칙.pdf": "생활건강수칙.pdf", 
-                          "질병예방수칙.pdf": "질병예방수칙.pdf", 
-                          "하루건강체크리스트.pdf": "하루건강_체크리스트.pdf", 
-                          "활동지.pdf": "활동지.pdf" 
-                        };
-    
+        const fileMap = { "위생안전수칙.pdf": "위생안전수칙.pdf", "실외안전수칙.pdf": "실외안전수칙.pdf", "생활건강수칙.pdf": "생활건강수칙.pdf", "질병예방수칙.pdf": "질병예방수칙.pdf", "하루건강체크리스트.pdf": "하루건강_체크리스트.pdf", "활동지.pdf": "활동지.pdf" };
+
         if (file && fileMap[file]) {
             const fileUrl = `https://raw.githubusercontent.com/Jihye2002/healthykids_workspace/main/${fileMap[file]}`;
             viewer.innerHTML = `<iframe src="https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(fileUrl)}" width="100%" height="100%" style="border:none;"></iframe>`;
-        } else {
-            viewer.innerHTML = `<div style="padding:40px; text-align:center;">파일을 찾을 수 없습니다.</div>`;
         }
     }
 
@@ -199,7 +155,6 @@
         const sb = await initSupabase();
         await sb.auth.signOut();
         localStorage.clear();
-        sessionStorage.clear();
         window.location.href = 'index.html';
     });
 
