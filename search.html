@@ -186,7 +186,6 @@
         .result-item {
             padding: 20px;
             background-color: #f9f9f9;
-            border-radius: 10px;
             border: 1px solid #eee;
             transition: all 0.2s;
             text-decoration: none;
@@ -404,7 +403,7 @@
         // [이 부분입니다] 아래 내용을 기존 resultsDiv.innerHTML 줄 대신 넣으세요!
         if (data && data.length > 0) {
             resultsDiv.innerHTML = data.map(item => `
-                <a href="${item.link}" class="result-item" style="display: block; padding: 20px; background-color: #f9f9f9; border-radius: 10px; border: 1px solid #eee; text-decoration: none; color: #333; margin-bottom: 10px;">
+                <a href="${item.link}" class="result-item" style="display: block; padding: 20px; background-color: #f9f9f9; border: 1px solid #eee; text-decoration: none; color: #333; margin-bottom: 10px;">
                     <strong style="color: #2f63c7; font-size: 1.1em;">${item.title}</strong>
                     <p style="color: #777; margin-top: 5px; font-size: 0.9em;">자료 확인하기 ></p>
                 </a>
