@@ -320,7 +320,7 @@
         window.supabaseInstance = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
         return window.supabaseInstance;
     }
-
+    
     async function init() {
         const sb = await initSupabase();
         const { data: { session } } = await sb.auth.getSession();
@@ -334,16 +334,13 @@
             viewer.style.display = 'none';
             loginGuide.style.display = 'block';
         } else {
-            viewer.style.display = 'block';
-            loginGuide.style.display = 'none';
-    
-            // UI 요소 가져오기
+            // UI 요소 가져오기 및 로그인 상태 처리
             const beforeLogin = document.getElementById('before-login');
             const afterLogin = document.getElementById('after-login');
             const welcomeMsg = document.getElementById('welcome-message');
             
-            beforeLogin.style.display = 'none';
-            afterLogin.style.display = 'flex';
+            if (beforeLogin) beforeLogin.style.display = 'none';
+            if (afterLogin) afterLogin.style.display = 'flex';
     
             // 이름 로직 시작
             let displayName = "사용자";
@@ -351,14 +348,11 @@
     
             try {
                 if (naverUser && naverUser.provider === 'naver') {
-                    // 네이버 로그인: users 테이블에서 name 조회
                     const { data: dbUser } = await sb.from('users').select('name').eq('email', naverUser.email).maybeSingle();
                     displayName = dbUser?.name || naverUser.name || "사용자";
                 } else if (currentUser) {
-                    // 구글, 카카오 또는 자체 로그인
                     const provider = currentUser.app_metadata?.provider;
                     const isSocial = ['google', 'kakao'].includes(provider);
-                    
                     const table = isSocial ? 'users' : 'public.users';
                     const col = isSocial ? 'name' : 'nickname';
                     
@@ -372,10 +366,8 @@
             if (welcomeMsg) {
                 welcomeMsg.textContent = displayName;
             }
-        }
-    }
-
-            // PDF 로드
+    
+            // PDF 로드 로직 (이제 init 함수 내부에 올바르게 위치함)
             const params = new URLSearchParams(window.location.search);
             const file = params.get('file');
             const fileMap = { 
@@ -387,37 +379,28 @@
                 "퀴즈.pdf": "퀴즈.pdf", 
                 "활동지.pdf": "활동지.pdf"
             };
-
-            // PDF 로드 부분 (init 함수 내)
+    
             if (file && fileMap[file]) {
                 const fileUrl = `https://raw.githubusercontent.com/Jihye2002/healthykids_workspace/main/${fileMap[file]}`;
-                
-                // 모질라(Mozilla) 공식 PDF.js 뷰어 주소
                 const viewerUrl = `https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(fileUrl)}`;
                 
-                const viewer = document.getElementById('pdf-viewer');
                 viewer.style.display = 'block';
-                
-                // iframe으로 불러오기
                 viewer.innerHTML = `
-                    <iframe src="${viewerUrl}" width="100%"; height: 100%; style="border:none;">
+                    <iframe src="${viewerUrl}" style="width:100%; height:80vh; border:none;">
                     </iframe>
                 `;
-                
-                document.getElementById('login-guide').style.display = 'none';
+                if (loginGuide) loginGuide.style.display = 'none';
             }
-        } // else 문 끝
-
-        // 로그아웃 버튼 이벤트 (isLoggedIn 체크와 상관없이 실행 가능하도록)
+        }
+    
+        // 로그아웃 버튼 이벤트 (init 내부로 이동)
         document.getElementById('logout-btn')?.addEventListener('click', async () => {
-            const sb = await initSupabase();
             await sb.auth.signOut();
             localStorage.clear();
             window.location.href = 'index.html';
         });
-    } // init 함수 끝
-
+    }
+    
     document.addEventListener('DOMContentLoaded', init);
-</script>
 </body>
 </html>
