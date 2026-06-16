@@ -312,16 +312,16 @@
 <script type="module">
     import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-    window.supabaseInstance = null;
-    async function initSupabase() {
-        if (window.supabaseInstance) return window.supabaseInstance;
-        const res = await fetch('/get-config');
-        const config = await res.json();
-        window.supabaseInstance = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
-        return window.supabaseInstance;
-    }
-    
-    async function init() {
+    window.supabaseInstance = null;
+    async function initSupabase() {
+        if (window.supabaseInstance) return window.supabaseInstance;
+        const res = await fetch('/get-config');
+        const config = await res.json();
+        window.supabaseInstance = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+        return window.supabaseInstance;
+    }
+
+    async function init() {
         const sb = await initSupabase();
         const { data: { session } } = await sb.auth.getSession();
         
@@ -334,7 +334,10 @@
             viewer.style.display = 'none';
             loginGuide.style.display = 'block';
         } else {
-            // UI 요소 가져오기 및 로그인 상태 처리
+            viewer.style.display = 'block';
+            loginGuide.style.display = 'none';
+    
+            // UI 요소 업데이트
             const beforeLogin = document.getElementById('before-login');
             const afterLogin = document.getElementById('after-login');
             const welcomeMsg = document.getElementById('welcome-message');
@@ -342,7 +345,7 @@
             if (beforeLogin) beforeLogin.style.display = 'none';
             if (afterLogin) afterLogin.style.display = 'flex';
     
-            // 이름 로직 시작
+            // 이름 로직
             let displayName = "사용자";
             const currentUser = session?.user || naverUser;
     
@@ -367,7 +370,7 @@
                 welcomeMsg.textContent = displayName;
             }
     
-            // PDF 로드 로직 (이제 init 함수 내부에 올바르게 위치함)
+            // PDF 로드 로직
             const params = new URLSearchParams(window.location.search);
             const file = params.get('file');
             const fileMap = { 
@@ -384,23 +387,21 @@
                 const fileUrl = `https://raw.githubusercontent.com/Jihye2002/healthykids_workspace/main/${fileMap[file]}`;
                 const viewerUrl = `https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(fileUrl)}`;
                 
-                viewer.style.display = 'block';
                 viewer.innerHTML = `
-                    <iframe src="${viewerUrl}" style="width:100%; height:80vh; border:none;">
-                    </iframe>
+                    <iframe src="${viewerUrl}" style="width:100%; height:80vh; border:none;"></iframe>
                 `;
-                if (loginGuide) loginGuide.style.display = 'none';
+                loginGuide.style.display = 'none';
             }
-        }
+        } // else 블록 끝
     
-        // 로그아웃 버튼 이벤트 (init 내부로 이동)
+        // 로그아웃 버튼 이벤트
         document.getElementById('logout-btn')?.addEventListener('click', async () => {
             await sb.auth.signOut();
             localStorage.clear();
             window.location.href = 'index.html';
         });
-    }
-    
-    document.addEventListener('DOMContentLoaded', init);
+    } // init 함수 끝
+
+    document.addEventListener('DOMContentLoaded', init);
 </body>
 </html>
