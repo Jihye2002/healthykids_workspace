@@ -166,40 +166,40 @@
             background-color: #f8fbff;
         }  
         
+        /* 1. 페이지 컨테이너 */
         .page-container {
             width: 100%;
             max-width: 1920px;
-        
-            margin: 0 auto;   /* 핵심 */
+            margin: 0 auto;
             padding: 30px;
-        
             display: flex;
             flex-direction: column;
-            align-items: center; /* 내부 요소 중앙 */
-        }
-    
-        #video-title,
-        .video-wrapper,
-        .quiz-section {
-            width: 100%;
-            max-width: 1920px;
-            min-width: 400px;
+            align-items: center;
         }
         
+        /* 2. 제목 및 기본 레이아웃 */
         #video-title {
             width: 100%;
+            max-width: 1920px;
             color: #2f63c7;
             padding-bottom: 30px;
         }
         
-       .video-wrapper {
+        /* 3. 영상 영역 (애니메이션 적용) */
+        .video-wrapper {
             width: 100%;
+            max-width: 1920px;
+            min-width: 400px;
             aspect-ratio: 16/9;
-            margin:0 auto;
-        
+            margin: 0 auto;
             background: #000;
             overflow: hidden;
-            display: block;
+            transition: all 0.6s ease-in-out; /* 크기 변경 시 부드럽게 */
+        }
+        
+        /* 영상이 축소될 때 적용될 클래스 */
+        .video-wrapper.shrink {
+            max-width: 800px;
         }
         
         #main-video {
@@ -207,46 +207,48 @@
             height: 100%;
             display: block;
         }
-                
-        /* 🎯 카훗 영역 (처음 숨김) */
+        
+        /* 4. 퀴즈 섹션 (슬라이드 애니메이션 최적화) */
         .quiz-section {
             width: 100%;
-        
-            margin-top: 40px;
-            padding: 30px;
-        
+            max-width: 1920px;
+            min-width: 400px;
             background: #f5f6fa;
-        
-            display: none;
-        
             text-align: center;
-        
-            border-radius: 10px;
+            
+            /* 애니메이션용 초기값 */
+            max-height: 0;
+            opacity: 0;
+            padding: 0;
+            margin-top: 0;
+            overflow: hidden;
+            transition: all 0.6s ease-in-out;
         }
         
-        .quiz-section h3 {
-            margin-bottom: 12px;
+        /* 퀴즈가 활성화될 때 적용될 클래스 */
+        .quiz-section.active {
+            max-height: 300px; /* 내부 콘텐츠가 보일 수 있는 충분한 높이 */
+            opacity: 1;
+            padding: 30px;
+            margin-top: 40px;
         }
         
-        .quiz-section p {
-            margin-bottom: 20px;
-            line-height: 1.6;
-        }
+        .quiz-section h3 { margin-bottom: 12px; }
+        .quiz-section p { margin-bottom: 20px; line-height: 1.6; }
         
-        /* 버튼 감싸는 a 태그 때문에 간격 안 먹는 문제 해결 */
-        .quiz-section a {
-            display: inline-block;
-        }
+        /* 5. 버튼 스타일 */
+        .quiz-section a { display: inline-block; }
         
         .btn {
-            padding:15px 20px;
-            background:#2f63c7;
-            cursor:pointer;
-            border:none;
-            font-size:16px;
+            padding: 15px 20px;
+            background: #2f63c7;
+            cursor: pointer;
+            border: none;
+            font-size: 16px;
             color: white;
+            transition: background 0.3s;
         }
-
+        
         #quiz-buttons {
             display: flex;
             justify-content: center;
@@ -254,7 +256,7 @@
             flex-wrap: wrap;
         }
         
-        .btn:hover { background:#709ac4 }
+        .btn:hover { background: #709ac4; }
 </style>
 </head>
 
@@ -346,21 +348,17 @@
 </nav>
 
 <div class="page-container">
-
     <h2 id="video-title">불러오는 중...</h2>
-
     <div class="video-wrapper">
         <video id="main-video" controls muted autoplay playsinline></video>
     </div>
-
     <div class="quiz-section" id="quiz-section">
         <h3 style="margin-bottom:15px;">🎬 영상이 끝났어요!</h3>
         <p>아래에서 퀴즈를 시작해보세요</p>
-    
-       <div id="quiz-buttons"></div>
+        <div id="quiz-buttons"></div>
     </div>
-
 </div>
+    
 <script type="module">
     import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -503,8 +501,13 @@
             }
 
             // 퀴즈 섹션 표시
+            const videoWrapper = document.querySelector('.video-wrapper');
             const quizSection = document.getElementById('quiz-section');
             const quizButtonsContainer = document.getElementById('quiz-buttons');
+            
+            // 클래스 추가로 애니메이션 트리거
+            if (videoWrapper) videoWrapper.classList.add('shrink');
+            if (quizSection) quizSection.classList.add('active');
             
             if (quizSection) quizSection.style.display = "block";
 
