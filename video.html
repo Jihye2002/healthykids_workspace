@@ -454,13 +454,21 @@
                 .eq('user_email', userEmail)
                 .eq('video_id', type)
                 .maybeSingle();
-                
+        
+            // 데이터가 있을 때만 이벤트 리스너를 등록
             if (progressData?.progress_time > 0) {
-                isSeeking = true;
-                video.addEventListener('loadedmetadata', () => {
+                isSeeking = true; // 여기서 true로 설정하여 timeupdate 저장을 차단
+        
+                video.addEventListener('canplay', () => {
+                    // 비디오가 재생 가능한 상태가 되면 시간 이동
                     video.currentTime = (progressData.progress_time / 100) * video.duration;
-                    setTimeout(() => { isSeeking = false; }, 1500);
-                }, { once: true });
+                    
+                    // 이동 후 자동 재생 시도
+                    video.play().catch(e => console.log("자동 재생 차단됨:", e));
+                    
+                    // 1초 후 isSeeking을 해제하여 이후 timeupdate가 정상 작동하게 함
+                    setTimeout(() => { isSeeking = false; }, 1000);
+                }, { once: true }); // 딱 한 번만 실행되도록 설정
             }
         }
 
