@@ -32,14 +32,15 @@
     <div id="status-msg"></div>
 
     <div id="withdraw-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:2000; justify-content:center; align-items:center;">
-        <div style="background:white; padding:30px; text-align: center; box-shadow:0 5px 15px rgba(0,0,0,0.3); max-width: 320px; border-radius: 0px;">
-            <div id="withdraw-info" style="margin-bottom: 20px;"></div>
+        <div style="background:white; padding:30px; box-shadow:0 5px 15px rgba(0,0,0,0.3); width: 400px; border-radius: 8px;">
             
-            <p style="font-size: 16px; color: #666; margin: 0 0 25px 0;">정말 떠나실 건가요? 😢</p>
+            <div id="withdraw-info" style="margin-bottom: 25px; text-align: left;"></div>
             
-            <div style="display: flex; justify-content: center; gap: 20px;">
-                <button onclick="window.confirmWithdraw()" style="padding:10px 20px; background:#2f63c7; color:white; border:none; cursor:pointer;">네, 없애주세요</button>
-                <button onclick="window.closeWithdrawModal()" style="padding:10px 20px; background:#ccc; color:white; border:none; cursor:pointer;">아니요!</button>
+            <p style="font-size: 16px; color: #666; margin: 0 0 25px 0; text-align: center;">정말 떠나실 건가요? 😢</p>
+            
+            <div style="display: flex; justify-content: center; gap: 15px;">
+                <button onclick="window.confirmWithdraw()" style="padding:12px 25px; background:#2f63c7; color:white; border:none; cursor:pointer; border-radius: 4px;">네, 탈퇴할게요</button>
+                <button onclick="window.closeWithdrawModal()" style="padding:12px 25px; background:#e0e0e0; color:#555; border:none; cursor:pointer; border-radius: 4px;">아니요!</button>
             </div>
         </div>
     </div>
