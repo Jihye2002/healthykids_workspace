@@ -208,6 +208,11 @@
             // 소셜 로그인(구글, 카카오, 네이버)인 경우 모달 띄우기
             if (provider === 'google' || provider === 'kakao' || isNaver) {
                 document.getElementById('social-notice-modal').style.display = 'flex';
+                
+                setTimeout(() => {
+                    location.href = "index.html";
+                }, 2000);
+                
                 return; // 아래 저장 로직 실행하지 않음
             }
         
