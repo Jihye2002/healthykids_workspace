@@ -243,13 +243,7 @@
 
         }
 
-        // 모든 에러 메시지를 한 번에 지우는 단 하나의 함수
-        function clearAllErrors() {
-            // 모든 에러 텍스트 제거
-            document.querySelectorAll('.error-text').forEach(el => el.remove());
-            // 입력창 테두리 초기화
-            document.querySelectorAll('.input-field').forEach(el => el.style.borderColor = "#ddd");
-        }
+    
 
         function setError(inputField, message) {
 
@@ -272,71 +266,142 @@
             inputField.parentElement.after(errorSpan);
 
         }
-  
+
+
+
+        // 모든 에러 메시지를 한 번에 지우는 함수
+        function clearAllErrors() {
+            const errorElements = document.querySelectorAll('.error-text');
+            errorElements.forEach(el => el.remove());
+            
+            // 혹시 테두리 색상도 변경했다면 초기화
+            document.querySelectorAll('.input-field').forEach(el => el.style.borderColor = "#ddd");
+        }
+
+    
 
         window.findId = async function() {
-            clearAllErrors(); // [통합] 누르는 순간 모든 에러 삭제
+
+            clearAllErrors();
+
             const sb = await initSupabase();
+
             const inputField = document.getElementById('find-nickname');
+
             const nickname = inputField.value.trim();
-            
+
             if (!nickname) return setError(inputField, "별명을 입력해주세요!");
-            
-            const { data } = await sb.from('users').select('email').eq('nickname', nickname).maybeSingle();
+
+    
+
+            const { data } = await sb.from('public.users').select('email').eq('nickname', nickname).maybeSingle();
+
             if (data) {
-                const fullEmail = data.email;
-                document.getElementById('id-result').textContent = `찾았다! 아이디는 '${fullEmail.split('@')[0]}'예요!`;
-                const pwInput = document.getElementById('find-pw-id');
-                pwInput.value = fullEmail.split('@')[0];
-                pwInput.dataset.fullEmail = fullEmail; 
+
+                const foundId = data.email.split('@')[0];
+
+                document.getElementById('id-result').textContent = `찾았다! 아이디는 '${foundId}'예요!`;
+
+                document.getElementById('find-pw-id').value = foundId;
+
             } else {
+
                 setError(inputField, "일치하는 별명을 찾을 수 없어요.");
+
             }
+
         };
-        
+
+    
+
         window.requestSecurityQuestion = async function() {
-            clearAllErrors(); // [통합] 누르는 순간 모든 에러 삭제
+
             const sb = await initSupabase();
+
             const inputField = document.getElementById('find-pw-id');
-            const fullEmail = inputField.dataset.fullEmail;
-        
-            if (!fullEmail) return setError(inputField, "아이디 찾기를 먼저 수행해주세요.");
-        
-            const { data } = await sb.from('users').select('id, security_question, security_answer').eq('email', fullEmail).maybeSingle();
+
+            const userId = inputField.value.trim();
+
+            const { data } = await sb.from('public.users').select('id, security_question, security_answer').eq('email', `${userId}@healthykids.com`).maybeSingle();
+
+            
+
             if (data) {
+
                 currentUserId = data.id;
+
                 currentSecurityAnswer = data.security_answer;
+
                 document.getElementById('security-question-text').textContent = `질문: ${data.security_question}`;
+
                 document.getElementById('qna-box').style.display = "block";
+
             } else {
+
                 setError(inputField, "해당 아이디를 찾을 수 없어요.");
+
             }
+
         };
+
+    
 
         window.verifyAnswer = async function() {
-            clearAllErrors(); // [통합] 누르는 순간 모든 에러 삭제
+
             const sb = await initSupabase();
+
             const inputField = document.getElementById('security-answer');
+
             const inputAnswer = inputField.value.trim();
+
             
+
             if (inputAnswer === currentSecurityAnswer) {
+
                 const finalTempPassword = Math.random().toString(36).slice(-8) + "!A1";
+
+                
+
                 const { error } = await sb.rpc('force_update_password', {
+
                     target_id: currentUserId,
+
                     new_password: finalTempPassword,
+
                     new_usage: 0,
+
                     new_is_temp: true
+
                 });
 
-                if (error) return setError(inputField, "서버 오류 발생!");
+        
+
+                if (error) {
+
+                    console.error("DB 업데이트 오류:", error);
+
+                    return setError(inputField, "서버 통신 오류가 발생했습니다.");
+
+                }
+
+        
 
                 document.getElementById('pw-result').style.display = "block";
+
                 document.getElementById('pw-message').textContent = "정답이에요! 아래 비밀번호를 복사하세요.";
+
                 document.getElementById('temp-pw-display').value = finalTempPassword;
+
+        
+
             } else {
-                setError(inputField, "앗.. 답이 틀렸어요. 다시 확인해주세요!");
+
+                setError(inputField, "앗..다시 써주세요ㅠㅠ");
+
             }
+
         };
+
     
 
         window.copyPassword = async function() {
