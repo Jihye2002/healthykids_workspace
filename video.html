@@ -416,9 +416,15 @@
 
         // 4. 이름 표시 (naverUser의 경우 response.name 또는 name 속성 확인)
         if (isLoggedIn && welcomeMessage) {
+            console.log("Current User Object:", currentUser); // 데이터를 확인하기 위한 로그 추가
+            console.log("Naver User Object:", naverUser);     // 데이터를 확인하기 위한 로그 추가
+        
+            // 수정된 이름 추출 로직
             const userName = currentUser.user_metadata?.full_name || 
-                             (naverUser && (naverUser.name || (naverUser.response && naverUser.response.name))) || 
-                             "사용자";
+                             naverUser?.name || 
+                             (naverUser?.response && naverUser.response.name) || 
+                             (naverUser?.properties && naverUser.properties.nickname) || // 추가 가능성
+                             "사용자"; // fallback
             welcomeMessage.innerText = userName;
         }
 
