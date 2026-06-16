@@ -77,44 +77,52 @@
 
         async function loadUserInfo() {
             if (!supabase) return;
-
+        
             const naverUser = JSON.parse(localStorage.getItem('user'));
             const { data: { session } } = await supabase.auth.getSession();
-
+        
             if (!session?.user && (!naverUser || naverUser.provider !== 'naver')) {
                 window.location.replace('index.html');
                 return;
             }
-
+        
             let data = null;
             const targetEmail = session?.user?.email || naverUser?.email;
-
+            const provider = session?.user?.app_metadata?.provider; // google, kakao 등
+        
             try {
-                if (naverUser?.provider === 'naver') {
+                // 1. 소셜(구글, 카카오) 로그인인 경우: auth.users 의 메타데이터 사용
+                if (['google', 'kakao'].includes(provider)) {
+                    loginType = 'social';
+                    // auth.users는 직접 조회 불가, 이미 가져온 session.user 데이터를 활용
+                    data = {
+                        name: session.user.user_metadata?.full_name || session.user.user_metadata?.name,
+                        email: session.user.email,
+                        nickname: session.user.user_metadata?.nickname || '없음'
+                    };
+                } 
+                // 2. 네이버 로그인인 경우: users 테이블 사용
+                else if (naverUser?.provider === 'naver') {
                     loginType = 'naver';
-                    const { data: nData, error } = await supabase.from('users').select('*').eq('email', targetEmail).maybeSingle();
-                    if (error) throw error;
+                    const { data: nData } = await supabase.from('users').select('*').eq('email', targetEmail).maybeSingle();
                     data = nData;
-                } else {
-                    const provider = session.user.app_metadata?.provider;
-                    loginType = ['google', 'kakao'].includes(provider) ? 'social' : 'local';
-                    const tableName = (loginType === 'local') ? 'public.users' : 'users';
-                    const { data: sData, error } = await supabase.from(tableName).select('*').eq('email', targetEmail).maybeSingle();
-                    if (error) throw error;
-                    data = sData;
+                } 
+                // 3. 헬시키즈 일반 로그인인 경우: public.users 테이블 사용
+                else {
+                    loginType = 'local';
+                    const { data: lData } = await supabase.from('public.users').select('*').eq('email', targetEmail).maybeSingle();
+                    data = lData;
                 }
-
+        
                 if (!data) {
                     window.location.replace('index.html');
                     return;
                 }
-
+        
                 currentUser = { ...data, email: targetEmail };
-                renderUI(data);
+                renderUI(currentUser);
             } catch (err) {
                 console.error("데이터 로드 오류:", err);
-                await supabase.auth.signOut();
-                window.location.replace('index.html');
             }
         }
 
