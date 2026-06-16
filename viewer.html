@@ -328,8 +328,6 @@
 
     }
 
-
-
     async function init() {
         const sb = await initSupabase();
         const { data: { session } } = await sb.auth.getSession();
@@ -340,109 +338,72 @@
         const isLoggedIn = session || naverUser;
     
         if (!isLoggedIn) {
+            // 로그인 안 된 경우: 뷰어 숨기고 가이드 표시
             viewer.style.display = 'none';
             loginGuide.style.display = 'block';
         } else {
+            // 로그인 된 경우: UI 업데이트 및 PDF 로드
             viewer.style.display = 'block';
             loginGuide.style.display = 'none';
     
-            // UI 요소 가져오기
+            // UI 업데이트 로직 (이름 표시)
             const beforeLogin = document.getElementById('before-login');
             const afterLogin = document.getElementById('after-login');
             const welcomeMsg = document.getElementById('welcome-message');
             
-            beforeLogin.style.display = 'none';
-            afterLogin.style.display = 'flex';
+            if (beforeLogin) beforeLogin.style.display = 'none';
+            if (afterLogin) afterLogin.style.display = 'flex';
     
-            // 이름 로직 시작
             let displayName = "사용자";
             const currentUser = session?.user || naverUser;
     
             try {
                 if (naverUser && naverUser.provider === 'naver') {
-                    // 네이버 로그인: users 테이블에서 name 조회
                     const { data: dbUser } = await sb.from('users').select('name').eq('email', naverUser.email).maybeSingle();
                     displayName = dbUser?.name || naverUser.name || "사용자";
                 } else if (currentUser) {
-                    // 구글, 카카오 또는 자체 로그인
                     const provider = currentUser.app_metadata?.provider;
                     const isSocial = ['google', 'kakao'].includes(provider);
-                    
                     const table = isSocial ? 'users' : 'public.users';
                     const col = isSocial ? 'name' : 'nickname';
-                    
                     const { data: dbUser } = await sb.from(table).select(col).eq('email', currentUser.email).maybeSingle();
                     displayName = dbUser?.[col] || currentUser.user_metadata?.[col] || "사용자";
                 }
-            } catch (err) {
-                console.error("이름 업데이트 실패:", err);
-            }
+            } catch (err) { console.error("이름 업데이트 실패:", err); }
     
-            if (welcomeMsg) {
-                welcomeMsg.textContent = displayName;
-            }
-        }
+            if (welcomeMsg) welcomeMsg.textContent = displayName;
 
-            // PDF 로드
-
+            // --- PDF 로드 로직을 여기(else 블록 내부)로 이동 ---
             const params = new URLSearchParams(window.location.search);
-
             const file = params.get('file');
-
             const fileMap = { 
-
                 "위생안전수칙.pdf": "위생안전수칙.pdf", 
-
                 "실외안전수칙.pdf": "실외안전수칙.pdf", 
-
                 "생활건강수칙.pdf": "생활건강수칙.pdf", 
-
                 "질병예방수칙.pdf": "질병예방수칙.pdf", 
-
                 "하루건강체크리스트.pdf": "하루건강_체크리스트.pdf", 
-
                 "퀴즈.pdf": "퀴즈.pdf", 
-
                 "활동지.pdf": "활동지.pdf"
-
             };
-
-            // PDF 로드 부분 (init 함수 내)
 
             if (file && fileMap[file]) {
                 const fileUrl = `https://raw.githubusercontent.com/Jihye2002/healthykids_workspace/main/${fileMap[file]}`;
-            
-                // 모질라(Mozilla) 공식 PDF.js 뷰어 주소
                 const viewerUrl = `https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(fileUrl)}`;
                 
-                const viewer = document.getElementById('pdf-viewer');
-                viewer.style.display = 'block';
-                
-                // iframe으로 불러오기 (수정된 부분: style 속성에 width/height 통합)
                 viewer.innerHTML = `
-                    <iframe 
-                        src="${viewerUrl}" 
-                        style="width: 100%; height: 85vh; border: none;" 
-                        title="PDF Viewer">
-                    </iframe>
+                    <iframe src="${viewerUrl}" style="width: 100%; height: 85vh; border: none;" title="PDF Viewer"></iframe>
                 `;
-                
-                const loginGuide = document.getElementById('login-guide');
-                if (loginGuide) {
-                    loginGuide.style.display = 'none';
-                }
             }
+        }
 
-        // 로그아웃 버튼 이벤트 (isLoggedIn 체크와 상관없이 실행 가능하도록)
-
+        // 로그아웃 버튼 이벤트
         document.getElementById('logout-btn')?.addEventListener('click', async () => {
             const sb = await initSupabase();
             await sb.auth.signOut();
             localStorage.clear();
             window.location.href = 'index.html';
         });
-
-    } // init 함수 끝
+    }
 
     document.addEventListener('DOMContentLoaded', init);
 </script>
