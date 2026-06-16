@@ -416,15 +416,16 @@
 
         // 4. 이름 표시 (naverUser의 경우 response.name 또는 name 속성 확인)
         if (isLoggedIn && welcomeMessage) {
-            console.log("Current User Object:", currentUser); // 데이터를 확인하기 위한 로그 추가
-            console.log("Naver User Object:", naverUser);     // 데이터를 확인하기 위한 로그 추가
-        
-            // 수정된 이름 추출 로직
+            // 우선순위에 따라 이름 추출
+            // 1. Supabase 메타데이터, 2. 네이버 유저 객체(다양한 구조 대응), 3. 기본값 '사용자'
             const userName = currentUser.user_metadata?.full_name || 
-                             naverUser?.name || 
-                             (naverUser?.response && naverUser.response.name) || 
-                             (naverUser?.properties && naverUser.properties.nickname) || // 추가 가능성
-                             "사용자"; // fallback
+                             currentUser.user_metadata?.name || 
+                             currentUser.name || 
+                             (naverUser?.name) || 
+                             (naverUser?.response?.name) || 
+                             (naverUser?.properties?.nickname) || 
+                             "사용자";
+            
             welcomeMessage.innerText = userName;
         }
 
