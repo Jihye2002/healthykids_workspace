@@ -402,7 +402,6 @@
         
         // Supabase 세션 혹은 로컬스토리지에서 이메일 추출
         const userEmail = session?.user?.email || naverUser?.email || null;
-        console.log("현재 로그인된 이메일 (DB 검색용):", userEmail);
 
         const currentUser = session?.user || naverUser;
         const isLoggedIn = !!currentUser;
