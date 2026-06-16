@@ -202,11 +202,36 @@
             display: block;
         }
         
-        #login-guide { display: none; }
+        /* login-guide 관련 기존 스타일 대신 아래 내용을 넣어주세요 */
+        #login-guide { 
+            display: none; 
+            /* 화면 중앙 배치 */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            
+            /* 박스 모양 설정 */
+            border-top: 2px solid #2f63c7;
+            border-bottom: 2px solid #2f63c7;
+            padding: 60px 20px;
+            margin: 0 auto;
+            width: 80%;
+            max-width: 500px;
+            background-color: #f9f9f9;
+        }
+        
         .login-btn { 
-            display: inline-block; background: #2f63c7; color: white; 
-            padding: 15px 30px; text-decoration: none; font-weight: bold; 
-            font-size: 1.1em; margin-top: 20px;
+            display: inline-block; 
+            background: #2f63c7; 
+            color: white; 
+            padding: 15px 30px; 
+            text-decoration: none; 
+            font-weight: bold; 
+            font-size: 1.1em; 
+            margin-top: 20px;
+            border-radius: 8px;
         }
     </style>
 </head>
@@ -340,7 +365,7 @@
         if (!isLoggedIn) {
             // 로그인 안 된 경우: 뷰어 숨기고 가이드 표시
             viewer.style.display = 'none';
-            loginGuide.style.display = 'block';
+            loginGuide.style.display = 'flex';
         } else {
             // 로그인 된 경우: UI 업데이트 및 PDF 로드
             viewer.style.display = 'block';
