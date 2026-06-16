@@ -65,6 +65,14 @@
     </style>
 </head>
 <body>
+    <div id="social-notice-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:3000; justify-content:center; align-items:center;">
+        <div style="background: white; padding: 30px; border-radius: 10px; text-align: center; width: 320px;">
+            <h3 style="color: #2f63c7;">앗! 잠깐만요!</h3>
+            <p style="font-size: 14px; color: #666; margin-bottom: 20px;">구글, 카카오, 네이버로 로그인하신 경우,<br>이곳에서는 정보를 수정할 수 없어요. 😢</p>
+            <button onclick="document.getElementById('social-notice-modal').style.display='none'" style="width: 100%; padding: 10px; background: #ccc; border: none; cursor: pointer;">확인</button>
+        </div>
+    </div>
+    
    <div class="background-elements">
         <div class="floating-shape" style="top: 15%; left: 10%; font-size: 35px; color: #a2d2ff; transform: rotate(15deg);">★</div>
         <div class="floating-shape" style="top: 55%; right: 8%; font-size: 28px; color: #fdfd96; transform: rotate(-20deg);">★</div>
@@ -191,6 +199,19 @@
             const sb = await initSupabase();
             if (!sb) return showMessage("서버 연결 실패", false);
         
+            const { data: { user } } = await sb.auth.getUser();
+            const provider = user?.app_metadata?.provider;
+            
+            // 네이버는 localStorage에 별도 저장했으므로 추가 확인
+            const isNaver = JSON.parse(localStorage.getItem('user'))?.provider === 'naver';
+        
+            // 소셜 로그인(구글, 카카오, 네이버)인 경우 모달 띄우기
+            if (provider === 'google' || provider === 'kakao' || isNaver) {
+                document.getElementById('social-notice-modal').style.display = 'flex';
+                return; // 아래 저장 로직 실행하지 않음
+            }
+        
+            // (이하 기존 저장 로직)
             const submitBtn = document.getElementById('submit-btn');
             submitBtn.disabled = true;
         
