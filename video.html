@@ -414,19 +414,32 @@
         if (beforeLogin) beforeLogin.style.display = isLoggedIn ? 'none' : 'flex';
         if (afterLogin) afterLogin.style.display = isLoggedIn ? 'flex' : 'none';
 
-        // 4. 이름 표시 (naverUser의 경우 response.name 또는 name 속성 확인)
+        // 4. 이름 표시 로직 수정
         if (isLoggedIn && welcomeMessage) {
-            // 우선순위에 따라 이름 추출
-            // 1. Supabase 메타데이터, 2. 네이버 유저 객체(다양한 구조 대응), 3. 기본값 '사용자'
-            const userName = currentUser.user_metadata?.full_name || 
-                             currentUser.user_metadata?.name || 
-                             currentUser.name || 
-                             (naverUser?.name) || 
-                             (naverUser?.response?.name) || 
-                             (naverUser?.properties?.nickname) || 
-                             "사용자";
+            let displayName = "사용자";
+        
+            try {
+                if (naverUser && naverUser.provider === 'naver') {
+                    // 네이버 로그인: DB에서 이름 조회
+                    const { data: dbUser } = await sb.from('users').select('name').eq('email', naverUser.email).maybeSingle();
+                    displayName = dbUser?.name || naverUser.name || "사용자";
+                } else if (currentUser) {
+                    // 소셜(구글/카카오) 또는 자체 로그인
+                    const provider = currentUser.app_metadata?.provider;
+                    const isSocial = ['google', 'kakao'].includes(provider);
+                    
+                    // 소셜이면 users 테이블(name), 자체 로그인이면 public.users 테이블(nickname)
+                    const table = isSocial ? 'users' : 'public.users';
+                    const col = isSocial ? 'name' : 'nickname';
+                    
+                    const { data: dbUser } = await sb.from(table).select(col).eq('email', currentUser.email).maybeSingle();
+                    displayName = dbUser?.[col] || currentUser.user_metadata?.[col] || "사용자";
+                }
+            } catch (err) {
+                console.error("이름 로드 오류:", err);
+            }
             
-            welcomeMessage.innerText = userName;
+            welcomeMessage.innerText = displayName;
         }
 
         if (!type) return;
