@@ -501,10 +501,26 @@
                     updated_at: new Date().toISOString()
                 }, { onConflict: 'user_email, video_id' });
             }
+
+            // 퀴즈 섹션 표시
             const quizSection = document.getElementById('quiz-section');
+            const quizButtonsContainer = document.getElementById('quiz-buttons');
+            
             if (quizSection) quizSection.style.display = "block";
+
+            // [추가] 카훗 링크 버튼 생성 로직
+            const contentData = contentDB[type];
+            if (quizButtonsContainer && contentData && contentData.kahoot) {
+                quizButtonsContainer.innerHTML = ''; // 기존 버튼 초기화
+                contentData.kahoot.forEach((url, index) => {
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.target = "_blank";
+                    a.innerHTML = `<button class="btn">퀴즈 ${index + 1} 시작하기</button>`;
+                    quizButtonsContainer.appendChild(a);
+                });
+            }
         });
-    }
 
     document.addEventListener('DOMContentLoaded', init);
 </script>
