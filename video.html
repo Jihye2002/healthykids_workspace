@@ -464,6 +464,7 @@
         }
 
         // 이어보기 로직
+        // 이어보기 로직 (변경 없음)
         if (userEmail) {
             const { data: progressData } = await sb.from('video_progress')
                 .select('progress_time')
@@ -480,33 +481,48 @@
             }
         }
 
-        // 5초 간격 저장 로직
+        // 5초 간격 저장 로직 (수정됨: 동시성 제어 추가)
         let lastSavedTime = -5;
+        let isSaving = false; // 저장 중 상태 추가
+
         video.addEventListener('timeupdate', async () => {
-            if (isSeeking || !video.duration || !userEmail) return;
+            if (isSeeking || isSaving || !video.duration || !userEmail) return;
+            
             if (Math.abs(video.currentTime - lastSavedTime) > 5) {
-                lastSavedTime = video.currentTime;
-                const progress = (video.currentTime / video.duration) * 100;
-                await sb.from('video_progress').upsert({
-                    user_email: userEmail,
-                    video_id: type,
-                    progress_time: progress,
-                    is_completed: progress >= 95,
-                    updated_at: new Date().toISOString()
-                });
+                isSaving = true; // 저장 시작
+                try {
+                    lastSavedTime = video.currentTime;
+                    const progress = (video.currentTime / video.duration) * 100;
+                    
+                    // onConflict 옵션을 추가하여 DB 충돌 방지
+                    await sb.from('video_progress').upsert({
+                        user_email: userEmail,
+                        video_id: type,
+                        progress_time: progress,
+                        is_completed: progress >= 95,
+                        updated_at: new Date().toISOString()
+                    }, { onConflict: 'user_email, video_id' });
+                } catch (err) {
+                    console.error("진행도 저장 실패:", err);
+                } finally {
+                    isSaving = false; // 저장 완료
+                }
             }
         });
 
         video.addEventListener('ended', async () => {
             if (userEmail) {
                 await sb.from('video_progress').upsert({ 
-                    user_email: userEmail, video_id: type, progress_time: 100, is_completed: true 
-                });
+                    user_email: userEmail, 
+                    video_id: type, 
+                    progress_time: 100, 
+                    is_completed: true,
+                    updated_at: new Date().toISOString()
+                }, { onConflict: 'user_email, video_id' });
             }
             const quizSection = document.getElementById('quiz-section');
             if (quizSection) quizSection.style.display = "block";
         });
-    }
 
     document.addEventListener('DOMContentLoaded', init);
 </script>
