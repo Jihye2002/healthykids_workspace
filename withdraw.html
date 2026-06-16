@@ -178,8 +178,6 @@
         };
         
         window.confirmWithdraw = async () => {
-            // 탈퇴 실행 전 사용자에게 다시 한번 확인받는 로직 권장
-            if (!confirm("정말 탈퇴하시겠습니까? 기록은 복구할 수 없습니다.")) return;
         
             try {
                 const { error } = await supabase.rpc('delete_account_by_email', { 
