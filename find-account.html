@@ -216,12 +216,11 @@
     
     <script type="module">
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-    
+
         let supabase = null;
         let currentSecurityAnswer = "";
         let currentUserId = "";
     
-        // Supabase 초기화
         async function initSupabase() {
             if (supabase) return supabase;
             const res = await fetch('/get-config');
@@ -247,27 +246,39 @@
             if (next && next.classList.contains('error-text')) next.remove();
         }
     
+        // [수정] 아이디 찾기: 전체 이메일을 dataset에 저장
         window.findId = async function() {
             const sb = await initSupabase();
             const inputField = document.getElementById('find-nickname');
             const nickname = inputField.value.trim();
             if (!nickname) return setError(inputField, "별명을 입력해주세요!");
     
-            const { data } = await sb.from('public.users').select('email').eq('nickname', nickname).maybeSingle();
+            const { data } = await sb.from('users').select('email').eq('nickname', nickname).maybeSingle();
             if (data) {
-                const foundId = data.email.split('@')[0];
+                const fullEmail = data.email;
+                const foundId = fullEmail.split('@')[0];
                 document.getElementById('id-result').textContent = `찾았다! 아이디는 '${foundId}'예요!`;
-                document.getElementById('find-pw-id').value = foundId;
+                
+                // 비밀번호 찾기를 위해 전체 이메일을 보관
+                const pwInput = document.getElementById('find-pw-id');
+                pwInput.value = foundId;
+                pwInput.dataset.fullEmail = fullEmail; 
             } else {
                 setError(inputField, "일치하는 별명을 찾을 수 없어요.");
             }
         };
     
+        // [수정] 질문 확인: 저장된 fullEmail 사용
         window.requestSecurityQuestion = async function() {
             const sb = await initSupabase();
             const inputField = document.getElementById('find-pw-id');
-            const userId = inputField.value.trim();
-            const { data } = await sb.from('public.users').select('id, security_question, security_answer').eq('email', `${userId}@healthykids.com`).maybeSingle();
+            const fullEmail = inputField.dataset.fullEmail; // 저장해둔 전체 이메일 사용
+    
+            if (!fullEmail) {
+                return setError(inputField, "아이디 찾기를 먼저 수행해주세요.");
+            }
+    
+            const { data } = await sb.from('users').select('id, security_question, security_answer').eq('email', fullEmail).maybeSingle();
             
             if (data) {
                 currentUserId = data.id;
@@ -279,32 +290,29 @@
             }
         };
     
+        // [수정] 답변 확인: 중복 제거 및 깔끔한 에러 처리
         window.verifyAnswer = async function() {
             const sb = await initSupabase();
             const inputField = document.getElementById('security-answer');
-            const inputAnswer = inputField.value.trim();
+            clearError(inputField); 
             
+            const inputAnswer = inputField.value.trim();
             if (inputAnswer === currentSecurityAnswer) {
                 const finalTempPassword = Math.random().toString(36).slice(-8) + "!A1";
-                
                 const { error } = await sb.rpc('force_update_password', {
                     target_id: currentUserId,
                     new_password: finalTempPassword,
                     new_usage: 0,
                     new_is_temp: true
                 });
-        
-                if (error) {
-                    console.error("DB 업데이트 오류:", error);
-                    return setError(inputField, "서버 통신 오류가 발생했습니다.");
-                }
-        
+    
+                if (error) return setError(inputField, "서버 오류 발생!");
+    
                 document.getElementById('pw-result').style.display = "block";
                 document.getElementById('pw-message').textContent = "정답이에요! 아래 비밀번호를 복사하세요.";
                 document.getElementById('temp-pw-display').value = finalTempPassword;
-        
             } else {
-                setError(inputField, "앗..다시 써주세요ㅠㅠ");
+                setError(inputField, "앗.. 답이 틀렸어요. 다시 확인해주세요!");
             }
         };
     
