@@ -205,21 +205,28 @@
         /* login-guide 관련 기존 스타일 대신 아래 내용을 넣어주세요 */
         #login-guide { 
             display: none; 
-            /* 화면 중앙 배치 */
+            /* Flex로 중앙 정렬 유지 */
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            height: 100%;
             
-            /* 박스 모양 설정 */
-            border-top: 2px solid #2f63c7;
-            border-bottom: 2px solid #2f63c7;
-            padding: 60px 20px;
-            margin: 0 auto;
-            width: 80%;
-            max-width: 500px;
-            background-color: #f9f9f9;
+            /* 높이를 줄이고 컨텐츠에 맞춤 */
+            height: auto;
+            min-height: 300px;
+            
+            /* 가로로 더 넓게 (width 수정) */
+            width: 90%;
+            max-width: 800px;
+            
+            /* 위아래로 얇은 선 (색상 변경) */
+            border-top: 1px solid #999;
+            border-bottom: 1px solid #999;
+            
+            /* 내부 간격 조절 */
+            padding: 40px 20px;
+            margin: 50px auto; /* 위아래 간격을 띄움 */
+            background-color: #fff; /* 배경색 흰색으로 변경 */
         }
         
         .login-btn { 
@@ -231,7 +238,6 @@
             font-weight: bold; 
             font-size: 1.1em; 
             margin-top: 20px;
-            border-radius: 8px;
         }
     </style>
 </head>
