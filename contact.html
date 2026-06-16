@@ -267,7 +267,7 @@
     <form id="contact-form">
         <div class="input-group">
             <label>이름</label>
-            <input type="text" id="name" required placeholder="성함을 입력해주세요">
+            <input type="text" id="name" required placeholder="이름을 입력해주세요">
         </div>
         <div class="input-group">
             <label>이메일</label>
@@ -343,7 +343,6 @@
         if (beforeLogin) beforeLogin.style.display = 'none';
         if (afterLogin) afterLogin.style.display = 'flex';
 
-        // 닉네임 표시 로직
         try {
             let displayName = "사용자";
             if (isNaver) {
@@ -361,20 +360,39 @@
         } catch (err) { console.error("UI 업데이트 오류:", err); }
     }
 
-    document.addEventListener('DOMContentLoaded', updateUI);
+    async function init() {
+        const sb = await initSupabase();
+        if (!sb) return;
+
+        // 로그아웃 버튼 이벤트 리스너 (중복 방지: 여기서 한 번만 등록)
+        document.getElementById('logout-btn')?.addEventListener('click', async (e) => {
+            e.preventDefault();
+            await clearAllAuth();
+            window.location.reload();
+        });
+
+        // 세션 체크 및 UI 업데이트
+        const { data: { session } } = await sb.auth.getSession();
+        updateUI(session);
+
+        sb.auth.onAuthStateChange((event, session) => {
+            updateUI(session);
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
 
     // 문의하기 버튼 제출
-    document.getElementById('contact-form').addEventListener('submit', async (e) => {
+    document.getElementById('contact-form')?.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const sb = await initSupabase()
-        
+        const sb = await initSupabase();
         const { data: { session } } = await sb.auth.getSession();
         
         const insertData = {
             name: document.getElementById('name').value,
             email: document.getElementById('email').value,
             message: document.getElementById('message').value,
-            user_id: session?.user?.id || null // 로그인했다면 ID를 같이 저장
+            user_id: session?.user?.id || null 
         };
 
         const { error } = await sb.from('inquiries').insert([insertData]);
@@ -386,15 +404,6 @@
             alert('문의가 성공적으로 접수되었습니다!');
             document.getElementById('contact-form').reset();
         }
-    });
-
-    // 로그아웃
-    document.getElementById('logout-btn')?.addEventListener('click', async (e) => {
-        e.preventDefault();
-        const sb = await getSupabase();
-        await sb.auth.signOut();
-        localStorage.clear();
-        window.location.reload();
     });
 </script>
 </body>
